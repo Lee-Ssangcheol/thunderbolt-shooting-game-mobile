@@ -1,0 +1,63 @@
+# 의존성 폴더
+node_modules/
+dist-build/
+
+# 운영체제 파일
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# IDE 및 에디터 설정
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 임시 파일
+*.tmp
+*.temp
+*.log
+*.bak
+
+# 백업 파일
+game - 복사본.js
+*복사본*
+*backup*
+*backup-*
+
+# 압축 파일
+*.zip
+*.rar
+*.7z
+*.tar
+*.gz
+
+# 환경 설정 파일
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 빌드 결과물
+build/
+dist/
+out/
+
+# 캐시 파일
+.cache/
+*.cache
+
+# 로그 파일
+logs/
+*.log
+
+# 임시 폴더
+temp/
+tmp/ 
