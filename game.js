@@ -3644,7 +3644,7 @@ function drawStartScreen() {
     if (isVisible) {
         ctx.font = 'bold 20px Arial';  // 80px에서 40px로 크기 감소
         ctx.fillStyle = '#ffff00';
-        ctx.fillText('시작/재시작 버튼을 눌러 게임 시작', canvas.width/2, canvas.height/2 + 100);
+        ctx.fillText('시작/재시작 버튼을 눌러 게임 시작', canvas.width/2, canvas.height/2 + 50);
     }
 
     // 조작법 안내
