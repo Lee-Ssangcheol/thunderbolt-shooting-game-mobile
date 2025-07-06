@@ -315,24 +315,25 @@ function setupMobileControls() {
     });
 }
 
-// 캔버스 크기 설정 (사운드 패널을 위한 여백 추가)
+// 캔버스 크기 설정
 function resizeCanvas() {
     const container = document.getElementById('canvas-container');
     if (container) {
-        const containerWidth = container.clientWidth;
-        const containerHeight = container.clientHeight;
-        
         // 컨테이너 스타일 조정
-        container.style.height = 'calc(100vh - 100px)';  // 상하 여백 동일하게
+        container.style.height = 'calc(100vh - 80px)';  // 모바일 컨트롤 높이만큼 제외
         container.style.position = 'relative';
         container.style.overflow = 'hidden';
         
         // 캔버스 스타일 조정
         canvas.style.borderRadius = '0';  // 모서리를 각지게
         
-        // 캔버스 크기를 모바일 비율에 맞게 설정
+        // 캔버스 크기를 모바일 비율에 맞게 설정 (일관성 유지)
         canvas.width = 392;  // 모바일 비율에 맞춘 가로 크기
-        canvas.height = 700;  // 모바일 비율에 맞춘 세로 크기 (850에서 700으로 줄임)
+        canvas.height = 700;  // 모바일 비율에 맞춘 세로 크기
+        
+        // CSS에서 설정한 크기와 일치하도록 스타일 설정
+        canvas.style.width = '392px';
+        canvas.style.height = '700px';
     }
 }
 
