@@ -2875,29 +2875,16 @@ document.addEventListener('keydown', (e) => {
         }
     }
     
-    // P 키를 눌렀을 때 게임 일시정지/재개
+    // P 키를 눌렀을 때 게임 일시정지/재개 (keys 객체와 독립적으로 처리)
     if (e.code === 'KeyP') {
         isPaused = !isPaused;
+        console.log('P키 눌림 - 일시정지 상태:', isPaused);
         
         // 일시정지 시 모바일 연속 발사 중지
         if (isPaused) {
             isMobileFirePressed = false;
             isContinuousFire = false;
         }
-    }
-    
-    // 모바일에서 KeyP 상태가 true일 때도 일시정지 처리
-    if (keys.KeyP) {
-        isPaused = !isPaused;
-        
-        // 일시정지 시 모바일 연속 발사 중지
-        if (isPaused) {
-            isMobileFirePressed = false;
-            isContinuousFire = false;
-        }
-        
-        // 키 상태 초기화
-        keys.KeyP = false;
     }
 });
 
