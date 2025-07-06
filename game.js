@@ -2870,6 +2870,10 @@ document.addEventListener('keydown', (e) => {
     if (e.code === 'KeyR') {
         if (confirm('최고 점수를 리셋하시겠습니까?')) {
             highScore = 0;
+            // localStorage 완전 초기화
+            localStorage.removeItem('ThunderboltHighScore');
+            localStorage.removeItem('ThunderboltHighScore_backup');
+            localStorage.removeItem('ThunderboltHighScore_timestamp');
             localStorage.setItem('ThunderboltHighScore', '0');
             alert('최고 점수가 리셋되었습니다.');
             console.log('최고 점수 리셋');
@@ -4604,9 +4608,10 @@ async function resetAllHighScores() {
         const store = tx.objectStore(storeName);
         await store.clear();
         
-        // localStorage 초기화
+        // localStorage 초기화 - 모든 관련 항목 제거
         localStorage.removeItem('ThunderboltHighScore');
         localStorage.removeItem('ThunderboltHighScore_backup');
+        localStorage.removeItem('ThunderboltHighScore_timestamp');
         
         // 현재 게임의 최고 점수 초기화
         highScore = 0;
