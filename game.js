@@ -43,12 +43,9 @@ function enableFullscreen() {
     }
 }
 
-// 터치 드래그 관련 변수
-let isDragging = false;
+// 터치 위치 이동 관련 변수 (향후 확장을 위해 유지)
 let touchStartX = 0;
 let touchStartY = 0;
-let playerStartX = 0;
-let playerStartY = 0;
 
 // 모바일 연속 발사 관련 변수
 let mobileFireStartTime = 0;
@@ -346,9 +343,9 @@ resizeCanvas();
 // 모바일 컨트롤 설정
 setupMobileControls();
 
-// 터치 드래그 이벤트 설정
+// 터치 위치 이동 이벤트 설정
 if (isMobile) {
-    setupTouchDragControls();
+    setupTouchPositionControls();
 }
 
 // 이미지 로딩 후 게임 초기화
@@ -4844,54 +4841,67 @@ function stopMobileContinuousFire() {
     lastReleaseTime = Date.now(); // 터치 종료 시간 설정
 }
 
-// 터치 드래그 컨트롤 설정
-function setupTouchDragControls() {
-    console.log('터치 드래그 컨트롤 설정');
+// 터치 위치 이동 컨트롤 설정
+function setupTouchPositionControls() {
+    console.log('터치 위치 이동 컨트롤 설정');
     
     // 터치 시작
     canvas.addEventListener('touchstart', (e) => {
         e.preventDefault();
         const touch = e.touches[0];
         const rect = canvas.getBoundingClientRect();
-        touchStartX = touch.clientX - rect.left;
-        touchStartY = touch.clientY - rect.top;
-        playerStartX = player.x;
-        playerStartY = player.y;
-        isDragging = true;
+        const touchX = touch.clientX - rect.left;
+        const touchY = touch.clientY - rect.top;
         
-        // 드래그 시작 시 자동 연속발사 시작
+        // 터치한 위치로 플레이어 즉시 이동
+        let newX = touchX - player.width / 2; // 터치 위치를 플레이어 중심으로 조정
+        let newY = touchY - player.height / 2;
+        
+        // 경계 제한
+        const margin = 10;
+        const maxY = canvas.height - 100; // 모바일 컨트롤 영역 고려
+        
+        newX = Math.max(-player.width / 2.5, Math.min(canvas.width - player.width / 1.5, newX));
+        newY = Math.max(margin, Math.min(maxY, newY));
+        
+        // 플레이어 위치 업데이트
+        player.x = newX;
+        player.y = newY;
+        
+        // 두 번째 비행기도 함께 이동
+        if (hasSecondPlane) {
+            secondPlane.x = newX + (canvas.width / 2 - 60) - (canvas.width / 2 - (240 * 0.7 * 0.7 * 0.8) / 2);
+            secondPlane.y = newY;
+        }
+        
+        // 터치 시 자동 연속발사 시작
         if (gameStarted && !isGameOver && !isStartScreen) {
             keys.Space = true;
             isSpacePressed = true;
             spacePressTime = Date.now();
             isContinuousFire = true;
-            console.log('드래그 연속발사 시작');
+            console.log('터치 연속발사 시작');
         }
         
-        console.log('터치 드래그 시작');
+        console.log('터치 위치 이동:', newX, newY);
     }, { passive: false });
     
-    // 터치 이동
+    // 터치 이동 (드래그 중에도 위치 업데이트)
     canvas.addEventListener('touchmove', (e) => {
         e.preventDefault();
-        if (!isDragging) return;
         
         const touch = e.touches[0];
         const rect = canvas.getBoundingClientRect();
         const touchX = touch.clientX - rect.left;
         const touchY = touch.clientY - rect.top;
         
-        // 플레이어 위치 계산
-        const deltaX = touchX - touchStartX;
-        const deltaY = touchY - touchStartY;
+        // 터치한 위치로 플레이어 즉시 이동
+        let newX = touchX - player.width / 2; // 터치 위치를 플레이어 중심으로 조정
+        let newY = touchY - player.height / 2;
         
-        // 새로운 위치 계산
-        let newX = playerStartX + deltaX;
-        let newY = playerStartY + deltaY;
-        
-        // 경계 제한 (처음 위치에서 아래쪽으로도 확장)
+        // 경계 제한
         const margin = 10;
-        const maxY = canvas.height - 100; // 처음 위치와 동일하게 설정
+        const maxY = canvas.height - 100; // 모바일 컨트롤 영역 고려
         
         newX = Math.max(-player.width / 2.5, Math.min(canvas.width - player.width / 1.5, newX));
         newY = Math.max(margin, Math.min(maxY, newY));
@@ -4911,18 +4921,17 @@ function setupTouchDragControls() {
     // 터치 종료
     canvas.addEventListener('touchend', (e) => {
         e.preventDefault();
-        isDragging = false;
         
-        // 드래그 종료 시 연속발사 중지
+        // 터치 종료 시 연속발사 중지
         if (gameStarted && !isGameOver && !isStartScreen) {
             keys.Space = false;
             isSpacePressed = false;
             lastReleaseTime = Date.now();
             isContinuousFire = false;
-            console.log('드래그 연속발사 중지');
+            console.log('터치 연속발사 중지');
         }
         
-        console.log('터치 드래그 종료');
+        console.log('터치 종료');
     }, { passive: false });
 }
 
