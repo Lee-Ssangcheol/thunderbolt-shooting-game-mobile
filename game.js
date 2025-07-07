@@ -317,7 +317,7 @@ function resizeCanvas() {
     const container = document.getElementById('canvas-container');
     if (container) {
         // 컨테이너 스타일 조정
-        container.style.height = 'calc(100vh - 80px)';  // 모바일 컨트롤 높이만큼 제외
+        container.style.height = 'calc(100vh - 70px)';  // 모바일 컨트롤 높이만큼 제외
         container.style.position = 'relative';
         container.style.overflow = 'hidden';
         
@@ -1913,13 +1913,14 @@ function gameLoop() {
                     ctx.fillStyle = gradient;
                     ctx.font = 'bold 45px Arial';
                     ctx.textAlign = 'center';
-                    ctx.fillText('GAME OVER', canvas.width/2, canvas.height/2);
+                    ctx.fillText('GAME OVER', canvas.width/2, canvas.height/2 - 80);
                     
                     ctx.font = 'bold 20px Arial';
                     ctx.fillStyle = '#ffffff';
-                    ctx.fillText(`최종 점수: ${score}`, canvas.width/2, canvas.height/2 + 60);
-                    ctx.fillText(`충돌 횟수: ${collisionCount}`, canvas.width/2, canvas.height/2 + 100);
-                    ctx.fillText('시작/재시작 버튼을 눌러 게임 재시작', canvas.width/2, canvas.height/2 + 160);
+                    ctx.fillText(`최종 점수: ${score}`, canvas.width/2, canvas.height/2 - 20);
+                    ctx.fillText(`충돌 횟수: ${collisionCount}`, canvas.width/2, canvas.height/2 + 20);
+                    ctx.fillText('화면을 터치하거나', canvas.width/2, canvas.height/2 + 60);
+                    ctx.fillText('시작/재시작 버튼을 눌러 게임 재시작', canvas.width/2, canvas.height/2 + 90);
                 }
             }
         } catch (error) {
@@ -3639,9 +3640,11 @@ function drawStartScreen() {
     const isVisible = Math.floor(currentTime / blinkSpeed) % 2 === 0;
     
     if (isVisible) {
-        ctx.font = 'bold 20px Arial';  // 80px에서 40px로 크기 감소
+        ctx.font = 'bold 16px Arial';
         ctx.fillStyle = '#ffff00';
-        ctx.fillText('시작/재시작 버튼을 눌러 게임 시작', canvas.width/2, canvas.height/2 + 50);
+        ctx.textAlign = 'center';
+        ctx.fillText('화면을 터치하거나', canvas.width/2, canvas.height/2 + 40);
+        ctx.fillText('시작/재시작 버튼을 눌러 게임 시작', canvas.width/2, canvas.height/2 + 70);
     }
 
     // 조작법 안내
@@ -4853,37 +4856,53 @@ function setupTouchPositionControls() {
         const touchX = touch.clientX - rect.left;
         const touchY = touch.clientY - rect.top;
         
-        // 터치한 위치로 플레이어 즉시 이동 (비행기 기체 중앙 기준)
-        let newX = touchX - player.width / 2; // 터치 위치를 플레이어 중심으로 조정
-        let newY = touchY - player.height * 0.4; // 비행기 기체 중앙 부분으로 조정 (기체 중앙이 터치 지점에 오도록)
-        
-        // 경계 제한
-        const margin = 10;
-        const maxY = canvas.height - 100; // 모바일 컨트롤 영역 고려
-        
-        newX = Math.max(-player.width / 2.5, Math.min(canvas.width - player.width / 1.5, newX));
-        newY = Math.max(margin, Math.min(maxY, newY));
-        
-        // 플레이어 위치 업데이트
-        player.x = newX;
-        player.y = newY;
-        
-        // 두 번째 비행기도 함께 이동
-        if (hasSecondPlane) {
-            secondPlane.x = newX + (canvas.width / 2 - 60) - (canvas.width / 2 - (240 * 0.7 * 0.7 * 0.8) / 2);
-            secondPlane.y = newY;
+        // 시작 화면에서 터치 시 게임 시작
+        if (isStartScreen) {
+            isStartScreen = false;
+            gameStarted = true;
+            console.log('시작 화면에서 터치로 게임 시작');
+            return;
         }
         
-        // 터치 시 자동 연속발사 시작
+        // 게임 오버 상태에서 터치 시 재시작
+        if (isGameOver) {
+            restartGame();
+            console.log('게임 오버 화면에서 터치로 재시작');
+            return;
+        }
+        
+        // 게임 진행 중일 때만 플레이어 이동
         if (gameStarted && !isGameOver && !isStartScreen) {
+            // 터치한 위치로 플레이어 즉시 이동 (비행기 꼬리 지점 기준)
+            let newX = touchX - player.width / 2; // 터치 위치를 플레이어 중심으로 조정
+            let newY = touchY - player.height * 0.8; // 비행기 꼬리 부분이 터치 지점에 오도록 조정
+            
+            // 경계 제한
+            const margin = 10;
+            const maxY = canvas.height - 100; // 모바일 컨트롤 영역 고려
+            
+            newX = Math.max(-player.width / 2.5, Math.min(canvas.width - player.width / 1.5, newX));
+            newY = Math.max(margin, Math.min(maxY, newY));
+            
+            // 플레이어 위치 업데이트
+            player.x = newX;
+            player.y = newY;
+            
+            // 두 번째 비행기도 함께 이동
+            if (hasSecondPlane) {
+                secondPlane.x = newX + (canvas.width / 2 - 60) - (canvas.width / 2 - (240 * 0.7 * 0.7 * 0.8) / 2);
+                secondPlane.y = newY;
+            }
+            
+            // 터치 시 자동 연속발사 시작
             keys.Space = true;
             isSpacePressed = true;
             spacePressTime = Date.now();
             isContinuousFire = true;
             console.log('터치 연속발사 시작');
+            
+            console.log('터치 위치 이동:', newX, newY);
         }
-        
-        console.log('터치 위치 이동:', newX, newY);
     }, { passive: false });
     
     // 터치 이동 (드래그 중에도 위치 업데이트)
@@ -4895,9 +4914,9 @@ function setupTouchPositionControls() {
         const touchX = touch.clientX - rect.left;
         const touchY = touch.clientY - rect.top;
         
-        // 터치한 위치로 플레이어 즉시 이동 (비행기 기체 중앙 기준)
+        // 터치한 위치로 플레이어 즉시 이동 (비행기 꼬리 지점 기준)
         let newX = touchX - player.width / 2; // 터치 위치를 플레이어 중심으로 조정
-        let newY = touchY - player.height * 0.4; // 비행기 기체 중앙 부분으로 조정 (기체 중앙이 터치 지점에 오도록)
+        let newY = touchY - player.height * 0.8; // 비행기 꼬리 부분이 터치 지점에 오도록 조정
         
         // 경계 제한
         const margin = 10;
