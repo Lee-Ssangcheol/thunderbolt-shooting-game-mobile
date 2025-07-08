@@ -4860,14 +4860,68 @@ function setupTouchPositionControls() {
         if (isStartScreen) {
             isStartScreen = false;
             gameStarted = true;
-            console.log('시작 화면에서 터치로 게임 시작');
+            
+            // 터치한 위치로 플레이어 이동
+            let newX = touchX - player.width / 2;
+            let newY = touchY - player.height * 0.8;
+            
+            // 경계 제한
+            const margin = 10;
+            const maxY = canvas.height - 100;
+            
+            newX = Math.max(-player.width / 2.5, Math.min(canvas.width - player.width / 1.5, newX));
+            newY = Math.max(margin, Math.min(maxY, newY));
+            
+            // 플레이어 위치 업데이트
+            player.x = newX;
+            player.y = newY;
+            
+            // 두 번째 비행기도 함께 이동
+            if (hasSecondPlane) {
+                secondPlane.x = newX + (canvas.width / 2 - 60) - (canvas.width / 2 - (240 * 0.7 * 0.7 * 0.8) / 2);
+                secondPlane.y = newY;
+            }
+            
+            // 게임 시작과 동시에 총알 발사 시작
+            keys.Space = true;
+            isSpacePressed = true;
+            spacePressTime = Date.now();
+            isContinuousFire = true;
+            console.log('시작 화면에서 터치로 게임 시작 및 총알 발사 시작');
             return;
         }
         
         // 게임 오버 상태에서 터치 시 재시작
         if (isGameOver) {
             restartGame();
-            console.log('게임 오버 화면에서 터치로 재시작');
+            
+            // 터치한 위치로 플레이어 이동
+            let newX = touchX - player.width / 2;
+            let newY = touchY - player.height * 0.8;
+            
+            // 경계 제한
+            const margin = 10;
+            const maxY = canvas.height - 100;
+            
+            newX = Math.max(-player.width / 2.5, Math.min(canvas.width - player.width / 1.5, newX));
+            newY = Math.max(margin, Math.min(maxY, newY));
+            
+            // 플레이어 위치 업데이트
+            player.x = newX;
+            player.y = newY;
+            
+            // 두 번째 비행기도 함께 이동
+            if (hasSecondPlane) {
+                secondPlane.x = newX + (canvas.width / 2 - 60) - (canvas.width / 2 - (240 * 0.7 * 0.7 * 0.8) / 2);
+                secondPlane.y = newY;
+            }
+            
+            // 재시작과 동시에 총알 발사 시작
+            keys.Space = true;
+            isSpacePressed = true;
+            spacePressTime = Date.now();
+            isContinuousFire = true;
+            console.log('게임 오버 화면에서 터치로 재시작 및 총알 발사 시작');
             return;
         }
         
