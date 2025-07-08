@@ -1919,8 +1919,7 @@ function gameLoop() {
                     ctx.fillStyle = '#ffffff';
                     ctx.fillText(`최종 점수: ${score}`, canvas.width/2, canvas.height/2 - 20);
                     ctx.fillText(`충돌 횟수: ${collisionCount}`, canvas.width/2, canvas.height/2 + 20);
-                    ctx.fillText('화면을 터치하거나', canvas.width/2, canvas.height/2 + 60);
-                    ctx.fillText('시작/재시작 버튼을 눌러 게임 재시작', canvas.width/2, canvas.height/2 + 90);
+                    ctx.fillText('시작/재시작 버튼을 눌러 게임 재시작', canvas.width/2, canvas.height/2 + 60);
                 }
             }
         } catch (error) {
@@ -3640,11 +3639,10 @@ function drawStartScreen() {
     const isVisible = Math.floor(currentTime / blinkSpeed) % 2 === 0;
     
     if (isVisible) {
-        ctx.font = 'bold 16px Arial';
+        ctx.font = 'bold 20px Arial';
         ctx.fillStyle = '#ffff00';
         ctx.textAlign = 'center';
-        ctx.fillText('화면을 터치하거나', canvas.width/2, canvas.height/2 + 40);
-        ctx.fillText('시작/재시작 버튼을 눌러 게임 시작', canvas.width/2, canvas.height/2 + 70);
+        ctx.fillText('시작/재시작 버튼을 눌러 게임 시작', canvas.width/2, canvas.height/2 + 40);
     }
 
     // 조작법 안내
@@ -4855,75 +4853,6 @@ function setupTouchPositionControls() {
         const rect = canvas.getBoundingClientRect();
         const touchX = touch.clientX - rect.left;
         const touchY = touch.clientY - rect.top;
-        
-        // 시작 화면에서 터치 시 게임 시작
-        if (isStartScreen) {
-            isStartScreen = false;
-            gameStarted = true;
-            
-            // 터치한 위치로 플레이어 이동
-            let newX = touchX - player.width / 2;
-            let newY = touchY - player.height * 0.8;
-            
-            // 경계 제한
-            const margin = 10;
-            const maxY = canvas.height - 100;
-            
-            newX = Math.max(-player.width / 2.5, Math.min(canvas.width - player.width / 1.5, newX));
-            newY = Math.max(margin, Math.min(maxY, newY));
-            
-            // 플레이어 위치 업데이트
-            player.x = newX;
-            player.y = newY;
-            
-            // 두 번째 비행기도 함께 이동
-            if (hasSecondPlane) {
-                secondPlane.x = newX + (canvas.width / 2 - 60) - (canvas.width / 2 - (240 * 0.7 * 0.7 * 0.8) / 2);
-                secondPlane.y = newY;
-            }
-            
-            // 게임 시작과 동시에 총알 발사 시작
-            keys.Space = true;
-            isSpacePressed = true;
-            spacePressTime = Date.now();
-            isContinuousFire = true;
-            console.log('시작 화면에서 터치로 게임 시작 및 총알 발사 시작');
-            return;
-        }
-        
-        // 게임 오버 상태에서 터치 시 재시작
-        if (isGameOver) {
-            restartGame();
-            
-            // 터치한 위치로 플레이어 이동
-            let newX = touchX - player.width / 2;
-            let newY = touchY - player.height * 0.8;
-            
-            // 경계 제한
-            const margin = 10;
-            const maxY = canvas.height - 100;
-            
-            newX = Math.max(-player.width / 2.5, Math.min(canvas.width - player.width / 1.5, newX));
-            newY = Math.max(margin, Math.min(maxY, newY));
-            
-            // 플레이어 위치 업데이트
-            player.x = newX;
-            player.y = newY;
-            
-            // 두 번째 비행기도 함께 이동
-            if (hasSecondPlane) {
-                secondPlane.x = newX + (canvas.width / 2 - 60) - (canvas.width / 2 - (240 * 0.7 * 0.7 * 0.8) / 2);
-                secondPlane.y = newY;
-            }
-            
-            // 재시작과 동시에 총알 발사 시작
-            keys.Space = true;
-            isSpacePressed = true;
-            spacePressTime = Date.now();
-            isContinuousFire = true;
-            console.log('게임 오버 화면에서 터치로 재시작 및 총알 발사 시작');
-            return;
-        }
         
         // 게임 진행 중일 때만 플레이어 이동
         if (gameStarted && !isGameOver && !isStartScreen) {
