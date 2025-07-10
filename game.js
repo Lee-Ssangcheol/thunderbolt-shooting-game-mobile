@@ -6,6 +6,9 @@ const TOP_EFFECT_ZONE = 20;  // 상단 효과 무시 영역 (픽셀)
 // 모바일 디바이스 감지
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
+// 모바일 속도 조절 (95% 속도)
+const mobileSpeedMultiplier = isMobile ? 0.95 : 1.0;
+
 // 모바일 전체화면 모드 활성화
 function enableFullscreen() {
     if (isMobile) {
@@ -404,7 +407,7 @@ const player = {
     y: canvas.height - 100, // 모바일 컨트롤 영역을 고려하여 더 위로 배치 (120에서 100으로 조정)
     width: 240 * 0.7 * 0.7 * 0.8,   // 폭을 80%로 줄임
     height: 71.5,   // 높이를 110%로 늘림
-    speed: 3  // 속도를 2에서 3으로 증가
+    speed: 3 * mobileSpeedMultiplier  // 속도를 2에서 3으로 증가
 };
 
 // 두 번째 비행기
@@ -413,7 +416,7 @@ const secondPlane = {
     y: canvas.height - 100, // 모바일 컨트롤 영역을 고려하여 더 위로 배치 (120에서 100으로 조정)
     width: 40,
     height: 40,
-    speed: 3  // 속도를 2에서 3으로 증가
+    speed: 3 * mobileSpeedMultiplier  // 속도를 2에서 3으로 증가
 };
 
 // 게임 상태 변수 설정
@@ -447,7 +450,7 @@ let bossPattern = 0;
 let specialWeaponCharged = false;
 let specialWeaponCharge = 0;
 let enemySpawnRate = 2000;  // 적 생성 주기 (ms)
-let enemySpeed = 2;  // 적 이동 속도
+let enemySpeed = 2 * mobileSpeedMultiplier;  // 적 이동 속도
 
 // 보스 패턴 상수 추가
 const BOSS_PATTERNS = {
@@ -2039,7 +2042,7 @@ function handlePlayerMovement() {
             secondPlane.x -= player.speed * 1.2;
         }
     }
-    if (keys.ArrowRight && player.x < canvas.width - player.width / 1.5) {
+    if (keys.ArrowRight && player.x < canvas.width - player.width / 2) {
         player.x += player.speed * 1.2; // 좌우 이동 속도를 0.5에서 1.2로 증가
         if (hasSecondPlane) {
             secondPlane.x += player.speed * 1.2;
@@ -4787,7 +4790,7 @@ function fireBullet() {
                 y: player.y,
                 width: 4,
                 height: 8,
-                speed: 8,
+                speed: 8 * mobileSpeedMultiplier,
                 angle: (angle * Math.PI) / 180
             };
             bullets.push(bullet);
@@ -4799,7 +4802,7 @@ function fireBullet() {
             y: player.y,
             width: 4,
             height: 8,
-            speed: 8
+            speed: 8 * mobileSpeedMultiplier
         };
         bullets.push(bullet);
     }
@@ -4811,7 +4814,7 @@ function fireBullet() {
             y: secondPlane.y,
             width: 4,
             height: 8,
-            speed: 8
+            speed: 8 * mobileSpeedMultiplier
         };
         bullets.push(bullet);
     }
@@ -4866,7 +4869,7 @@ function setupTouchPositionControls() {
             const margin = 10;
             const maxY = canvas.height - 100; // 모바일 컨트롤 영역 고려
             
-            newX = Math.max(-player.width / 2.5, Math.min(canvas.width - player.width / 1.5, newX));
+            newX = Math.max(-player.width / 2.5, Math.min(canvas.width - player.width / 2, newX));
             newY = Math.max(margin, Math.min(maxY, newY));
             
             // 플레이어 위치 업데이트
@@ -4907,7 +4910,7 @@ function setupTouchPositionControls() {
         const margin = 10;
         const maxY = canvas.height - 100; // 모바일 컨트롤 영역 고려
         
-        newX = Math.max(-player.width / 2.5, Math.min(canvas.width - player.width / 1.5, newX));
+        newX = Math.max(-player.width / 2.5, Math.min(canvas.width - player.width / 2, newX));
         newY = Math.max(margin, Math.min(maxY, newY));
         
         // 플레이어 위치 업데이트
