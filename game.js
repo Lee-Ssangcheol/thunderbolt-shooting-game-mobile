@@ -150,11 +150,21 @@ function setupMobileControls() {
             isStartScreen = false;
             gameStarted = true;
             console.log('모바일에서 게임 시작');
+            
+            // 모바일에서 전체화면 전환
+            if (isMobile) {
+                enableFullscreen();
+            }
         }
         
         // 게임 오버 상태에서 재시작
         if (isGameOver) {
             restartGame();
+            
+            // 모바일에서 전체화면 전환
+            if (isMobile) {
+                enableFullscreen();
+            }
             return;
         }
     }, { passive: false });
@@ -175,11 +185,21 @@ function setupMobileControls() {
             isStartScreen = false;
             gameStarted = true;
             console.log('모바일에서 게임 시작');
+            
+            // 모바일에서 전체화면 전환
+            if (isMobile) {
+                enableFullscreen();
+            }
         }
         
         // 게임 오버 상태에서 재시작
         if (isGameOver) {
             restartGame();
+            
+            // 모바일에서 전체화면 전환
+            if (isMobile) {
+                enableFullscreen();
+            }
             return;
         }
     });
@@ -282,11 +302,21 @@ function setupMobileControls() {
             isStartScreen = false;
             gameStarted = true;
             console.log('모바일에서 게임 시작');
+            
+            // 모바일에서 전체화면 전환
+            if (isMobile) {
+                enableFullscreen();
+            }
         }
         
         // 게임 오버 상태에서 재시작
         if (isGameOver) {
             restartGame();
+            
+            // 모바일에서 전체화면 전환
+            if (isMobile) {
+                enableFullscreen();
+            }
             return;
         }
     });
