@@ -4861,8 +4861,8 @@ function setupTouchPositionControls() {
         
         // 게임 진행 중일 때만 플레이어 이동
         if (gameStarted && !isGameOver && !isStartScreen) {
-            // 터치한 위치로 플레이어 즉시 이동 (비행기 꼬리 지점 기준)
-            let newX = touchX - player.width / 2; // 터치 위치를 플레이어 중심으로 조정
+            // 터치한 위치로 플레이어 즉시 이동 (비행기 중심점을 날개폭의 반만큼 오른쪽으로)
+            let newX = touchX - player.width / 2 + player.width / 4; // 터치 위치를 플레이어 중심으로 조정하고 날개폭의 반만큼 오른쪽으로 이동
             let newY = touchY - player.height * 0.8; // 비행기 꼬리 부분이 터치 지점에 오도록 조정
             
             // 경계 제한
@@ -4902,8 +4902,8 @@ function setupTouchPositionControls() {
         const touchX = touch.clientX - rect.left;
         const touchY = touch.clientY - rect.top;
         
-        // 터치한 위치로 플레이어 즉시 이동 (비행기 꼬리 지점 기준)
-        let newX = touchX - player.width / 2; // 터치 위치를 플레이어 중심으로 조정
+        // 터치한 위치로 플레이어 즉시 이동 (비행기 중심점을 날개폭의 반만큼 오른쪽으로)
+        let newX = touchX - player.width / 2 + player.width / 4; // 터치 위치를 플레이어 중심으로 조정하고 날개폭의 반만큼 오른쪽으로 이동
         let newY = touchY - player.height * 0.8; // 비행기 꼬리 부분이 터치 지점에 오도록 조정
         
         // 경계 제한
