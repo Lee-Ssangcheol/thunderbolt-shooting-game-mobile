@@ -12,6 +12,8 @@ const mobileSpeedMultiplier = isMobile ? 0.95 : 1.0;
 // 모바일 전체화면 모드 활성화
 function enableFullscreen() {
     if (isMobile) {
+        console.log('모바일 전체화면 모드 활성화 시도');
+        
         // iOS Safari 전체화면 모드
         if (document.documentElement.requestFullscreen) {
             document.documentElement.requestFullscreen().catch(err => {
@@ -19,19 +21,35 @@ function enableFullscreen() {
             });
         }
         
-        // iOS Safari에서 주소창 숨김
+        // iOS Safari에서 주소창 숨김 및 전체화면 스타일 적용
         if (window.navigator.standalone) {
             document.body.style.position = 'fixed';
             document.body.style.top = '0';
             document.body.style.left = '0';
             document.body.style.width = '100vw';
             document.body.style.height = '100vh';
+            document.body.style.overflow = 'hidden';
+            document.documentElement.style.overflow = 'hidden';
         }
         
         // Android Chrome 전체화면 모드
         if (document.documentElement.webkitRequestFullscreen) {
             document.documentElement.webkitRequestFullscreen().catch(err => {
                 console.log('webkit 전체화면 모드 실패:', err);
+            });
+        }
+        
+        // Firefox 전체화면 모드
+        if (document.documentElement.mozRequestFullScreen) {
+            document.documentElement.mozRequestFullScreen().catch(err => {
+                console.log('moz 전체화면 모드 실패:', err);
+            });
+        }
+        
+        // MS Edge 전체화면 모드
+        if (document.documentElement.msRequestFullscreen) {
+            document.documentElement.msRequestFullscreen().catch(err => {
+                console.log('ms 전체화면 모드 실패:', err);
             });
         }
         
@@ -42,7 +60,35 @@ function enableFullscreen() {
             });
         }
         
-        console.log('모바일 전체화면 모드 활성화 시도');
+        // iOS Safari에서 주소창 숨김을 위한 추가 스타일
+        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+            document.body.style.position = 'fixed';
+            document.body.style.top = '0';
+            document.body.style.left = '0';
+            document.body.style.width = '100vw';
+            document.body.style.height = '100vh';
+            document.body.style.overflow = 'hidden';
+            document.documentElement.style.overflow = 'hidden';
+            
+            // iOS Safari에서 주소창 숨김을 위한 메타 태그 동적 추가
+            const viewportMeta = document.querySelector('meta[name="viewport"]');
+            if (viewportMeta) {
+                viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, minimal-ui');
+            }
+        }
+        
+        // Android Chrome에서 전체화면 스타일 적용
+        if (/Android/.test(navigator.userAgent)) {
+            document.body.style.position = 'fixed';
+            document.body.style.top = '0';
+            document.body.style.left = '0';
+            document.body.style.width = '100vw';
+            document.body.style.height = '100vh';
+            document.body.style.overflow = 'hidden';
+            document.documentElement.style.overflow = 'hidden';
+        }
+        
+        console.log('모바일 전체화면 모드 활성화 완료');
     }
 }
 
@@ -150,11 +196,23 @@ function setupMobileControls() {
             isStartScreen = false;
             gameStarted = true;
             console.log('모바일에서 게임 시작');
+            // 모바일에서 게임 시작 시 전체화면 모드 활성화
+            if (isMobile) {
+                setTimeout(() => {
+                    enableFullscreen();
+                }, 100);
+            }
         }
         
         // 게임 오버 상태에서 재시작
         if (isGameOver) {
             restartGame();
+            // 모바일에서 게임 재시작 시 전체화면 모드 활성화
+            if (isMobile) {
+                setTimeout(() => {
+                    enableFullscreen();
+                }, 100);
+            }
             return;
         }
     }, { passive: false });
@@ -175,11 +233,23 @@ function setupMobileControls() {
             isStartScreen = false;
             gameStarted = true;
             console.log('모바일에서 게임 시작');
+            // 모바일에서 게임 시작 시 전체화면 모드 활성화
+            if (isMobile) {
+                setTimeout(() => {
+                    enableFullscreen();
+                }, 100);
+            }
         }
         
         // 게임 오버 상태에서 재시작
         if (isGameOver) {
             restartGame();
+            // 모바일에서 게임 재시작 시 전체화면 모드 활성화
+            if (isMobile) {
+                setTimeout(() => {
+                    enableFullscreen();
+                }, 100);
+            }
             return;
         }
     });
@@ -282,11 +352,23 @@ function setupMobileControls() {
             isStartScreen = false;
             gameStarted = true;
             console.log('모바일에서 게임 시작');
+            // 모바일에서 게임 시작 시 전체화면 모드 활성화
+            if (isMobile) {
+                setTimeout(() => {
+                    enableFullscreen();
+                }, 100);
+            }
         }
         
         // 게임 오버 상태에서 재시작
         if (isGameOver) {
             restartGame();
+            // 모바일에서 게임 재시작 시 전체화면 모드 활성화
+            if (isMobile) {
+                setTimeout(() => {
+                    enableFullscreen();
+                }, 100);
+            }
             return;
         }
     });
@@ -1922,9 +2004,9 @@ function gameLoop() {
                     ctx.fillStyle = '#ffffff';
                     ctx.fillText(`최종 점수: ${score}`, canvas.width/2, canvas.height/2 - 20);
                     ctx.fillText(`충돌 횟수: ${collisionCount}`, canvas.width/2, canvas.height/2 + 20);
-                    ctx.font = 'bold 24px Arial';
+                    ctx.font = 'bold 20px Arial';
                     ctx.fillStyle = '#ffff00';                    
-                    ctx.fillText('시작/재시작 버튼을 눌러 재시작', canvas.width/2, canvas.height/2 + 60);
+                    ctx.fillText('시작/재시작 버튼 누른 후 터치하여 재시작', canvas.width/2, canvas.height/2 + 60);
                 }
             }
         } catch (error) {
@@ -2845,12 +2927,24 @@ document.addEventListener('keydown', (e) => {
         // 시작 화면에서 스페이스바를 누르면 게임 시작
         if (isStartScreen && e.code === 'Space') {
             isStartScreen = false;
+            // 모바일에서 게임 시작 시 전체화면 모드 활성화
+            if (isMobile) {
+                setTimeout(() => {
+                    enableFullscreen();
+                }, 100);
+            }
             return;
         }
         
         // 게임 오버 화면에서 스페이스바를 누르면 게임 재시작
         if (isGameOver && e.code === 'Space') {
             restartGame();
+            // 모바일에서 게임 재시작 시 전체화면 모드 활성화
+            if (isMobile) {
+                setTimeout(() => {
+                    enableFullscreen();
+                }, 100);
+            }
             return;
         }
         
@@ -3647,7 +3741,7 @@ function drawStartScreen() {
         ctx.font = 'bold 24px Arial';
         ctx.fillStyle = '#ffff00';
         ctx.textAlign = 'center';
-        ctx.fillText('시작/재시작 버튼을 눌러 시작', canvas.width/2, canvas.height/2 + 40);
+        ctx.fillText('시작/재시작 버튼 누른 후 터치하여 시작', canvas.width/2, canvas.height/2 + 40);
     }
 
     // 조작법 안내
