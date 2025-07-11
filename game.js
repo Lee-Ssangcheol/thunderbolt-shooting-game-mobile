@@ -66,6 +66,10 @@ function enableFullscreen() {
     fullscreenActivationInProgress = true;
     lastFullscreenAttempt = currentTime;
     
+    // 게임 렌더링을 방해하지 않도록 비동기로 처리
+    requestAnimationFrame(() => {
+        try {
+    
     // iOS Safari 전체화면 모드
     if (document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen()
@@ -172,6 +176,11 @@ function enableFullscreen() {
     setTimeout(() => {
         updateFullscreenState();
     }, 500);
+        } catch (error) {
+            console.error('전체화면 활성화 중 오류:', error);
+            fullscreenActivationInProgress = false;
+        }
+    });
 }
 
 // 전체화면 재활성화 함수 (게임 시작/재시작 시 호출)
@@ -180,20 +189,23 @@ function reactivateFullscreen() {
     
     console.log('전체화면 재활성화 시도');
     
-    // 현재 전체화면 상태 확인
-    updateFullscreenState();
-    
-    // 전체화면이 비활성화되어 있으면 재활성화
-    if (!isFullscreenActive && !fullscreenActivationInProgress) {
-        console.log('전체화면 모드 재활성화 중...');
-        setTimeout(() => {
-            enableFullscreen();
-        }, 200);
-    } else if (isFullscreenActive) {
-        console.log('이미 전체화면 모드가 활성화되어 있습니다.');
-    } else {
-        console.log('전체화면 활성화가 이미 진행 중입니다.');
-    }
+    // 게임 렌더링을 방해하지 않도록 비동기로 처리
+    requestAnimationFrame(() => {
+        // 현재 전체화면 상태 확인
+        updateFullscreenState();
+        
+        // 전체화면이 비활성화되어 있으면 재활성화
+        if (!isFullscreenActive && !fullscreenActivationInProgress) {
+            console.log('전체화면 모드 재활성화 중...');
+            setTimeout(() => {
+                enableFullscreen();
+            }, 200);
+        } else if (isFullscreenActive) {
+            console.log('이미 전체화면 모드가 활성화되어 있습니다.');
+        } else {
+            console.log('전체화면 활성화가 이미 진행 중입니다.');
+        }
+    });
 }
 
 // 터치 위치 이동 관련 변수 (향후 확장을 위해 유지)
@@ -1223,6 +1235,9 @@ async function initializeGame() {
         
         console.log('게임 상태 초기화 완료');
         
+        // 시작 화면 초기화
+        initStartScreen();
+        
         // 게임 루프 시작
         requestAnimationFrame(gameLoop);
         console.log('게임 루프 시작됨');
@@ -2082,17 +2097,18 @@ function gameLoop() {
         return;
     }
 
-    // 화면 전체를 검정색으로 채움 (캔버스 배경)
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
     if (isStartScreen) {
+        // 시작 화면에서는 검정색 배경을 그리지 않고 drawStartScreen에서 처리
         drawStartScreen();
         setTimeout(() => {
             requestAnimationFrame(gameLoop);
         }, 1000 / 30);
         return;
     }
+
+    // 게임 진행 중일 때만 검정색 배경 그리기
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     if (isGameOver) {
         try {
@@ -3799,8 +3815,12 @@ let stars = [];  // 배경 별들
 
 // 시작 화면 초기화 함수
 function initStartScreen() {
+    // 시작 화면 애니메이션 변수 초기화
+    titleY = -100;  // 제목 Y 위치
+    subtitleY = canvas.height + 100;  // 부제목 Y 위치
+    stars = [];  // 배경 별들
+    
     // 배경 별들 생성
-    stars = [];
     for (let i = 0; i < 100; i++) {
         stars.push({
             x: Math.random() * canvas.width,
