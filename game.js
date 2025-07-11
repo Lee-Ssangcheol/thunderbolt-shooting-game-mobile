@@ -3869,7 +3869,7 @@ function drawStartScreen() {
     const isVisible = Math.floor(currentTime / blinkSpeed) % 2 === 0;
     
     if (isVisible) {
-        ctx.font = 'bold 24px Arial';
+        ctx.font = 'bold 20px Arial';
         ctx.fillStyle = '#ffff00';
         ctx.textAlign = 'center';
         ctx.fillText('시작/재시작 버튼 누른 후 터치하여 시작', canvas.width/2, canvas.height/2 + 40);
