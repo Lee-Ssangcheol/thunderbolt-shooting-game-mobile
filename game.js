@@ -12,6 +12,14 @@ const mobileSpeedMultiplier = isMobile ? 0.95 : 1.0;
 // 모바일 전체화면 모드 활성화
 function enableFullscreen() {
     if (isMobile) {
+        // 브라우저 UI 완전 숨김 설정
+        document.documentElement.style.webkitUserSelect = 'none';
+        document.documentElement.style.webkitTouchCallout = 'none';
+        document.documentElement.style.webkitTapHighlightColor = 'transparent';
+        document.body.style.webkitUserSelect = 'none';
+        document.body.style.webkitTouchCallout = 'none';
+        document.body.style.webkitTapHighlightColor = 'transparent';
+        
         // iOS Safari 전체화면 모드
         if (document.documentElement.requestFullscreen) {
             document.documentElement.requestFullscreen().catch(err => {
@@ -41,6 +49,16 @@ function enableFullscreen() {
                 console.log('화면 방향 고정 실패:', err);
             });
         }
+        
+        // 전체화면 안내 문구 숨김을 위한 추가 설정
+        setTimeout(() => {
+            document.documentElement.style.webkitUserSelect = 'none';
+            document.documentElement.style.webkitTouchCallout = 'none';
+            document.documentElement.style.webkitTapHighlightColor = 'transparent';
+            document.body.style.webkitUserSelect = 'none';
+            document.body.style.webkitTouchCallout = 'none';
+            document.body.style.webkitTapHighlightColor = 'transparent';
+        }, 100);
         
         console.log('모바일 전체화면 모드 활성화 시도');
     }
@@ -154,6 +172,17 @@ function setupMobileControls() {
             // 모바일에서 전체화면 전환
             if (isMobile) {
                 enableFullscreen();
+                // 게임 시작 시 브라우저 UI 완전 숨김 반복 적용
+                for (let i = 0; i < 5; i++) {
+                    setTimeout(() => {
+                        document.documentElement.style.webkitUserSelect = 'none';
+                        document.documentElement.style.webkitTouchCallout = 'none';
+                        document.documentElement.style.webkitTapHighlightColor = 'transparent';
+                        document.body.style.webkitUserSelect = 'none';
+                        document.body.style.webkitTouchCallout = 'none';
+                        document.body.style.webkitTapHighlightColor = 'transparent';
+                    }, 200 + i * 200);
+                }
             }
         }
         
