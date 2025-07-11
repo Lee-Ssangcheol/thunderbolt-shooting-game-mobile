@@ -7,7 +7,7 @@ const TOP_EFFECT_ZONE = 20;  // 상단 효과 무시 영역 (픽셀)
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
 // 모바일 속도 조절 (더 느리게 조정)
-const mobileSpeedMultiplier = isMobile ? 0.85 : 1.0;
+const mobileSpeedMultiplier = isMobile ? 0.95 : 1.0;
 
 // 모바일 프레임 제한 (60fps 대신 45fps로 제한)
 const MOBILE_FPS_LIMIT = isMobile ? 45 : 60;
