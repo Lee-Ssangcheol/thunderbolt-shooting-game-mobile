@@ -6,8 +6,12 @@ const TOP_EFFECT_ZONE = 20;  // 상단 효과 무시 영역 (픽셀)
 // 모바일 디바이스 감지
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-// 모바일 속도 조절 (95% 속도)
-const mobileSpeedMultiplier = isMobile ? 0.95 : 1.0;
+// 모바일 속도 조절 (더 느리게 조정)
+const mobileSpeedMultiplier = isMobile ? 0.7 : 1.0;
+
+// 모바일 프레임 제한 (60fps 대신 45fps로 제한)
+const MOBILE_FPS_LIMIT = isMobile ? 45 : 60;
+const MOBILE_FRAME_INTERVAL = 1000 / MOBILE_FPS_LIMIT;
 
 // 전체화면 상태 추적 변수
 let isFullscreenActive = false;
@@ -2120,7 +2124,14 @@ function gameLoop() {
             ctx.font = 'bold 20px Arial';
             ctx.fillText('시작/재시작 버튼을 눌러 시작', canvas.width/2, canvas.height/2 + 50);
         }
-        requestAnimationFrame(gameLoop);
+        // 모바일에서만 프레임 제한 적용
+        if (isMobile) {
+            setTimeout(() => {
+                requestAnimationFrame(gameLoop);
+            }, MOBILE_FRAME_INTERVAL);
+        } else {
+            requestAnimationFrame(gameLoop);
+        }
         return;
     }
 
@@ -2187,7 +2198,14 @@ function gameLoop() {
             ctx.fillText(`최종 점수: ${score}`, canvas.width/2, canvas.height/2 + 60);
             ctx.fillText('스페이스바를 눌러 재시작', canvas.width/2, canvas.height/2 + 160);
         }
-        requestAnimationFrame(gameLoop);
+        // 모바일에서만 프레임 제한 적용
+        if (isMobile) {
+            setTimeout(() => {
+                requestAnimationFrame(gameLoop);
+            }, MOBILE_FRAME_INTERVAL);
+        } else {
+            requestAnimationFrame(gameLoop);
+        }
         return;
     }
 
@@ -2261,8 +2279,14 @@ function gameLoop() {
         // 모바일 컨트롤 상태 표시
         showMobileControlStatus();
 
-        // 프레임 레이트 제한 제거, requestAnimationFrame만 사용
-        requestAnimationFrame(gameLoop);
+        // 모바일에서만 프레임 제한 적용
+        if (isMobile) {
+            setTimeout(() => {
+                requestAnimationFrame(gameLoop);
+            }, MOBILE_FRAME_INTERVAL);
+        } else {
+            requestAnimationFrame(gameLoop);
+        }
     } catch (error) {
         console.error('게임 루프 실행 중 오류:', error);
         // 오류 발생 시 게임 오버 처리
