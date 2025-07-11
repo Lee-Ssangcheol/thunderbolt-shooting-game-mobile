@@ -16,6 +16,9 @@ let lastFullscreenAttempt = 0;
 let lastFullscreenCheck = 0;
 const FULLSCREEN_COOLDOWN = 1000; // 1초 쿨다운
 
+// 게임 상태 변수
+let gameStarted = false;
+
 // 전체화면 상태 확인 함수
 function checkFullscreenState() {
     return !!(document.fullscreenElement || 
@@ -1179,6 +1182,8 @@ async function initializeGame() {
         score = 0;
         levelScore = 0;
         scoreForSpread = 0;
+        gameStarted = false;
+        isStartScreen = true;
         
         // 모든 투사체 및 폭발물 완전 초기화
         bullets = [];
@@ -1239,7 +1244,7 @@ async function initializeGame() {
         initStartScreen();
         
         // 게임 루프 시작
-        requestAnimationFrame(gameLoop);
+        startGameLoop();
         console.log('게임 루프 시작됨');
     } catch (error) {
         console.error('게임 초기화 중 오류:', error);
@@ -2079,10 +2084,13 @@ function drawAirplane(x, y, width, height, color, isEnemy = false) {
 
 // 게임 루프 수정
 function gameLoop() {
-    if (!gameLoopRunning) return;
+    if (!gameLoopRunning) {
+        console.log('게임 루프가 실행되지 않음: gameLoopRunning =', gameLoopRunning);
+        return;
+    }
     
     // 모바일에서 전체화면 상태 주기적 확인 (5초마다)
-    if (isMobile && gameStarted && !isStartScreen) {
+    if (isMobile && !isStartScreen) {
         const currentTime = Date.now();
         if (!lastFullscreenCheck || currentTime - lastFullscreenCheck > 5000) {
             updateFullscreenState();
@@ -2098,8 +2106,22 @@ function gameLoop() {
     }
 
     if (isStartScreen) {
-        // 시작 화면에서는 검정색 배경을 그리지 않고 drawStartScreen에서 처리
-        drawStartScreen();
+        console.log('시작 화면 렌더링 중...');
+        try {
+            // 시작 화면에서는 검정색 배경을 그리지 않고 drawStartScreen에서 처리
+            drawStartScreen();
+        } catch (error) {
+            console.error('시작 화면 그리기 중 오류:', error);
+            // 오류 발생 시 기본 시작 화면 표시
+            ctx.fillStyle = '#000033';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 32px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Thunderbolt Shooter', canvas.width/2, canvas.height/2);
+            ctx.font = 'bold 20px Arial';
+            ctx.fillText('시작/재시작 버튼을 눌러 시작', canvas.width/2, canvas.height/2 + 50);
+        }
         setTimeout(() => {
             requestAnimationFrame(gameLoop);
         }, 1000 / 30);
@@ -3834,6 +3856,8 @@ function initStartScreen() {
 
 // 시작 화면 그리기 함수
 function drawStartScreen() {
+    console.log('drawStartScreen 호출됨, canvas 크기:', canvas.width, 'x', canvas.height);
+    
     // 배경 그라데이션
     const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
     gradient.addColorStop(0, '#000033');
@@ -3842,17 +3866,19 @@ function drawStartScreen() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // 별들 그리기
-    stars.forEach(star => {
-        star.y += star.speed;
-        if (star.y > canvas.height) {
-            star.y = 0;
-            star.x = Math.random() * canvas.width;
-        }
-        ctx.fillStyle = `rgba(255, 255, 255, ${star.brightness})`;
-        ctx.beginPath();
-        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-        ctx.fill();
-    });
+    if (stars && stars.length > 0) {
+        stars.forEach(star => {
+            star.y += star.speed;
+            if (star.y > canvas.height) {
+                star.y = 0;
+                star.x = Math.random() * canvas.width;
+            }
+            ctx.fillStyle = `rgba(255, 255, 255, ${star.brightness})`;
+            ctx.beginPath();
+            ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+            ctx.fill();
+        });
+    }
 
     // 제목 그라데이션
     const titleGradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
