@@ -10,7 +10,7 @@ const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/
 const mobileSpeedMultiplier = isMobile ? 0.95 : 1.0;
 
 // 모바일 프레임 제한 (60fps 대신 55fps로 완화)
-const MOBILE_FPS_LIMIT = isMobile ? 55 : 60;
+const MOBILE_FPS_LIMIT = isMobile ? 60 : 70;
 const MOBILE_FRAME_INTERVAL = 1000 / MOBILE_FPS_LIMIT;
 
 // 전체화면 상태 추적 변수
