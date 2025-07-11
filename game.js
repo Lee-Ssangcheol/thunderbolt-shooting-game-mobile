@@ -39,6 +39,8 @@ function updateFullscreenState() {
     if (wasFullscreen && !isFullscreenActive) {
         console.log('전체화면 모드가 종료되었습니다.');
         fullscreenActivationInProgress = false;
+        // 전체화면 종료 시 쿨다운도 초기화
+        lastFullscreenAttempt = 0;
     }
     
     return isFullscreenActive;
@@ -183,6 +185,27 @@ function enableFullscreen() {
     setTimeout(() => {
         updateFullscreenState();
     }, 500);
+    
+    // 전체화면 변경 이벤트 리스너 추가
+    document.addEventListener('fullscreenchange', () => {
+        console.log('fullscreenchange 이벤트 발생');
+        updateFullscreenState();
+    });
+    
+    document.addEventListener('webkitfullscreenchange', () => {
+        console.log('webkitfullscreenchange 이벤트 발생');
+        updateFullscreenState();
+    });
+    
+    document.addEventListener('mozfullscreenchange', () => {
+        console.log('mozfullscreenchange 이벤트 발생');
+        updateFullscreenState();
+    });
+    
+    document.addEventListener('MSFullscreenChange', () => {
+        console.log('MSFullscreenChange 이벤트 발생');
+        updateFullscreenState();
+    });
         } catch (error) {
             console.error('전체화면 활성화 중 오류:', error);
             fullscreenActivationInProgress = false;
@@ -196,23 +219,26 @@ function reactivateFullscreen() {
     
     console.log('전체화면 재활성화 시도');
     
-    // 게임 렌더링을 방해하지 않도록 비동기로 처리
-    requestAnimationFrame(() => {
-        // 현재 전체화면 상태 확인
-        updateFullscreenState();
+    // 현재 전체화면 상태를 강제로 다시 확인
+    const currentFullscreenState = checkFullscreenState();
+    isFullscreenActive = currentFullscreenState;
+    
+    console.log('현재 전체화면 상태:', isFullscreenActive);
+    
+    // 전체화면이 비활성화되어 있고, 활성화가 진행 중이 아니면 재활성화
+    if (!isFullscreenActive && !fullscreenActivationInProgress) {
+        console.log('전체화면 모드 재활성화 중...');
+        // 쿨다운 초기화하여 즉시 재시도 가능하도록 함
+        lastFullscreenAttempt = 0;
         
-        // 전체화면이 비활성화되어 있으면 재활성화
-        if (!isFullscreenActive && !fullscreenActivationInProgress) {
-            console.log('전체화면 모드 재활성화 중...');
-            setTimeout(() => {
-                enableFullscreen();
-            }, 200);
-        } else if (isFullscreenActive) {
-            console.log('이미 전체화면 모드가 활성화되어 있습니다.');
-        } else {
-            console.log('전체화면 활성화가 이미 진행 중입니다.');
-        }
-    });
+        setTimeout(() => {
+            enableFullscreen();
+        }, 300); // 200ms에서 300ms로 증가
+    } else if (isFullscreenActive) {
+        console.log('이미 전체화면 모드가 활성화되어 있습니다.');
+    } else {
+        console.log('전체화면 활성화가 이미 진행 중입니다.');
+    }
 }
 
 // 터치 위치 이동 관련 변수 (향후 확장을 위해 유지)
@@ -323,7 +349,7 @@ function setupMobileControls() {
             if (isMobile) {
                 setTimeout(() => {
                     reactivateFullscreen();
-                }, 100);
+                }, 200);
             }
         }
         
@@ -334,7 +360,7 @@ function setupMobileControls() {
             if (isMobile) {
                 setTimeout(() => {
                     reactivateFullscreen();
-                }, 100);
+                }, 200);
             }
             return;
         }
@@ -360,7 +386,7 @@ function setupMobileControls() {
             if (isMobile) {
                 setTimeout(() => {
                     reactivateFullscreen();
-                }, 100);
+                }, 200);
             }
         }
         
@@ -371,7 +397,7 @@ function setupMobileControls() {
             if (isMobile) {
                 setTimeout(() => {
                     reactivateFullscreen();
-                }, 100);
+                }, 200);
             }
             return;
         }
@@ -483,17 +509,17 @@ function setupMobileControls() {
             }
         }
         
-        // 게임 오버 상태에서 재시작
-        if (isGameOver) {
-            restartGame();
-            // 모바일에서 게임 재시작 시 전체화면 모드 활성화
-            if (isMobile) {
-                setTimeout(() => {
-                    reactivateFullscreen();
-                }, 100);
+                    // 게임 오버 상태에서 재시작
+            if (isGameOver) {
+                restartGame();
+                // 모바일에서 게임 재시작 시 전체화면 모드 활성화
+                if (isMobile) {
+                    setTimeout(() => {
+                        reactivateFullscreen();
+                    }, 200);
+                }
+                return;
             }
-            return;
-        }
     });
     
     mobileControls.btnFire.addEventListener('mouseup', (e) => {
