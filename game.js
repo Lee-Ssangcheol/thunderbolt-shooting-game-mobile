@@ -453,15 +453,12 @@ function setupMobileControls() {
         e.preventDefault();
         e.stopPropagation();
         console.log('재시작 버튼 터치');
-        
-        // 게임 오버 상태에서 재시작
         if (isGameOver) {
             restartGame();
         } else {
-            // 게임 중이면 최고점수 리셋 확인
-            if (confirm('최고점수를 리셋하시겠습니까?')) {
-                resetAllHighScores();
-            }
+            showResetConfirmModal((result) => {
+                if (result) resetAllHighScores();
+            });
         }
     }, { passive: false });
     
@@ -470,15 +467,12 @@ function setupMobileControls() {
         e.preventDefault();
         e.stopPropagation();
         console.log('재시작 버튼 클릭');
-        
-        // 게임 오버 상태에서 재시작
         if (isGameOver) {
             restartGame();
         } else {
-            // 게임 중이면 최고점수 리셋 확인
-            if (confirm('최고점수를 리셋하시겠습니까?')) {
-                resetAllHighScores();
-            }
+            showResetConfirmModal((result) => {
+                if (result) resetAllHighScores();
+            });
         }
     });
     
@@ -3176,11 +3170,13 @@ document.addEventListener('keydown', (e) => {
     
     // R 키를 눌렀을 때 최고 점수 리셋
     if (e.code === 'KeyR') {
-        if (confirm('최고 점수를 리셋하시겠습니까?')) {
-            resetAllHighScores();
-            alert('최고 점수가 리셋되었습니다.');
-            console.log('최고 점수 리셋');
-        }
+        showResetConfirmModal((result) => {
+            if (result) {
+                resetAllHighScores();
+                alert('최고 점수가 리셋되었습니다.');
+                console.log('최고 점수 리셋');
+            }
+        });
     }
     
     // P 키를 눌렀을 때 게임 일시정지/재개 (keys 객체와 독립적으로 처리)
@@ -5283,3 +5279,40 @@ function drawAirplane(x, y, width, height, color, isEnemy = false) {
     ctx.restore();
 }
 // ... existing code ...
+
+// High Score Reset Confirmation Modal
+function showResetConfirmModal(onResult) {
+    const modal = document.getElementById('reset-confirm-modal');
+    modal.innerHTML = `
+      <div class="modal-content">
+        <div class="modal-message">최고 점수를 리셋하시겠습니까?</div>
+        <div class="modal-buttons">
+          <button class="modal-btn yes">예</button>
+          <button class="modal-btn no">아니요</button>
+        </div>
+      </div>
+    `;
+    modal.style.display = 'flex';
+    // Focus trap for accessibility (optional)
+    const yesBtn = modal.querySelector('.modal-btn.yes');
+    const noBtn = modal.querySelector('.modal-btn.no');
+    function close(result) {
+        modal.style.display = 'none';
+        modal.innerHTML = '';
+        if (onResult) onResult(result);
+    }
+    yesBtn.addEventListener('click', () => close(true));
+    noBtn.addEventListener('click', () => close(false));
+    // ESC key closes as 'no'
+    function escHandler(e) {
+      if (e.key === 'Escape') {
+        close(false);
+        document.removeEventListener('keydown', escHandler);
+      }
+    }
+    document.addEventListener('keydown', escHandler);
+    // Prevent background scroll/touch
+    modal.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    // Focus default
+    yesBtn.focus();
+}
