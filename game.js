@@ -12,14 +12,6 @@ const mobileSpeedMultiplier = isMobile ? 0.95 : 1.0;
 // 모바일 전체화면 모드 활성화
 function enableFullscreen() {
     if (isMobile) {
-        // 브라우저 UI 완전 숨김 설정
-        document.documentElement.style.webkitUserSelect = 'none';
-        document.documentElement.style.webkitTouchCallout = 'none';
-        document.documentElement.style.webkitTapHighlightColor = 'transparent';
-        document.body.style.webkitUserSelect = 'none';
-        document.body.style.webkitTouchCallout = 'none';
-        document.body.style.webkitTapHighlightColor = 'transparent';
-        
         // iOS Safari 전체화면 모드
         if (document.documentElement.requestFullscreen) {
             document.documentElement.requestFullscreen().catch(err => {
@@ -49,16 +41,6 @@ function enableFullscreen() {
                 console.log('화면 방향 고정 실패:', err);
             });
         }
-        
-        // 전체화면 안내 문구 숨김을 위한 추가 설정
-        setTimeout(() => {
-            document.documentElement.style.webkitUserSelect = 'none';
-            document.documentElement.style.webkitTouchCallout = 'none';
-            document.documentElement.style.webkitTapHighlightColor = 'transparent';
-            document.body.style.webkitUserSelect = 'none';
-            document.body.style.webkitTouchCallout = 'none';
-            document.body.style.webkitTapHighlightColor = 'transparent';
-        }, 100);
         
         console.log('모바일 전체화면 모드 활성화 시도');
     }
@@ -168,32 +150,11 @@ function setupMobileControls() {
             isStartScreen = false;
             gameStarted = true;
             console.log('모바일에서 게임 시작');
-            
-            // 모바일에서 전체화면 전환
-            if (isMobile) {
-                enableFullscreen();
-                // 게임 시작 시 브라우저 UI 완전 숨김 반복 적용
-                for (let i = 0; i < 5; i++) {
-                    setTimeout(() => {
-                        document.documentElement.style.webkitUserSelect = 'none';
-                        document.documentElement.style.webkitTouchCallout = 'none';
-                        document.documentElement.style.webkitTapHighlightColor = 'transparent';
-                        document.body.style.webkitUserSelect = 'none';
-                        document.body.style.webkitTouchCallout = 'none';
-                        document.body.style.webkitTapHighlightColor = 'transparent';
-                    }, 200 + i * 200);
-                }
-            }
         }
         
         // 게임 오버 상태에서 재시작
         if (isGameOver) {
             restartGame();
-            
-            // 모바일에서 전체화면 전환
-            if (isMobile) {
-                enableFullscreen();
-            }
             return;
         }
     }, { passive: false });
@@ -214,21 +175,11 @@ function setupMobileControls() {
             isStartScreen = false;
             gameStarted = true;
             console.log('모바일에서 게임 시작');
-            
-            // 모바일에서 전체화면 전환
-            if (isMobile) {
-                enableFullscreen();
-            }
         }
         
         // 게임 오버 상태에서 재시작
         if (isGameOver) {
             restartGame();
-            
-            // 모바일에서 전체화면 전환
-            if (isMobile) {
-                enableFullscreen();
-            }
             return;
         }
     });
@@ -288,8 +239,10 @@ function setupMobileControls() {
         if (isGameOver) {
             restartGame();
         } else {
-            // 게임 중이면 최고점수 리셋 (확인 없이 바로 실행)
-            resetAllHighScores();
+            // 게임 중이면 최고점수 리셋 확인
+            if (confirm('최고점수를 리셋하시겠습니까?')) {
+                resetAllHighScores();
+            }
         }
     }, { passive: false });
     
@@ -303,8 +256,10 @@ function setupMobileControls() {
         if (isGameOver) {
             restartGame();
         } else {
-            // 게임 중이면 최고점수 리셋 (확인 없이 바로 실행)
-            resetAllHighScores();
+            // 게임 중이면 최고점수 리셋 확인
+            if (confirm('최고점수를 리셋하시겠습니까?')) {
+                resetAllHighScores();
+            }
         }
     });
     
@@ -327,21 +282,11 @@ function setupMobileControls() {
             isStartScreen = false;
             gameStarted = true;
             console.log('모바일에서 게임 시작');
-            
-            // 모바일에서 전체화면 전환
-            if (isMobile) {
-                enableFullscreen();
-            }
         }
         
         // 게임 오버 상태에서 재시작
         if (isGameOver) {
             restartGame();
-            
-            // 모바일에서 전체화면 전환
-            if (isMobile) {
-                enableFullscreen();
-            }
             return;
         }
     });
