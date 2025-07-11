@@ -2099,9 +2099,7 @@ function gameLoop() {
     }
     
     if (isPaused) {
-        setTimeout(() => {
-            requestAnimationFrame(gameLoop);
-        }, 1000 / 30);
+        requestAnimationFrame(gameLoop);
         return;
     }
 
@@ -2122,9 +2120,7 @@ function gameLoop() {
             ctx.font = 'bold 20px Arial';
             ctx.fillText('시작/재시작 버튼을 눌러 시작', canvas.width/2, canvas.height/2 + 50);
         }
-        setTimeout(() => {
-            requestAnimationFrame(gameLoop);
-        }, 1000 / 30);
+        requestAnimationFrame(gameLoop);
         return;
     }
 
@@ -2191,9 +2187,7 @@ function gameLoop() {
             ctx.fillText(`최종 점수: ${score}`, canvas.width/2, canvas.height/2 + 60);
             ctx.fillText('스페이스바를 눌러 재시작', canvas.width/2, canvas.height/2 + 160);
         }
-        setTimeout(() => {
-            requestAnimationFrame(gameLoop);
-        }, 1000 / 30);
+        requestAnimationFrame(gameLoop);
         return;
     }
 
@@ -2267,10 +2261,8 @@ function gameLoop() {
         // 모바일 컨트롤 상태 표시
         showMobileControlStatus();
 
-        // 프레임 레이트 제한 (30 FPS로 더 느리게)
-        setTimeout(() => {
-            requestAnimationFrame(gameLoop);
-        }, 1000 / 30);
+        // 프레임 레이트 제한 제거, requestAnimationFrame만 사용
+        requestAnimationFrame(gameLoop);
     } catch (error) {
         console.error('게임 루프 실행 중 오류:', error);
         // 오류 발생 시 게임 오버 처리
