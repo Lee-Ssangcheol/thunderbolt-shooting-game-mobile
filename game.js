@@ -259,10 +259,8 @@ function setupMobileControls() {
         if (isGameOver) {
             restartGame();
         } else {
-            // 게임 중이면 최고점수 리셋 확인
-            if (confirm('최고점수를 리셋하시겠습니까?')) {
-                resetAllHighScores();
-            }
+            // 게임 중이면 최고점수 리셋 (확인 없이 바로 실행)
+            resetAllHighScores();
         }
     }, { passive: false });
     
@@ -276,10 +274,8 @@ function setupMobileControls() {
         if (isGameOver) {
             restartGame();
         } else {
-            // 게임 중이면 최고점수 리셋 확인
-            if (confirm('최고점수를 리셋하시겠습니까?')) {
-                resetAllHighScores();
-            }
+            // 게임 중이면 최고점수 리셋 (확인 없이 바로 실행)
+            resetAllHighScores();
         }
     });
     
