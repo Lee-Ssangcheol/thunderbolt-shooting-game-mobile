@@ -3830,8 +3830,8 @@ let fireRateMultiplier = 1;
 let lastFireTime = 0;  // 마지막 발사 시간
 let isSpacePressed = false;  // 스페이스바 누름 상태
 let spacePressTime = 0;  // 스페이스바를 처음 누른 시간
-let fireDelay = 400;  // 기본 발사 딜레이를 600에서 400으로 줄임
-let continuousFireDelay = 30;  // 연속 발사 딜레이를 50에서 30으로 줄임
+let fireDelay = 600;  // 기본 발사 딜레이를 600에서 400으로 줄임
+let continuousFireDelay = 50;  // 연속 발사 딜레이를 50에서 30으로 줄임
     let bulletSpeed = 7;  // 총알 속도를 5에서 7로 증가
 let baseBulletSize = 4.5;  // 기본 총알 크기 (1.5배 증가)
 let isContinuousFire = false;  // 연속 발사 상태
@@ -5099,7 +5099,7 @@ function fireBullet() {
                 y: player.y,
                 width: 4,
                 height: 8,
-                speed: 8 * mobileSpeedMultiplier,
+                speed: 6 * mobileSpeedMultiplier,
                 angle: (angle * Math.PI) / 180
             };
             bullets.push(bullet);
@@ -5111,7 +5111,7 @@ function fireBullet() {
             y: player.y,
             width: 4,
             height: 8,
-            speed: 8 * mobileSpeedMultiplier
+            speed: 6 * mobileSpeedMultiplier
         };
         bullets.push(bullet);
     }
@@ -5123,7 +5123,7 @@ function fireBullet() {
             y: secondPlane.y,
             width: 4,
             height: 8,
-            speed: 8 * mobileSpeedMultiplier
+            speed: 6 * mobileSpeedMultiplier
         };
         bullets.push(bullet);
     }
