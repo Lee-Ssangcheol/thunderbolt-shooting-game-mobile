@@ -340,12 +340,11 @@ function setupMobileControls() {
         e.stopPropagation();
         console.log('시작/재시작 버튼 터치');
         
-        // 시작 화면에서 버튼을 누르면 바로 게임 화면으로 전환
+        // 시작 화면에서 버튼을 누르면 게임 시작
         if (isStartScreen) {
             isStartScreen = false;
             gameStarted = true;
-            waitingForTouch = true;
-            console.log('모바일에서 게임 화면으로 전환 (터치 대기)');
+            console.log('모바일에서 게임 시작');
             // 모바일에서 게임 시작 시 전체화면 모드 활성화
             if (isMobile) {
                 setTimeout(() => {
@@ -357,8 +356,7 @@ function setupMobileControls() {
         // 게임 오버 상태에서 재시작
         if (isGameOver) {
             restartGame();
-            waitingForTouch = true;
-            console.log('게임 오버 후 게임 화면으로 전환 (터치 대기)');
+            // 모바일에서 게임 재시작 시 전체화면 모드 활성화
             if (isMobile) {
                 setTimeout(() => {
                     reactivateFullscreen();
@@ -383,8 +381,7 @@ function setupMobileControls() {
         if (isStartScreen) {
             isStartScreen = false;
             gameStarted = true;
-            waitingForTouch = true;
-            console.log('모바일에서 게임 화면으로 전환 (터치 대기)');
+            console.log('모바일에서 게임 시작');
             // 모바일에서 게임 시작 시 전체화면 모드 활성화
             if (isMobile) {
                 setTimeout(() => {
@@ -396,8 +393,7 @@ function setupMobileControls() {
         // 게임 오버 상태에서 재시작
         if (isGameOver) {
             restartGame();
-            waitingForTouch = true;
-            console.log('게임 오버 후 게임 화면으로 전환 (터치 대기)');
+            // 모바일에서 게임 재시작 시 전체화면 모드 활성화
             if (isMobile) {
                 setTimeout(() => {
                     reactivateFullscreen();
@@ -698,7 +694,6 @@ let specialWeaponCharged = false;
 let specialWeaponCharge = 0;
 let enemySpawnRate = 2000;  // 적 생성 주기 (ms)
 let enemySpeed = 2 * mobileSpeedMultiplier;  // 적 이동 속도
-let waitingForTouch = false;  // 터치 대기 상태
 
 // 보스 패턴 상수 추가
 const BOSS_PATTERNS = {
@@ -1212,7 +1207,6 @@ async function initializeGame() {
         levelScore = 0;
         scoreForSpread = 0;
         gameStarted = false;
-        waitingForTouch = false;
         isStartScreen = true;
         
         // 모든 투사체 및 폭발물 완전 초기화
@@ -1330,9 +1324,8 @@ function restartGame() {
     bossDestroyed = false;
     lastBossSpawnTime = Date.now();
     
-    // 시작 화면으로 돌아가지 않고 바로 게임 화면으로 전환 (터치 대기)
+    // 시작 화면으로 돌아가지 않고 바로 게임 시작
     isStartScreen = false;
-    waitingForTouch = true;
     
     // 적 생성 타이머 초기화 - 즉시 적들이 생성되도록
     lastEnemySpawnTime = 0;
@@ -2403,8 +2396,8 @@ function handleEnemies() {
         handleSnakePattern();
     }
     
-    // 적 생성 로직 개선 - 게임이 시작되고 터치 후에만 적들이 생성되도록
-    if (gameStarted && !waitingForTouch && currentTime - lastEnemySpawnTime >= MIN_ENEMY_SPAWN_INTERVAL &&
+    // 적 생성 로직 개선 - 게임 시작 시 즉시 적들이 생성되도록
+    if (currentTime - lastEnemySpawnTime >= MIN_ENEMY_SPAWN_INTERVAL &&
         Math.random() < currentDifficulty.enemySpawnRate * 0.3 && // 생성 확률을 30%로 더 줄임
         enemies.length < currentDifficulty.maxEnemies &&
         !isGameOver) {
@@ -2413,8 +2406,8 @@ function handleEnemies() {
         console.log('새로운 적 생성됨');
     }
     
-    // 헬리콥터 생성 로직 개선 - 게임이 시작되고 터치 후에만 생성되도록
-    if (gameStarted && !waitingForTouch && !isBossActive && currentTime - lastHelicopterSpawnTime >= MIN_HELICOPTER_SPAWN_INTERVAL) {
+    // 헬리콥터 생성 로직 개선 - 게임 시작 시 즉시 생성되도록
+    if (!isBossActive && currentTime - lastHelicopterSpawnTime >= MIN_HELICOPTER_SPAWN_INTERVAL) {
         if (Math.random() < 0.01) { // 1% 확률로 헬리콥터 생성
             const helicopter = createHelicopter();
             if (helicopter) {
@@ -2473,8 +2466,7 @@ function handleSnakePattern() {
                     angle: lastEnemy.angle,
                     isHit: false,
                     amplitude: group.amplitude,
-                    frequency: group.frequency,
-                    lastChange: Date.now()
+                    frequency: group.frequency
                 };
                 group.enemies.push(newEnemy);
             }
@@ -3161,11 +3153,9 @@ document.addEventListener('keydown', (e) => {
     if (e.code in keys) {
         keys[e.code] = true;
         
-        // 시작 화면에서 스페이스바를 누르면 게임 화면으로 전환
+        // 시작 화면에서 스페이스바를 누르면 게임 시작
         if (isStartScreen && e.code === 'Space') {
             isStartScreen = false;
-            gameStarted = true;
-            waitingForTouch = true;
             // 모바일에서 게임 시작 시 전체화면 모드 활성화
             if (isMobile) {
                 setTimeout(() => {
@@ -3178,7 +3168,6 @@ document.addEventListener('keydown', (e) => {
         // 게임 오버 화면에서 스페이스바를 누르면 게임 재시작
         if (isGameOver && e.code === 'Space') {
             restartGame();
-            waitingForTouch = true;
             // 모바일에서 게임 재시작 시 전체화면 모드 활성화
             if (isMobile) {
                 setTimeout(() => {
@@ -4600,7 +4589,7 @@ function handleEnemies() {
     if (isSnakePatternActive) {
         handleSnakePattern();
     }
-    if (gameStarted && !waitingForTouch && currentTime - lastEnemySpawnTime >= MIN_ENEMY_SPAWN_INTERVAL &&
+    if (currentTime - lastEnemySpawnTime >= MIN_ENEMY_SPAWN_INTERVAL &&
         Math.random() < currentDifficulty.enemySpawnRate && 
         enemies.length < currentDifficulty.maxEnemies &&
         !isGameOver) {
@@ -4608,7 +4597,7 @@ function handleEnemies() {
         lastEnemySpawnTime = currentTime;
         console.log('새로운 적 생성됨');
     }
-    if (gameStarted && !waitingForTouch && !isBossActive && currentTime - lastHelicopterSpawnTime >= MIN_HELICOPTER_SPAWN_INTERVAL) {
+    if (!isBossActive && currentTime - lastHelicopterSpawnTime >= MIN_HELICOPTER_SPAWN_INTERVAL) {
         if (Math.random() < 0.01) { // 1% 확률로 헬리콥터 생성
             const helicopter = createHelicopter();
             if (helicopter) {
@@ -5203,13 +5192,6 @@ function setupTouchPositionControls() {
         const touchX = touch.clientX - rect.left;
         const touchY = touch.clientY - rect.top;
         
-        // 터치 대기 상태에서 첫 터치 시 게임 시작
-        if (waitingForTouch) {
-            waitingForTouch = false;
-            gameStarted = true;
-            console.log('터치로 게임 시작됨');
-        }
-        
         // 게임 진행 중일 때만 플레이어 이동
         if (gameStarted && !isGameOver && !isStartScreen) {
             // 터치한 위치로 플레이어 즉시 이동 (비행기 중심점을 날개폭의 반만큼 오른쪽으로)
@@ -5358,26 +5340,3 @@ function showResetConfirmModal(onResult) {
     // Focus default
     yesBtn.focus();
 }
-
-// 터치 대기 상태 처리 - 제거 (바로 게임 화면으로 전환)
-// if (waitingForTouch) {
-//     // 검정색 배경
-//     ctx.fillStyle = '#000';
-//     ctx.fillRect(0, 0, canvas.width, canvas.height);
-//     
-//     // 터치 대기 메시지
-//     ctx.fillStyle = '#ffffff';
-//     ctx.font = 'bold 32px Arial';
-//     ctx.textAlign = 'center';
-//     ctx.fillText('화면을 터치하여 시작', canvas.width/2, canvas.height/2);
-//     
-//     // 모바일에서만 프레임 제한 적용
-//     if (isMobile) {
-//         setTimeout(() => {
-//             requestAnimationFrame(gameLoop);
-//         }, MOBILE_FRAME_INTERVAL);
-//     } else {
-//         requestAnimationFrame(gameLoop);
-//     }
-//     return;
-// }
