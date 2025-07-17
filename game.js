@@ -3295,12 +3295,17 @@ function updateScore(points) {
 
 // 두 번째 비행기 처리 함수 추가
 function handleSecondPlane() {
-    if (score >= 2000 && score % 2000 === 0 && !hasSecondPlane) {  // 10000에서 2000으로 변경
+    // 추가 비행기 등장 점수(2000, 4000, 6000, ...)를 넘는 순간마다 등장
+    // 등장 후 10초간 유지, 이미 등장 중이면 무시
+    // 등장한 적이 없는 점수 구간에서만 등장하도록 lastSecondPlaneScore 사용
+    if (!window.lastSecondPlaneScore) window.lastSecondPlaneScore = 0;
+    const nextThreshold = Math.floor(score / 2000) * 2000;
+    if (score >= 2000 && score >= window.lastSecondPlaneScore + 2000 && !hasSecondPlane) {
         hasSecondPlane = true;
         secondPlane.x = player.x - 60;
         secondPlane.y = player.y;
-        secondPlaneTimer = Date.now(); // 타이머 시작
-        // 두 번째 비행기 획득 메시지
+        secondPlaneTimer = Date.now();
+        window.lastSecondPlaneScore = nextThreshold;
         ctx.fillStyle = 'yellow';
         ctx.font = '40px Arial';
         ctx.fillText('추가 비행기 획득!', canvas.width/2 - 150, canvas.height/2);
@@ -3310,7 +3315,6 @@ function handleSecondPlane() {
         const elapsedTime = Date.now() - secondPlaneTimer;
         if (elapsedTime >= 10000) { // 10초 체크
             hasSecondPlane = false;
-            // 두 번째 비행기 소멸 메시지
             ctx.fillStyle = 'red';
             ctx.font = '40px Arial';
             ctx.fillText('추가 비행기 소멸!', canvas.width/2 - 150, canvas.height/2);
