@@ -3273,10 +3273,11 @@ function handleGameOver() {
 
 // 점수 증가 함수 수정
 function updateScore(points) {
+    const prevScore = score;
     score += points;
     scoreForSpread += points;
     levelScore += points;
-    
+
     // 특수 무기 게이지 증가
     if (!specialWeaponCharged) {
         specialWeaponCharge += points;
@@ -3285,22 +3286,26 @@ function updateScore(points) {
             specialWeaponCharge = SPECIAL_WEAPON_MAX_CHARGE;
         }
     }
-    
+
     // 최고 점수 즉시 업데이트 및 저장
     if (score > highScore) {
         highScore = score;
         saveHighScoreDirectly(highScore, 'updateScore');
     }
+
+    // 추가 비행기 구간 진입 체크
+    const prevPlaneZone = Math.floor(prevScore / 2000);
+    const currPlaneZone = Math.floor(score / 2000);
+    if (currPlaneZone > prevPlaneZone && score >= 2000) {
+        handleSecondPlane(true); // 강제 등장 플래그
+    }
 }
 
-// 두 번째 비행기 처리 함수 추가
-function handleSecondPlane() {
-    // 추가 비행기 등장 점수(2000, 4000, 6000, ...)를 넘는 순간마다 등장
-    // 등장 후 10초간 유지, 이미 등장 중이면 무시
-    // 등장한 적이 없는 점수 구간에서만 등장하도록 lastSecondPlaneScore 사용
+// 두 번째 비행기 처리 함수 수정
+function handleSecondPlane(forceAppear = false) {
     if (!window.lastSecondPlaneScore) window.lastSecondPlaneScore = 0;
     const nextThreshold = Math.floor(score / 2000) * 2000;
-    if (score >= 2000 && score >= window.lastSecondPlaneScore + 2000 && !hasSecondPlane) {
+    if ((forceAppear || (score >= 2000 && score >= window.lastSecondPlaneScore + 2000 && !hasSecondPlane)) && !hasSecondPlane) {
         hasSecondPlane = true;
         secondPlane.x = player.x - 60;
         secondPlane.y = player.y;
