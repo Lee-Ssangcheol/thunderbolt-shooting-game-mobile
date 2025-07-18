@@ -3173,6 +3173,11 @@ document.addEventListener('keydown', (e) => {
                     reactivateFullscreen();
                 }, 100);
             }
+            // 데스크탑에서는 바로 waitingForTouch 해제
+            if (!isMobile && waitingForTouch) {
+                waitingForTouch = false;
+                console.log('데스크탑에서 게임 시작됨');
+            }
             return;
         }
         
@@ -3185,6 +3190,10 @@ document.addEventListener('keydown', (e) => {
                 setTimeout(() => {
                     reactivateFullscreen();
                 }, 100);
+            }
+            if (!isMobile && waitingForTouch) {
+                waitingForTouch = false;
+                console.log('데스크탑에서 게임 재시작됨');
             }
             return;
         }
