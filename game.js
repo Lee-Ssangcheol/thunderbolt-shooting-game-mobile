@@ -340,11 +340,12 @@ function setupMobileControls() {
         e.stopPropagation();
         console.log('시작/재시작 버튼 터치');
         
-        // 시작 화면에서 버튼을 누르면 게임 시작
+        // 시작 화면에서 버튼을 누르면 바로 게임 화면으로 전환
         if (isStartScreen) {
             isStartScreen = false;
             gameStarted = true;
-            console.log('모바일에서 게임 시작');
+            waitingForTouch = true;
+            console.log('모바일에서 게임 화면으로 전환 (터치 대기)');            
             // 모바일에서 게임 시작 시 전체화면 모드 활성화
             if (isMobile) {
                 setTimeout(() => {
@@ -356,6 +357,8 @@ function setupMobileControls() {
         // 게임 오버 상태에서 재시작
         if (isGameOver) {
             restartGame();
+            waitingForTouch = true;
+            console.log('게임 오버 후 게임 화면으로 전환 (터치 대기)');            
             // 모바일에서 게임 재시작 시 전체화면 모드 활성화
             if (isMobile) {
                 setTimeout(() => {
@@ -381,7 +384,8 @@ function setupMobileControls() {
         if (isStartScreen) {
             isStartScreen = false;
             gameStarted = true;
-            console.log('모바일에서 게임 시작');
+            waitingForTouch = true;
+            console.log('모바일에서 게임 화면으로 전환 (터치 대기)');            
             // 모바일에서 게임 시작 시 전체화면 모드 활성화
             if (isMobile) {
                 setTimeout(() => {
@@ -393,7 +397,8 @@ function setupMobileControls() {
         // 게임 오버 상태에서 재시작
         if (isGameOver) {
             restartGame();
-            // 모바일에서 게임 재시작 시 전체화면 모드 활성화
+            waitingForTouch = true;
+            console.log('게임 오버 후 게임 화면으로 전환 (터치 대기)');            
             if (isMobile) {
                 setTimeout(() => {
                     reactivateFullscreen();
@@ -694,6 +699,7 @@ let specialWeaponCharged = false;
 let specialWeaponCharge = 0;
 let enemySpawnRate = 2000;  // 적 생성 주기 (ms)
 let enemySpeed = 2 * mobileSpeedMultiplier;  // 적 이동 속도
+let waitingForTouch = false;  // 터치 대기 상태
 
 // 보스 패턴 상수 추가
 const BOSS_PATTERNS = {
@@ -1207,6 +1213,7 @@ async function initializeGame() {
         levelScore = 0;
         scoreForSpread = 0;
         gameStarted = false;
+        waitingForTouch = false;        
         isStartScreen = true;
         
         // 모든 투사체 및 폭발물 완전 초기화
@@ -1324,8 +1331,9 @@ function restartGame() {
     bossDestroyed = false;
     lastBossSpawnTime = Date.now();
     
-    // 시작 화면으로 돌아가지 않고 바로 게임 시작
+    // 시작 화면으로 돌아가지 않고 바로 게임 화면으로 전환 (터치 대기)
     isStartScreen = false;
+    waitingForTouch = true;    
     
     // 적 생성 타이머 초기화 - 즉시 적들이 생성되도록
     lastEnemySpawnTime = 0;
@@ -2396,8 +2404,8 @@ function handleEnemies() {
         handleSnakePattern();
     }
     
-    // 적 생성 로직 개선 - 게임 시작 시 즉시 적들이 생성되도록
-    if (currentTime - lastEnemySpawnTime >= MIN_ENEMY_SPAWN_INTERVAL &&
+    // 적 생성 로직 개선 - 게임이 시작되고 터치 후에만 적들이 생성되도록
+    if (gameStarted && !waitingForTouch && currentTime - lastEnemySpawnTime >= MIN_ENEMY_SPAWN_INTERVAL &&
         Math.random() < currentDifficulty.enemySpawnRate * 0.3 && // 생성 확률을 30%로 더 줄임
         enemies.length < currentDifficulty.maxEnemies &&
         !isGameOver) {
@@ -2406,8 +2414,8 @@ function handleEnemies() {
         console.log('새로운 적 생성됨');
     }
     
-    // 헬리콥터 생성 로직 개선 - 게임 시작 시 즉시 생성되도록
-    if (!isBossActive && currentTime - lastHelicopterSpawnTime >= MIN_HELICOPTER_SPAWN_INTERVAL) {
+    // 헬리콥터 생성 로직 개선 - 게임이 시작되고 터치 후에만 생성되도록
+    if (gameStarted && !waitingForTouch && !isBossActive && currentTime - lastHelicopterSpawnTime >= MIN_HELICOPTER_SPAWN_INTERVAL) {
         if (Math.random() < 0.01) { // 1% 확률로 헬리콥터 생성
             const helicopter = createHelicopter();
             if (helicopter) {
@@ -2466,7 +2474,8 @@ function handleSnakePattern() {
                     angle: lastEnemy.angle,
                     isHit: false,
                     amplitude: group.amplitude,
-                    frequency: group.frequency
+                    frequency: group.frequency,
+                    lastChange: Date.now()
                 };
                 group.enemies.push(newEnemy);
             }
@@ -3153,9 +3162,11 @@ document.addEventListener('keydown', (e) => {
     if (e.code in keys) {
         keys[e.code] = true;
         
-        // 시작 화면에서 스페이스바를 누르면 게임 시작
+        // 시작 화면에서 스페이스바를 누르면 게임 화면으로 전환
         if (isStartScreen && e.code === 'Space') {
             isStartScreen = false;
+            gameStarted = true;
+            waitingForTouch = true;            
             // 모바일에서 게임 시작 시 전체화면 모드 활성화
             if (isMobile) {
                 setTimeout(() => {
@@ -3168,6 +3179,7 @@ document.addEventListener('keydown', (e) => {
         // 게임 오버 화면에서 스페이스바를 누르면 게임 재시작
         if (isGameOver && e.code === 'Space') {
             restartGame();
+            waitingForTouch = true;            
             // 모바일에서 게임 재시작 시 전체화면 모드 활성화
             if (isMobile) {
                 setTimeout(() => {
@@ -3273,11 +3285,10 @@ function handleGameOver() {
 
 // 점수 증가 함수 수정
 function updateScore(points) {
-    const prevScore = score;
     score += points;
     scoreForSpread += points;
     levelScore += points;
-
+    
     // 특수 무기 게이지 증가
     if (!specialWeaponCharged) {
         specialWeaponCharge += points;
@@ -3286,31 +3297,22 @@ function updateScore(points) {
             specialWeaponCharge = SPECIAL_WEAPON_MAX_CHARGE;
         }
     }
-
+    
     // 최고 점수 즉시 업데이트 및 저장
     if (score > highScore) {
         highScore = score;
         saveHighScoreDirectly(highScore, 'updateScore');
     }
-
-    // 추가 비행기 구간 진입 체크
-    const prevPlaneZone = Math.floor(prevScore / 2000);
-    const currPlaneZone = Math.floor(score / 2000);
-    if (currPlaneZone > prevPlaneZone && score >= 2000) {
-        handleSecondPlane(true); // 강제 등장 플래그
-    }
 }
 
-// 두 번째 비행기 처리 함수 수정
-function handleSecondPlane(forceAppear = false) {
-    if (!window.lastSecondPlaneScore) window.lastSecondPlaneScore = 0;
-    const nextThreshold = Math.floor(score / 2000) * 2000;
-    if ((forceAppear || (score >= 2000 && score >= window.lastSecondPlaneScore + 2000 && !hasSecondPlane)) && !hasSecondPlane) {
+// 두 번째 비행기 처리 함수 추가
+function handleSecondPlane() {
+    if (score >= 2000 && score % 2000 === 0 && !hasSecondPlane) {  // 10000에서 2000으로 변경
         hasSecondPlane = true;
         secondPlane.x = player.x - 60;
         secondPlane.y = player.y;
-        secondPlaneTimer = Date.now();
-        window.lastSecondPlaneScore = nextThreshold;
+        secondPlaneTimer = Date.now(); // 타이머 시작
+        // 두 번째 비행기 획득 메시지
         ctx.fillStyle = 'yellow';
         ctx.font = '40px Arial';
         ctx.fillText('추가 비행기 획득!', canvas.width/2 - 150, canvas.height/2);
@@ -3320,6 +3322,7 @@ function handleSecondPlane(forceAppear = false) {
         const elapsedTime = Date.now() - secondPlaneTimer;
         if (elapsedTime >= 10000) { // 10초 체크
             hasSecondPlane = false;
+            // 두 번째 비행기 소멸 메시지
             ctx.fillStyle = 'red';
             ctx.font = '40px Arial';
             ctx.fillText('추가 비행기 소멸!', canvas.width/2 - 150, canvas.height/2);
@@ -4598,7 +4601,8 @@ function handleEnemies() {
     if (isSnakePatternActive) {
         handleSnakePattern();
     }
-    if (currentTime - lastEnemySpawnTime >= MIN_ENEMY_SPAWN_INTERVAL &&
+
+    if (gameStarted && !waitingForTouch && currentTime - lastEnemySpawnTime >= MIN_ENEMY_SPAWN_INTERVAL &&
         Math.random() < currentDifficulty.enemySpawnRate && 
         enemies.length < currentDifficulty.maxEnemies &&
         !isGameOver) {
@@ -4606,7 +4610,7 @@ function handleEnemies() {
         lastEnemySpawnTime = currentTime;
         console.log('새로운 적 생성됨');
     }
-    if (!isBossActive && currentTime - lastHelicopterSpawnTime >= MIN_HELICOPTER_SPAWN_INTERVAL) {
+    if (gameStarted && !waitingForTouch && !isBossActive && currentTime - lastHelicopterSpawnTime >= MIN_HELICOPTER_SPAWN_INTERVAL) {
         if (Math.random() < 0.01) { // 1% 확률로 헬리콥터 생성
             const helicopter = createHelicopter();
             if (helicopter) {
@@ -5200,7 +5204,13 @@ function setupTouchPositionControls() {
         const rect = canvas.getBoundingClientRect();
         const touchX = touch.clientX - rect.left;
         const touchY = touch.clientY - rect.top;
-        
+
+        // 터치 대기 상태에서 첫 터치 시 게임 시작
+        if (waitingForTouch) {
+            waitingForTouch = false;
+            gameStarted = true;
+            console.log('터치로 게임 시작됨');
+        }
         // 게임 진행 중일 때만 플레이어 이동
         if (gameStarted && !isGameOver && !isStartScreen) {
             // 터치한 위치로 플레이어 즉시 이동 (비행기 중심점을 날개폭의 반만큼 오른쪽으로)
