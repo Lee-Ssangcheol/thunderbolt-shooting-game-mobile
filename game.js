@@ -2355,8 +2355,8 @@ function handleEnemies() {
     const currentDifficulty = difficultySettings[gameLevel];
     const bossExists = enemies.some(enemy => enemy.type === 'helicopter' && enemy.isBoss);
     
-    // 보스 생성 조건 추가
-    if (score >= 2000 * gameLevel && !isBossActive && !bossExists) {
+    // 보스 생성 조건 추가 - 게임이 시작된 후에만 보스 생성
+    if (gameStarted && score >= 2000 * gameLevel && !isBossActive && !bossExists) {
         createBoss();
         isBossActive = true;
     }
@@ -4574,8 +4574,8 @@ function handleEnemies() {
     const currentDifficulty = difficultySettings[gameLevel];
     const bossExists = enemies.some(enemy => enemy.type === 'helicopter' && enemy.isBoss);
     
-    // 보스 생성 조건 추가
-    if (score >= 2000 * gameLevel && !isBossActive && !bossExists) {
+    // 보스 생성 조건 추가 - 게임이 시작된 후에만 보스 생성
+    if (gameStarted && score >= 2000 * gameLevel && !isBossActive && !bossExists) {
         createBoss();
         isBossActive = true;
     }
