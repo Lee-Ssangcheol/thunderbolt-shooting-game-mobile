@@ -2249,14 +2249,14 @@ function gameLoop() {
         // 적 생성 및 이동 처리
         handleEnemies();
         
-        // 보스 체크 및 생성
+        // 보스 체크 및 생성 - 게임이 시작된 후에만 보스 생성
         const currentTime = Date.now();
-        if (!bossActive) {
+        if (gameStarted && !bossActive) {
             const timeSinceLastBoss = currentTime - lastBossSpawnTime;
             if (timeSinceLastBoss >= BOSS_SETTINGS.SPAWN_INTERVAL) {
                 createBoss();
             }
-        } else {
+        } else if (bossActive) {
             // 보스가 존재하는 경우 보스 패턴 처리
             const boss = enemies.find(enemy => enemy.isBoss);
             if (boss) {
@@ -4621,6 +4621,12 @@ function handleEnemies() {
 // 보스 생성 함수 수정
 function createBoss() {
     console.log('보스 헬리콥터 생성 함수 호출됨');
+    
+    // 게임이 시작되지 않은 경우 보스 생성하지 않음
+    if (!gameStarted) {
+        console.log('게임이 시작되지 않아 보스 생성하지 않음');
+        return;
+    }
     
     // 이미 보스가 존재하는 경우
     if (bossActive) {
