@@ -5207,9 +5207,31 @@ function setupTouchPositionControls() {
         
         // 게임 진행 중일 때만 플레이어 이동
         if (gameStarted && !isGameOver && !isStartScreen) {
-            // 터치한 위치로 플레이어 즉시 이동 (비행기 중심점을 날개폭의 반만큼 오른쪽으로)
-            let newX = touchX - player.width / 2 + player.width / 4; // 터치 위치를 플레이어 중심으로 조정하고 날개폭의 반만큼 오른쪽으로 이동
-            let newY = touchY - player.height * 0.8; // 비행기 꼬리 부분이 터치 지점에 오도록 조정
+            // 터치점과 플레이어 기준점 사이의 거리를 플레이어 몸통 길이의 3분의 1만큼 벌림
+            const playerCenterX = player.x + player.width / 2;
+            const playerCenterY = player.y + player.height / 2;
+            const distanceX = touchX - playerCenterX;
+            const distanceY = touchY - playerCenterY;
+            const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+            
+            // 플레이어 몸통 길이의 3분의 1만큼 거리 계산
+            const minDistance = player.height / 3;
+            
+            let targetX, targetY;
+            if (distance > 0) {
+                // 터치점에서 최소 거리만큼 떨어진 위치 계산
+                const ratio = (distance - minDistance) / distance;
+                targetX = playerCenterX + distanceX * ratio;
+                targetY = playerCenterY + distanceY * ratio;
+            } else {
+                // 터치점이 플레이어 중심과 같을 경우
+                targetX = playerCenterX;
+                targetY = playerCenterY - minDistance;
+            }
+            
+            // 플레이어 위치 계산 (비행기 중심점을 날개폭의 반만큼 오른쪽으로)
+            let newX = targetX - player.width / 2 + player.width / 4;
+            let newY = targetY - player.height / 2;
             
             // 경계 제한
             const margin = 10;
@@ -5248,9 +5270,31 @@ function setupTouchPositionControls() {
         const touchX = touch.clientX - rect.left;
         const touchY = touch.clientY - rect.top;
         
-        // 터치한 위치로 플레이어 즉시 이동 (비행기 중심점을 날개폭의 반만큼 오른쪽으로)
-        let newX = touchX - player.width / 2 + player.width / 4; // 터치 위치를 플레이어 중심으로 조정하고 날개폭의 반만큼 오른쪽으로 이동
-        let newY = touchY - player.height * 0.8; // 비행기 꼬리 부분이 터치 지점에 오도록 조정
+        // 터치점과 플레이어 기준점 사이의 거리를 플레이어 몸통 길이의 3분의 1만큼 벌림
+        const playerCenterX = player.x + player.width / 2;
+        const playerCenterY = player.y + player.height / 2;
+        const distanceX = touchX - playerCenterX;
+        const distanceY = touchY - playerCenterY;
+        const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+        
+        // 플레이어 몸통 길이의 3분의 1만큼 거리 계산
+        const minDistance = player.height / 3;
+        
+        let targetX, targetY;
+        if (distance > 0) {
+            // 터치점에서 최소 거리만큼 떨어진 위치 계산
+            const ratio = (distance - minDistance) / distance;
+            targetX = playerCenterX + distanceX * ratio;
+            targetY = playerCenterY + distanceY * ratio;
+        } else {
+            // 터치점이 플레이어 중심과 같을 경우
+            targetX = playerCenterX;
+            targetY = playerCenterY - minDistance;
+        }
+        
+        // 플레이어 위치 계산 (비행기 중심점을 날개폭의 반만큼 오른쪽으로)
+        let newX = targetX - player.width / 2 + player.width / 4;
+        let newY = targetY - player.height / 2;
         
         // 경계 제한
         const margin = 10;
