@@ -3321,9 +3321,9 @@ function handleSecondPlane(forceAppear = false) {
 // 확산탄 처리 함수 추가
 function handleSpreadShot() {
     if (scoreForSpread >= 500) {  // 2000에서 500으로 변경
-        // 8발의 확산탄을 원형으로 발사
-        for (let i = 0; i < 8; i++) {
-            const angle = (i * 45) * (Math.PI / 180);
+        // 24발의 확산탄을 원형으로 발사 (8발에서 3배 증가)
+        for (let i = 0; i < 24; i++) {
+            const angle = (i * 15) * (Math.PI / 180); // 360도를 24등분 (360/24 = 15도)
             const missile = {
                 x: player.x + player.width/2,  // 비행기 중앙 X좌표
                 y: player.y - player.height/2,  // 비행기 앞부분 Y좌표
@@ -5123,7 +5123,7 @@ function fireBullet() {
     
     // 확산탄 발사
     if (hasSpreadShot) {
-        const spreadAngles = [-15, -10, -5, 0, 5, 10, 15];
+        const spreadAngles = [-15, -12, -9, -6, -3, -1, 0, 1, 3, 6, 9, 12, 15, -10, -7, -4, -2, 2, 4, 7, 10, -8, -5, 5, 8, -11, -13, 11, 13, -14, 14];
         spreadAngles.forEach(angle => {
             const bullet = {
                 x: player.x + player.width / 2,
