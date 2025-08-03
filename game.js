@@ -1371,7 +1371,13 @@ function createEnemy() {
                 health: currentDifficulty.enemyHealth,
                 score: 100 * gameLevel,
                 isElite: Math.random() < (0.05 + (gameLevel * 0.02)),
-                specialAbility: Math.random() < (0.1 + (gameLevel * 0.03)) ? getRandomSpecialAbility() : null
+                specialAbility: Math.random() < (0.1 + (gameLevel * 0.03)) ? getRandomSpecialAbility() : null,
+                // 보호막 시스템 추가
+                hasShield: true,
+                shieldHealth: 10, // 10발 맞으면 파괴
+                shieldHitCount: 0,
+                shieldColor: '#FFA500', // 오렌지 계열
+                isShieldBroken: false
             };
 
             // 엘리트 적 보너스
@@ -1407,7 +1413,13 @@ function createEnemy() {
                 health: currentDifficulty.enemyHealth,
                 score: 150 * gameLevel,
                 isElite: Math.random() < (0.05 + (gameLevel * 0.02)),
-                specialAbility: Math.random() < (0.1 + (gameLevel * 0.03)) ? getRandomSpecialAbility() : null
+                specialAbility: Math.random() < (0.1 + (gameLevel * 0.03)) ? getRandomSpecialAbility() : null,
+                // 보호막 시스템 추가
+                hasShield: true,
+                shieldHealth: 10, // 10발 맞으면 파괴
+                shieldHitCount: 0,
+                shieldColor: '#008B8B', // 블루 계열
+                isShieldBroken: false
             };
 
             // 엘리트 헬리콥터 보너스
@@ -2688,6 +2700,41 @@ function checkEnemyCollisions(enemy) {
                 // 보스가 파괴되지 않은 상태에서는 점수 부여하지 않음
                 isHit = true;
                 return false;
+            } else if ((enemy.type === ENEMY_TYPES.HELICOPTER || enemy.type === ENEMY_TYPES.HELICOPTER2) && enemy.hasShield && !enemy.isShieldBroken) {
+                // 헬리콥터 보호막 처리
+                enemy.shieldHitCount++;
+                console.log(`헬리콥터 보호막 피격: ${enemy.shieldHitCount}/${enemy.shieldHealth}`);
+                
+                // 보호막 피격 효과음 (보스와 동일한 효과음)
+                safePlay(collisionSound);
+                safePlay(shootSound);
+                
+                // 보호막 피격 시각 효과
+                explosions.push(new Explosion(
+                    bullet.x,
+                    bullet.y,
+                    false
+                ));
+                
+                // 보호막이 파괴되면
+                if (enemy.shieldHitCount >= enemy.shieldHealth) {
+                    enemy.isShieldBroken = true;
+                    console.log('헬리콥터 보호막 파괴됨');
+                    
+                    // 보호막 파괴 시 큰 폭발 효과
+                    explosions.push(new Explosion(
+                        enemy.x + enemy.width/2,
+                        enemy.y + enemy.height/2,
+                        true
+                    ));
+                    
+                    // 보호막 파괴 효과음 (보스와 동일한 효과음)
+                    safePlay(collisionSound);
+                    safePlay(explosionSound);
+                    
+                    // 점수 부여
+                    updateScore(enemy.score);
+                }
             } else {
                 // 일반 적 처치
                 explosions.push(new Explosion(
@@ -4385,6 +4432,46 @@ function drawHelicopter(x, y, width, height, rotorAngle) {
     ctx.fillStyle = '#000';
     ctx.fill();
     ctx.globalAlpha = 1.0;
+
+    // 10. 보호막 효과 (헬리콥터에 보호막이 있고 파괴되지 않았을 때만)
+    const enemy = enemies.find(e => e.x === x && e.y === y && (e.type === ENEMY_TYPES.HELICOPTER || e.type === ENEMY_TYPES.HELICOPTER2));
+    if (enemy && enemy.hasShield && !enemy.isShieldBroken) {
+        // 보호막 그라데이션 효과
+        const shieldRadius = Math.max(width, height) * 0.8;
+        const shieldGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, shieldRadius);
+        
+        // 보호막 색상 설정
+        const shieldColor = enemy.shieldColor || (enemy.type === ENEMY_TYPES.HELICOPTER2 ? '#FFA500' : '#008B8B');
+        
+        shieldGradient.addColorStop(0, `${shieldColor}40`); // 중앙 (투명도 25%)
+        shieldGradient.addColorStop(0.5, `${shieldColor}20`); // 중간 (투명도 12%)
+        shieldGradient.addColorStop(1, `${shieldColor}00`); // 바깥쪽 (투명도 0%)
+        
+        ctx.fillStyle = shieldGradient;
+        ctx.beginPath();
+        ctx.arc(0, 0, shieldRadius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 보호막 테두리 효과
+        ctx.strokeStyle = `${shieldColor}80`; // 투명도 50%
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, shieldRadius, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        // 보호막 내구도 표시 (파이 형태)
+        const shieldHealthRatio = enemy.shieldHitCount / enemy.shieldHealth;
+        const remainingAngle = (1 - shieldHealthRatio) * Math.PI * 2;
+        
+        if (remainingAngle > 0) {
+            ctx.fillStyle = `${shieldColor}60`; // 투명도 37%
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.arc(0, 0, shieldRadius * 0.7, 0, remainingAngle);
+            ctx.closePath();
+            ctx.fill();
+        }
+    }
 
     ctx.restore();
 }
