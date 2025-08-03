@@ -3579,7 +3579,7 @@ const BOSS_SETTINGS = {
     DAMAGE: 50,          // 보스 총알 데미지
     SPEED: 1,           // 보스 이동 속도를 2에서 1로 줄임
     BULLET_SPEED: 4,    // 보스 총알 속도를 3에서 4로 증가
-    PATTERN_INTERVAL: 5000, // 5초(5000ms)로 단축
+    PATTERN_INTERVAL: 2500, // 2.5초(2500ms)로 단축 (기존 대비 반으로 줄임)
     SPAWN_INTERVAL: 10000,  // 보스 출현 간격 (10초로 단축)
     BONUS_SCORE: 500,    // 보스 처치 보너스 점수를 500으로 설정
     PHASE_THRESHOLDS: [  // 페이즈 전환 체력 임계값
