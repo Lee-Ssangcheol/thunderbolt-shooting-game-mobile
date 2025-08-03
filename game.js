@@ -1348,6 +1348,7 @@ function createEnemy() {
         const isHelicopter2 = Math.random() < 0.5;  // 50% 확률로 helicopter2 생성
         
         if (isHelicopter2) {
+            // 헬리콥터2(오렌지계열) 생성
             const enemy = {
                 x: Math.random() * (canvas.width - 48),
                 y: -48,  // 화면 상단에서 시작
@@ -1366,7 +1367,7 @@ function createEnemy() {
                 lastUpdateTime: Date.now(),
                 canFire: true,
                 lastFireTime: 0,
-                fireInterval: currentDifficulty.fireInterval,
+                fireInterval: currentDifficulty.fireInterval * 0.5, // 현재 대비 반으로 줄임
                 bulletSpeed: currentDifficulty.bulletSpeed,
                 health: currentDifficulty.enemyHealth,
                 score: 100 * gameLevel,
@@ -1374,9 +1375,9 @@ function createEnemy() {
                 specialAbility: Math.random() < (0.1 + (gameLevel * 0.03)) ? getRandomSpecialAbility() : null,
                 // 보호막 시스템 추가
                 hasShield: true,
-                shieldHealth: 10, // 10발 맞으면 파괴
+                shieldHealth: 50, // 50발 맞으면 파괴
                 shieldHitCount: 0,
-                shieldColor: '#FFA500', // 오렌지 계열
+                shieldColor: '#FFA500', // 헬리콥터2(오렌지계열) 보호막 색상
                 isShieldBroken: false
             };
 
@@ -1390,9 +1391,10 @@ function createEnemy() {
             }
 
             enemies.push(enemy);
-            console.log('helicopter2 생성됨:', enemy);
+            console.log('헬리콥터2(오렌지계열) 생성됨:', enemy);
             return;
         } else {
+            // 헬리콥터1(블루계열) 생성
             const helicopter = {
                 x: Math.random() * (canvas.width - 48),
                 y: -48,  // 화면 상단에서 시작
@@ -1409,6 +1411,9 @@ function createEnemy() {
                 lastBombDrop: 0,
                 bombDropInterval: 2000 + Math.random() * 3000,
                 lastUpdateTime: Date.now(),
+                canFire: true,
+                lastFireTime: 0,
+                fireInterval: currentDifficulty.fireInterval * 0.5, // 현재 대비 반으로 줄임
                 bulletSpeed: currentDifficulty.bulletSpeed,
                 health: currentDifficulty.enemyHealth,
                 score: 150 * gameLevel,
@@ -1416,9 +1421,9 @@ function createEnemy() {
                 specialAbility: Math.random() < (0.1 + (gameLevel * 0.03)) ? getRandomSpecialAbility() : null,
                 // 보호막 시스템 추가
                 hasShield: true,
-                shieldHealth: 10, // 10발 맞으면 파괴
+                shieldHealth: 50, // 50발 맞으면 파괴
                 shieldHitCount: 0,
-                shieldColor: '#008B8B', // 블루 계열
+                shieldColor: '#008B8B', // 헬리콥터1(블루계열) 보호막 색상
                 isShieldBroken: false
             };
 
@@ -2631,11 +2636,9 @@ function checkEnemyCollisions(enemy) {
                 enemy.hitCount++;
                 console.log('보스 총알 맞은 횟수:', enemy.hitCount);
                 
-                // 피격 시간 추적 시작
-                if (!enemy.isBeingHit) {
-                    enemy.isBeingHit = true;
-                    enemy.lastHitTime = currentTime;
-                }
+                // 피격 상태 설정
+                enemy.isBeingHit = true;
+                enemy.lastHitTime = currentTime;
                 
                 // 보스가 맞았을 때 시각 효과 추가
                 explosions.push(new Explosion(
@@ -2653,14 +2656,11 @@ function checkEnemyCollisions(enemy) {
                 // 추가: 플레이어 총알이 보스에 명중 시 발사음도 재생
                 safePlay(shootSound);
                 
-                // 피격 시간이 전체 출현 시간의 50%를 넘으면 파괴
-                const totalTime = currentTime - enemy.lastUpdateTime;
-                const hitTimeThreshold = BOSS_SETTINGS.SPAWN_INTERVAL * 0.5;
-                
-                if (enemy.totalHitTime >= hitTimeThreshold) {
-                    console.log('보스 파괴됨 - 피격 시간 초과:', {
-                        totalHitTime: enemy.totalHitTime,
-                        threshold: hitTimeThreshold
+                // 체력이 0이 되면 보스 파괴
+                if (enemy.health <= 0) {
+                    console.log('보스 파괴됨 - 체력 소진:', {
+                        health: enemy.health,
+                        hitCount: enemy.hitCount
                     });
                     enemy.health = 0;
                     bossHealth = 0;
@@ -2701,9 +2701,10 @@ function checkEnemyCollisions(enemy) {
                 isHit = true;
                 return false;
             } else if ((enemy.type === ENEMY_TYPES.HELICOPTER || enemy.type === ENEMY_TYPES.HELICOPTER2) && enemy.hasShield && !enemy.isShieldBroken) {
-                // 헬리콥터 보호막 처리
+                // 헬리콥터1(블루계열) 또는 헬리콥터2(오렌지계열) 보호막 처리
                 enemy.shieldHitCount++;
-                console.log(`헬리콥터 보호막 피격: ${enemy.shieldHitCount}/${enemy.shieldHealth}`);
+                const helicopterType = enemy.type === ENEMY_TYPES.HELICOPTER ? "헬리콥터1(블루)" : "헬리콥터2(오렌지)";
+                console.log(`${helicopterType} 보호막 피격: ${enemy.shieldHitCount}/${enemy.shieldHealth}`);
                 
                 // 보호막 피격 효과음 (보스와 동일한 효과음)
                 safePlay(collisionSound);
@@ -2716,17 +2717,28 @@ function checkEnemyCollisions(enemy) {
                     false
                 ));
                 
-                // 보호막이 파괴되면
+                // 보호막이 파괴되면 헬리콥터도 함께 파괴
                 if (enemy.shieldHitCount >= enemy.shieldHealth) {
                     enemy.isShieldBroken = true;
-                    console.log('헬리콥터 보호막 파괴됨');
+                    console.log(`${helicopterType} 보호막 파괴됨 - 헬리콥터 완전 파괴`);
                     
-                    // 보호막 파괴 시 큰 폭발 효과
+                    // 보호막 파괴 시 보스와 동일한 큰 폭발 효과
                     explosions.push(new Explosion(
                         enemy.x + enemy.width/2,
                         enemy.y + enemy.height/2,
                         true
                     ));
+                    
+                    // 보호막 파괴 시 보스와 동일한 추가 폭발 효과 (8개)
+                    for (let i = 0; i < 8; i++) {
+                        const angle = (Math.PI * 2 / 8) * i;
+                        const distance = 50;
+                        explosions.push(new Explosion(
+                            enemy.x + enemy.width/2 + Math.cos(angle) * distance,
+                            enemy.y + enemy.height/2 + Math.sin(angle) * distance,
+                            false
+                        ));
+                    }
                     
                     // 보호막 파괴 효과음 (보스와 동일한 효과음)
                     safePlay(collisionSound);
@@ -2734,6 +2746,9 @@ function checkEnemyCollisions(enemy) {
                     
                     // 점수 부여
                     updateScore(enemy.score);
+                    
+                    // 헬리콥터 완전 파괴로 enemies 배열에서 제거
+                    isHit = true;
                 }
             } else {
                 // 일반 적 처치
@@ -2744,15 +2759,18 @@ function checkEnemyCollisions(enemy) {
                 updateScore(10);
                 // 추가: 플레이어 총알이 적 비행기/헬기에 명중 시 발사음 재생
                 safePlay(shootSound);
+                isHit = true; // 일반 적만 파괴
             }
-                        
-            isHit = true;
-            return false;
+            
+            // 보호막 헬리콥터는 보호막이 파괴될 때까지 enemies 배열에 유지
+            if (!((enemy.type === ENEMY_TYPES.HELICOPTER || enemy.type === ENEMY_TYPES.HELICOPTER2) && enemy.hasShield && !enemy.isShieldBroken)) {
+                return false;
+            }
         }
         return true;
     });
 
-    // 보스의 피격 시간 업데이트
+    // 보스의 피격 상태 업데이트
     if (enemy.isBoss && enemy.isBeingHit) {
         const currentTime = Date.now();
         const timeSinceLastHit = currentTime - enemy.lastHitTime;
@@ -2760,10 +2778,6 @@ function checkEnemyCollisions(enemy) {
         // 1초 이상 피격이 없으면 피격 상태 해제
         if (timeSinceLastHit > 1000) {
             enemy.isBeingHit = false;
-        } else {
-            // 피격 시간 누적
-            enemy.totalHitTime += timeSinceLastHit;
-            enemy.lastHitTime = currentTime;
         }
     }
 
@@ -3561,7 +3575,7 @@ function handleBullets() {
 
 // 보스 관련 상수 추가
 const BOSS_SETTINGS = {
-    HEALTH: 3000,        // 체력 3000으로 상향
+    HEALTH: 5000,        // 체력 5000으로 상향 (50발 맞으면 파괴)
     DAMAGE: 50,          // 보스 총알 데미지
     SPEED: 1,           // 보스 이동 속도를 2에서 1로 줄임
     BULLET_SPEED: 4,    // 보스 총알 속도를 3에서 4로 증가
@@ -3569,9 +3583,9 @@ const BOSS_SETTINGS = {
     SPAWN_INTERVAL: 10000,  // 보스 출현 간격 (10초로 단축)
     BONUS_SCORE: 500,    // 보스 처치 보너스 점수를 500으로 설정
     PHASE_THRESHOLDS: [  // 페이즈 전환 체력 임계값
-        { health: 2250, speed: 1.5, bulletSpeed: 5 },  // 총알 속도 증가
-        { health: 1500, speed: 2, bulletSpeed: 6 },    // 총알 속도 증가
-        { health: 750, speed: 2.5, bulletSpeed: 7 }    // 총알 속도 증가
+        { health: 3750, speed: 1.5, bulletSpeed: 5 },  // 총알 속도 증가
+        { health: 2500, speed: 2, bulletSpeed: 6 },    // 총알 속도 증가
+        { health: 1250, speed: 2.5, bulletSpeed: 7 }   // 총알 속도 증가
     ]
 };
 
@@ -4440,7 +4454,7 @@ function drawHelicopter(x, y, width, height, rotorAngle) {
         const shieldRadius = Math.max(width, height) * 0.8;
         const shieldGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, shieldRadius);
         
-        // 보호막 색상 설정
+        // 보호막 색상 설정 (헬리콥터1: 블루, 헬리콥터2: 오렌지)
         const shieldColor = enemy.shieldColor || (enemy.type === ENEMY_TYPES.HELICOPTER2 ? '#FFA500' : '#008B8B');
         
         shieldGradient.addColorStop(0, `${shieldColor}40`); // 중앙 (투명도 25%)
