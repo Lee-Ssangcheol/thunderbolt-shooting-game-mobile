@@ -1370,7 +1370,7 @@ function createEnemy() {
                 fireInterval: currentDifficulty.fireInterval * 0.5, // 현재 대비 반으로 줄임
                 bulletSpeed: currentDifficulty.bulletSpeed,
                 health: currentDifficulty.enemyHealth,
-                score: 15,
+                score: 30,
                 isElite: Math.random() < (0.05 + (gameLevel * 0.02)),
                 specialAbility: Math.random() < (0.1 + (gameLevel * 0.03)) ? getRandomSpecialAbility() : null,
                 // 보호막 시스템 추가
@@ -1416,7 +1416,7 @@ function createEnemy() {
                 fireInterval: currentDifficulty.fireInterval * 0.5, // 현재 대비 반으로 줄임
                 bulletSpeed: currentDifficulty.bulletSpeed,
                 health: currentDifficulty.enemyHealth,
-                score: 15,
+                score: 30,
                 isElite: Math.random() < (0.05 + (gameLevel * 0.02)),
                 specialAbility: Math.random() < (0.1 + (gameLevel * 0.03)) ? getRandomSpecialAbility() : null,
                 // 보호막 시스템 추가
