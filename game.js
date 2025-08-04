@@ -1375,7 +1375,7 @@ function createEnemy() {
                 specialAbility: Math.random() < (0.1 + (gameLevel * 0.03)) ? getRandomSpecialAbility() : null,
                 // 보호막 시스템 추가
                 hasShield: true,
-                shieldHealth: 50, // 50발 맞으면 파괴
+                shieldHealth: 100, // 100발 맞으면 파괴
                 shieldHitCount: 0,
                 shieldColor: '#FFA500', // 헬리콥터2(오렌지계열) 보호막 색상
                 isShieldBroken: false
@@ -1421,7 +1421,7 @@ function createEnemy() {
                 specialAbility: Math.random() < (0.1 + (gameLevel * 0.03)) ? getRandomSpecialAbility() : null,
                 // 보호막 시스템 추가
                 hasShield: true,
-                shieldHealth: 50, // 50발 맞으면 파괴
+                shieldHealth: 100, // 100발 맞으면 파괴
                 shieldHitCount: 0,
                 shieldColor: '#008B8B', // 헬리콥터1(블루계열) 보호막 색상
                 isShieldBroken: false
