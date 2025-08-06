@@ -3112,32 +3112,7 @@ function drawUI() {
         }
     }
     
-    // 파워업 상태 표시
-    if (hasSpreadShot) {
-        ctx.fillStyle = '#ffff00';
-        ctx.fillText('확산탄 활성화', 20, 310);
-    }
-    if (hasShield) {
-        ctx.fillStyle = '#0000ff';
-        ctx.fillText('실드 활성화', 20, 340);
-    }
-    if (damageMultiplier > 1) {
-        ctx.fillStyle = '#ff0000';
-        ctx.fillText('데미지 2배', 20, 370);
-    }
-    if (fireRateMultiplier > 1) {
-        ctx.fillStyle = '#ff00ff';
-        ctx.fillText('연사 속도 증가', 20, 400);
-    }
-    
-    // 총알 크기 정보 표시
-    const currentBulletSize = calculateBulletSize();
-    if (currentBulletSize > baseBulletSize) {
-        ctx.fillStyle = '#ffff00';
-        ctx.font = '16px Arial';
-        ctx.textAlign = 'left';
-        ctx.fillText(`총알 크기 증가: ${currentBulletSize}`, 20, 430);
-    }
+
 }
 
 // 게임 시작 이벤트 리스너 수정
