@@ -698,6 +698,15 @@ let specialWeaponCharge = 0;
 let enemySpawnRate = 2000;  // 적 생성 주기 (ms)
 let enemySpeed = 2 * mobileSpeedMultiplier;  // 적 이동 속도
 
+// 보호막 헬리콥터 파괴 관련 변수 추가
+let shieldedHelicopterDestroyed = 0;  // 보호막 헬리콥터 파괴 수
+let livesAddedFromHelicopters = 0;    // 헬리콥터 파괴로 추가된 목숨 수
+
+// 목숨 추가 메시지 표시 관련 변수
+let lifeAddedMessage = '';
+let lifeAddedMessageTimer = 0;
+const LIFE_ADDED_MESSAGE_DURATION = 3000; // 3초간 표시
+
 // 보스 패턴 상수 추가
 const BOSS_PATTERNS = {
     CIRCLE_SHOT: 'circle_shot',
@@ -1235,6 +1244,14 @@ async function initializeGame() {
         snakeGroups = [];
         lastSnakeGroupTime = 0;
         
+        // 보호막 헬리콥터 관련 변수 초기화
+        shieldedHelicopterDestroyed = 0;
+        livesAddedFromHelicopters = 0;
+        
+        // 목숨 추가 메시지 관련 변수 초기화
+        lifeAddedMessage = '';
+        lifeAddedMessageTimer = 0;
+        
         // 보스 관련 상태 초기화
         bossActive = false;
         bossHealth = 0;
@@ -1303,6 +1320,14 @@ function restartGame() {
     helicopterBullets = [];
     enemyBullets = [];
     collisionEffects = [];
+    
+    // 보호막 헬리콥터 관련 변수 초기화
+    shieldedHelicopterDestroyed = 0;
+    livesAddedFromHelicopters = 0;
+    
+    // 목숨 추가 메시지 관련 변수 초기화
+    lifeAddedMessage = '';
+    lifeAddedMessageTimer = 0;
     
     // 플레이어 위치 초기화
     player.x = canvas.width / 2 - (240 * 0.7 * 0.7 * 0.8) / 2;
@@ -2722,6 +2747,23 @@ function checkEnemyCollisions(enemy) {
                     enemy.isShieldBroken = true;
                     console.log(`${helicopterType} 보호막 파괴됨 - 헬리콥터 완전 파괴`);
                     
+                    // 보호막 헬리콥터 파괴 카운터 증가
+                    shieldedHelicopterDestroyed++;
+                    
+                    // 3대 파괴할 때마다 목숨 1개 추가
+                    if (shieldedHelicopterDestroyed % 3 === 0) {
+                        maxLives++;
+                        livesAddedFromHelicopters++;
+                        console.log(`목숨 1개 추가됨. 현재 목숨: ${maxLives}`);
+                        
+                        // 목숨 추가 메시지 설정
+                        lifeAddedMessage = `🎉 목숨 1개 추가됨! 🎉`;
+                        lifeAddedMessageTimer = Date.now();
+                        
+                        // 목숨 추가 효과음 재생
+                        safePlay(levelUpSound);
+                    }
+                    
                     // 보호막 파괴 시 보스와 동일한 큰 폭발 효과
                     explosions.push(new Explosion(
                         enemy.x + enemy.width/2,
@@ -3026,28 +3068,72 @@ function drawUI() {
     ctx.font = 'bold 20px Arial';  // 폰트를 진하게 변경
     ctx.fillText(`남은 목숨: ${maxLives - collisionCount}`, 20, 210);
 
+    // 보호막 헬리콥터 파괴 정보 표시 (주황색으로)
+    ctx.fillStyle = '#FFA500';  // 주황색
+    ctx.font = 'bold 18px Arial';
+    ctx.fillText(`보호막 헬리콥터 파괴: ${shieldedHelicopterDestroyed}대`, 20, 240);
+    
+    // 다음 목숨 추가까지 남은 수 표시
+    const nextLifeAt = Math.ceil(shieldedHelicopterDestroyed / 3) * 3;
+    const remainingForNextLife = nextLifeAt - shieldedHelicopterDestroyed;
+    if (remainingForNextLife > 0) {
+        ctx.fillText(`다음 목숨 추가까지: ${remainingForNextLife}대`, 20, 265);
+    } else {
+        ctx.fillText(`목숨 추가 완료!`, 20, 265);
+    }
+    
+    // 헬리콥터로 추가된 목숨 수 표시
+    if (livesAddedFromHelicopters > 0) {
+        ctx.fillText(`헬리콥터로 추가된 목숨: ${livesAddedFromHelicopters}개`, 20, 290);
+    }
+
+    // 목숨 추가 메시지 표시 (화면 중앙에 큰 글씨로)
+    if (lifeAddedMessage && Date.now() - lifeAddedMessageTimer < LIFE_ADDED_MESSAGE_DURATION) {
+        const timeElapsed = Date.now() - lifeAddedMessageTimer;
+        const alpha = Math.min(1, 1 - (timeElapsed / LIFE_ADDED_MESSAGE_DURATION));
+        
+        // 메시지 배경 (반투명 검정)
+        ctx.fillStyle = `rgba(0, 0, 0, ${alpha * 0.7})`;
+        ctx.fillRect(0, canvas.height/2 - 50, canvas.width, 100);
+        
+        // 메시지 텍스트 (노란색, 큰 글씨)
+        ctx.fillStyle = `rgba(255, 255, 0, ${alpha})`;
+        ctx.font = 'bold 24px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(lifeAddedMessage, canvas.width/2, canvas.height/2);
+        
+        // 추가 정보 (작은 글씨)
+        ctx.font = 'bold 18px Arial';
+        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+        ctx.fillText(`현재 목숨: ${maxLives}개`, canvas.width/2, canvas.height/2 + 30);
+    } else if (lifeAddedMessage) {
+        // 메시지 표시 시간이 지나면 초기화
+        lifeAddedMessage = '';
+        lifeAddedMessageTimer = 0;
+    }
+
     // 제작자 정보 표시
     ctx.fillStyle = 'white';
     ctx.font = '16px Arial';
     ctx.textAlign = 'right';
     ctx.fillText('제작/저작권자:Lee.SS.C', canvas.width - 20, canvas.height - 30); 
 
-    // 특수 무기 게이지 표시
+        // 특수 무기 게이지 표시 (위치 조정)
     if (!specialWeaponCharged) {
         // 게이지 바 배경
         ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.fillRect(20, 240, 200, 20);
+        ctx.fillRect(20, 320, 200, 20);
         
         // 게이지 바
         ctx.fillStyle = 'rgba(0, 255, 255, 0.8)';
-        ctx.fillRect(20, 240, (specialWeaponCharge / SPECIAL_WEAPON_MAX_CHARGE) * 200, 20);
+        ctx.fillRect(20, 320, (specialWeaponCharge / SPECIAL_WEAPON_MAX_CHARGE) * 200, 20);
         
         // 게이지 바 위에 텍스트 표시
         ctx.fillStyle = 'white';
         ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
         const percentText = `특수 무기 : ${Math.floor((specialWeaponCharge / SPECIAL_WEAPON_MAX_CHARGE) * 100)}%`;
-        ctx.fillText(percentText, 120, 255);
+        ctx.fillText(percentText, 120, 335);
     } else {
         // 깜빡이는 효과를 위한 시간 계산
         const blinkSpeed = 500; // 깜빡임 속도 (밀리초)
@@ -3056,29 +3142,29 @@ function drawUI() {
         
         // 배경색 설정 (게이지 바)
         ctx.fillStyle = isRed ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 0, 255, 0.3)';
-        ctx.fillRect(10, 220, 200, 20);
+        ctx.fillRect(10, 300, 200, 20);
         
         // 테두리 효과
         ctx.strokeStyle = isRed ? 'red' : 'cyan';
         ctx.lineWidth = 2;
-        ctx.strokeRect(10, 220, 200, 20);
+        ctx.strokeRect(10, 300, 200, 20);
         
         // 게이지 바 위에 텍스트 표시
         ctx.fillStyle = 'white';
         ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
         const percentText = `특수 무기 : ${Math.floor((specialWeaponCharge / SPECIAL_WEAPON_MAX_CHARGE) * 100)}%`;
-        ctx.fillText(percentText, 120, 235);
+        ctx.fillText(percentText, 120, 315);
         
         // 준비 완료 메시지 배경
         ctx.fillStyle = isRed ? 'rgba(255, 0, 0, 0.2)' : 'rgba(0, 0, 255, 0.2)';
-        ctx.fillRect(10, 240, 300, 30);
+        ctx.fillRect(10, 320, 300, 30);
         
         // 텍스트 색상 설정
         ctx.fillStyle = isRed ? 'red' : 'cyan';
         ctx.font = 'bold 20px Arial';
         ctx.textAlign = 'left';
-        ctx.fillText('특수 무기 준비 완료', 15, 260); 
+        ctx.fillText('특수 무기 준비 완료', 15, 340);
     }
     
     // 보스 체력 표시 개선
