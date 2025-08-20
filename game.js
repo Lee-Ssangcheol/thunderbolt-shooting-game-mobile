@@ -3068,46 +3068,11 @@ function drawUI() {
     ctx.font = 'bold 20px Arial';  // 폰트를 진하게 변경
     ctx.fillText(`남은 목숨: ${maxLives - collisionCount}`, 20, 210);
 
-    // 보호막 헬리콥터 파괴 정보 표시 (주황색으로)
-    ctx.fillStyle = '#FFA500';  // 주황색
-    ctx.font = 'bold 18px Arial';
-    ctx.fillText(`보호막 헬리콥터 파괴: ${shieldedHelicopterDestroyed}대`, 20, 240);
-    
-    // 다음 목숨 추가까지 남은 수 표시
-    const nextLifeAt = Math.ceil(shieldedHelicopterDestroyed / 3) * 3;
-    const remainingForNextLife = nextLifeAt - shieldedHelicopterDestroyed;
-    if (remainingForNextLife > 0) {
-        ctx.fillText(`다음 목숨 추가까지: ${remainingForNextLife}대`, 20, 265);
-    } else {
-        ctx.fillText(`다음 목숨 추가까지: 3대`, 20, 265);
-    }
+
     
 
 
-    // 목숨 추가 메시지 표시 (화면 중앙에 큰 글씨로)
-    if (lifeAddedMessage && Date.now() - lifeAddedMessageTimer < LIFE_ADDED_MESSAGE_DURATION) {
-        const timeElapsed = Date.now() - lifeAddedMessageTimer;
-        const alpha = Math.min(1, 1 - (timeElapsed / LIFE_ADDED_MESSAGE_DURATION));
-        
-        // 메시지 배경 (반투명 검정)
-        ctx.fillStyle = `rgba(0, 0, 0, ${alpha * 0.7})`;
-        ctx.fillRect(0, canvas.height/2 - 50, canvas.width, 100);
-        
-        // 메시지 텍스트 (노란색, 큰 글씨)
-        ctx.fillStyle = `rgba(255, 255, 0, ${alpha})`;
-        ctx.font = 'bold 24px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(lifeAddedMessage, canvas.width/2, canvas.height/2);
-        
-        // 추가 정보 (작은 글씨) - 실제 남은 목숨 수 표시
-        ctx.font = 'bold 18px Arial';
-        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-        ctx.fillText(`현재 목숨: ${maxLives - collisionCount}개`, canvas.width/2, canvas.height/2 + 30);
-    } else if (lifeAddedMessage) {
-        // 메시지 표시 시간이 지나면 초기화
-        lifeAddedMessage = '';
-        lifeAddedMessageTimer = 0;
-    }
+
 
     // 제작자 정보 표시
     ctx.fillStyle = 'white';
@@ -3115,22 +3080,22 @@ function drawUI() {
     ctx.textAlign = 'right';
     ctx.fillText('제작/저작권자:Lee.SS.C', canvas.width - 20, canvas.height - 30); 
 
-        // 특수 무기 게이지 표시 (위치 조정)
+        // 특수 무기 게이지 표시 (남은 목숨 아래로 이동)
     if (!specialWeaponCharged) {
         // 게이지 바 배경
         ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.fillRect(20, 320, 200, 20);
+        ctx.fillRect(20, 240, 200, 20);
         
         // 게이지 바
         ctx.fillStyle = 'rgba(0, 255, 255, 0.8)';
-        ctx.fillRect(20, 320, (specialWeaponCharge / SPECIAL_WEAPON_MAX_CHARGE) * 200, 20);
+        ctx.fillRect(20, 240, (specialWeaponCharge / SPECIAL_WEAPON_MAX_CHARGE) * 200, 20);
         
         // 게이지 바 위에 텍스트 표시
         ctx.fillStyle = 'white';
         ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
         const percentText = `특수 무기 : ${Math.floor((specialWeaponCharge / SPECIAL_WEAPON_MAX_CHARGE) * 100)}%`;
-        ctx.fillText(percentText, 120, 335);
+        ctx.fillText(percentText, 120, 255);
     } else {
         // 깜빡이는 효과를 위한 시간 계산
         const blinkSpeed = 500; // 깜빡임 속도 (밀리초)
@@ -3139,29 +3104,29 @@ function drawUI() {
         
         // 배경색 설정 (게이지 바)
         ctx.fillStyle = isRed ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 0, 255, 0.3)';
-        ctx.fillRect(10, 300, 200, 20);
+        ctx.fillRect(10, 220, 200, 20);
         
         // 테두리 효과
         ctx.strokeStyle = isRed ? 'red' : 'cyan';
         ctx.lineWidth = 2;
-        ctx.strokeRect(10, 300, 200, 20);
+        ctx.strokeRect(10, 220, 200, 20);
         
         // 게이지 바 위에 텍스트 표시
         ctx.fillStyle = 'white';
         ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
         const percentText = `특수 무기 : ${Math.floor((specialWeaponCharge / SPECIAL_WEAPON_MAX_CHARGE) * 100)}%`;
-        ctx.fillText(percentText, 120, 315);
+        ctx.fillText(percentText, 120, 235);
         
         // 준비 완료 메시지 배경
         ctx.fillStyle = isRed ? 'rgba(255, 0, 0, 0.2)' : 'rgba(0, 0, 255, 0.2)';
-        ctx.fillRect(10, 320, 300, 30);
+        ctx.fillRect(10, 240, 300, 30);
         
         // 텍스트 색상 설정
         ctx.fillStyle = isRed ? 'red' : 'cyan';
         ctx.font = 'bold 20px Arial';
         ctx.textAlign = 'left';
-        ctx.fillText('특수 무기 준비 완료', 15, 340);
+        ctx.fillText('특수 무기 준비 완료', 15, 260);
     }
     
     // 보스 체력 표시 개선
