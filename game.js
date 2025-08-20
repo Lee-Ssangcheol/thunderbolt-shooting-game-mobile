@@ -1752,9 +1752,9 @@ function updateEnemyPosition(enemy, options = {}) {
     const deltaTime = currentTime - enemy.lastUpdateTime;
     enemy.lastUpdateTime = currentTime;
 
-    // 헬리콥터 처리
+    // 헬리콥터 처리 (보스 포함)
     if (enemy.type === ENEMY_TYPES.HELICOPTER || enemy.type === ENEMY_TYPES.HELICOPTER2) {
-        // 헬리콥터 특수 움직임
+        // 헬리콥터 특수 움직임 (보스 포함 모든 헬리콥터의 로터 회전)
         enemy.rotorAngle += enemy.rotorSpeed;
         
         // 호버링 효과 개선
@@ -2303,10 +2303,19 @@ function gameLoop() {
         } else if (bossActive) {
             // 보스가 존재하는 경우 보스 패턴 처리
             const boss = enemies.find(enemy => enemy.isBoss);
-            if (boss) {
-                handleBossPattern(boss);
+            if (boss && boss.health > 0 && typeof boss === 'object') {
+                // 보스 객체가 유효한지 추가 검증
+                try {
+                    handleBossPattern(boss);
+                } catch (error) {
+                    console.error('보스 패턴 처리 중 오류:', error, boss);
+                    // 오류 발생 시 보스 상태 초기화
+                    bossActive = false;
+                    bossHealth = 0;
+                    bossDestroyed = false;
+                }
             } else {
-                // 보스가 enemies 배열에서 제거된 경우 상태 초기화
+                // 보스가 enemies 배열에서 제거되었거나 유효하지 않은 경우 상태 초기화
                 bossActive = false;
                 bossHealth = 0;
                 bossDestroyed = false;
@@ -3685,7 +3694,7 @@ function createBoss() {
         isBeingHit: false,
         type: ENEMY_TYPES.HELICOPTER,
         rotorAngle: 0,
-        rotorSpeed: 0.2,
+        rotorSpeed: 0.1, // 보스 로터 속도를 반으로 줄임
         hoverHeight: 150,
         hoverTimer: 0,
         hoverDirection: 1,
@@ -3701,6 +3710,12 @@ function createBoss() {
 
 // 보스 패턴 처리 함수 수정
 function handleBossPattern(boss) {
+    // 보스 객체 유효성 검증
+    if (!boss || typeof boss !== 'object' || boss.health <= 0) {
+        console.warn('handleBossPattern: 유효하지 않은 보스 객체', boss);
+        return;
+    }
+    
     const currentTime = Date.now();
     
     // 디버깅: 함수 호출 확인
@@ -3732,7 +3747,7 @@ function handleBossPattern(boss) {
         }
     }
     
-    // 로터 회전 업데이트
+    // 로터 회전 업데이트 (헬리콥터1과 동일하게 매 프레임마다)
     boss.rotorAngle += boss.rotorSpeed;
     
     // 보스 이동 패턴
@@ -4492,40 +4507,40 @@ function drawHelicopter(x, y, width, height, rotorAngle) {
     // 1. 메인 로터 (4개 블레이드, 세로로 길게, 끝에 흰색 포인트, 투명도 효과)
     ctx.save();
     
-    // 보스인 경우 잔상효과 추가 (부드러운 회전)
+    // 보스인 경우 잔상효과 추가 (부드러운 회전을 위한 강화된 잔상)
     if (isBoss) {
-        // 잔상 로터들 (이전 각도들)
-        for (let trail = 1; trail <= 3; trail++) {
-            const trailAngle = rotorAngle - (trail * 0.3); // 이전 각도들
+        // 잔상 로터들 (이전 각도들) - 부드러운 회전을 위해 더 많은 잔상과 강화된 효과
+        for (let trail = 1; trail <= 4; trail++) { // 2개에서 4개로 증가
+            const trailAngle = rotorAngle - (trail * 0.08); // 각도 간격을 0.15에서 0.08로 줄여서 더 부드럽게
             ctx.save();
             ctx.rotate(trailAngle);
             for (let i = 0; i < 4; i++) {
                 ctx.save();
                 ctx.rotate(i * Math.PI/2);
-                // 잔상 블레이드 (투명도 점진적 감소)
+                // 잔상 블레이드 (투명도 점진적 감소) - 부드러운 회전을 위해 투명도 조정
                 ctx.beginPath();
                 ctx.moveTo(0, -height*0.55);
                 ctx.lineTo(0, height*0.55);
                 ctx.lineWidth = width*0.10;
-                ctx.strokeStyle = `rgba(255,69,0,${0.15 - trail * 0.03})`; // 투명도 점진적 감소
-                ctx.shadowColor = `rgba(255,140,0,${0.1 - trail * 0.02})`;
-                ctx.shadowBlur = 6;
+                ctx.strokeStyle = `rgba(255,69,0,${0.25 - trail * 0.05})`; // 투명도를 높여서 더 선명하게
+                ctx.shadowColor = `rgba(255,140,0,${0.2 - trail * 0.04})`; // 그림자 색상 투명도 증가
+                ctx.shadowBlur = 8 + trail * 2; // 그림자 블러를 점진적으로 증가시켜 부드러운 효과
                 ctx.stroke();
                 ctx.shadowBlur = 0;
-                // 잔상 블레이드 끝 강조
+                // 잔상 블레이드 끝 강조 - 투명도 증가
                 ctx.beginPath();
                 ctx.arc(0, height*0.55, width*0.05, 0, Math.PI*2);
                 ctx.arc(0, -height*0.55, width*0.05, 0, Math.PI*2);
-                ctx.fillStyle = `rgba(255,140,0,${0.3 - trail * 0.08})`;
-                ctx.globalAlpha = 0.4 - trail * 0.1;
+                ctx.fillStyle = `rgba(255,140,0,${0.4 - trail * 0.08})`;
+                ctx.globalAlpha = 0.5 - trail * 0.08;
                 ctx.fill();
                 ctx.globalAlpha = 1.0;
-                // 잔상 블레이드 끝 포인트
+                // 잔상 블레이드 끝 포인트 - 투명도 증가
                 ctx.beginPath();
                 ctx.arc(0, height*0.55, width*0.022, 0, Math.PI*2);
                 ctx.arc(0, -height*0.55, width*0.022, 0, Math.PI*2);
-                ctx.fillStyle = `rgba(255,215,0,${0.4 - trail * 0.1})`;
-                ctx.globalAlpha = 0.5 - trail * 0.1;
+                ctx.fillStyle = `rgba(255,215,0,${0.5 - trail * 0.08})`;
+                ctx.globalAlpha = 0.6 - trail * 0.08;
                 ctx.fill();
                 ctx.globalAlpha = 1.0;
                 ctx.restore();
@@ -4636,11 +4651,11 @@ function drawHelicopter(x, y, width, height, rotorAngle) {
     ctx.save();
     ctx.translate(0, height*0.98);
     
-    // 보스인 경우 테일로터 잔상효과 추가
+    // 보스인 경우 테일로터 잔상효과 추가 (부드러운 회전을 위한 강화된 잔상)
     if (isBoss) {
-        // 잔상 테일로터들 (이전 각도들)
-        for (let trail = 1; trail <= 2; trail++) {
-            const trailAngle = (rotorAngle * 2) - (trail * 0.4); // 이전 각도들
+        // 잔상 테일로터들 (이전 각도들) - 부드러운 회전을 위해 더 많은 잔상과 강화된 효과
+        for (let trail = 1; trail <= 3; trail++) { // 1개에서 3개로 증가
+            const trailAngle = (rotorAngle * 2) - (trail * 0.12); // 각도 간격을 0.2에서 0.12로 줄여서 더 부드럽게
             ctx.save();
             ctx.rotate(trailAngle);
             for (let i = 0; i < 4; i++) {
@@ -4650,13 +4665,16 @@ function drawHelicopter(x, y, width, height, rotorAngle) {
                 ctx.moveTo(0, 0);
                 ctx.lineTo(0, height*0.08);
                 ctx.lineWidth = 3;
-                ctx.strokeStyle = `rgba(255,140,0,${0.3 - trail * 0.1})`; // 투명도 점진적 감소
+                ctx.strokeStyle = `rgba(255,140,0,${0.3 - trail * 0.08})`; // 투명도를 높여서 더 선명하게
+                ctx.shadowColor = `rgba(255,165,0,${0.25 - trail * 0.06})`; // 그림자 색상 추가
+                ctx.shadowBlur = 6 + trail * 1.5; // 그림자 블러를 점진적으로 증가
                 ctx.stroke();
-                // 잔상 테일로터 끝 포인트
+                ctx.shadowBlur = 0;
+                // 잔상 테일로터 끝 포인트 - 투명도 증가
                 ctx.beginPath();
                 ctx.arc(0, height*0.08, width*0.012, 0, Math.PI*2);
-                ctx.fillStyle = `rgba(255,215,0,${0.3 - trail * 0.1})`;
-                ctx.globalAlpha = 0.4 - trail * 0.1;
+                ctx.fillStyle = `rgba(255,215,0,${0.4 - trail * 0.08})`;
+                ctx.globalAlpha = 0.5 - trail * 0.08;
                 ctx.fill();
                 ctx.globalAlpha = 1.0;
                 ctx.restore();
@@ -5028,7 +5046,7 @@ function hexToRgb(hex) {
 
 // 보스 발사 패턴 함수들
 function bossFireSpreadShot(boss) {
-    const spreadCount = 12; // 한 번에 12발
+    const spreadCount = 24; // 한 번에 24발로 증가 (20발 이상)
     for (let i = 0; i < spreadCount; i++) {
         const angle = (i * 2 * Math.PI) / spreadCount;
         createBossBullet(boss, angle, 'spread');
@@ -5036,11 +5054,12 @@ function bossFireSpreadShot(boss) {
 }
 
 function bossFireCrossShot(boss) {
-    // 십자형 발사 패턴
-    const angles = [0, Math.PI/2, Math.PI, Math.PI*3/2];
-    angles.forEach(angle => {
+    // 십자형 발사 패턴 - 12발로 증가
+    const crossCount = 12;
+    for (let i = 0; i < crossCount; i++) {
+        const angle = (i * Math.PI * 2) / crossCount;
         createBossBullet(boss, angle, 'cross');
-    });
+    }
 }
 
 function bossFireSpiralShot(boss) {
@@ -5054,8 +5073,8 @@ function bossFireSpiralShot(boss) {
 }
 
 function bossFireWaveShot(boss) {
-    // 파도형 발사 패턴
-    const waveCount = 6;
+    // 파도형 발사 패턴 - 12발로 증가
+    const waveCount = 12;
     const waveAngle = Math.sin(Date.now() / 500) * 0.5;
     for (let i = 0; i < waveCount; i++) {
         const angle = (i * Math.PI * 2 / waveCount) + waveAngle;
@@ -5064,21 +5083,21 @@ function bossFireWaveShot(boss) {
 }
 
 function bossFireTargetedShot(boss) {
-    // 플레이어 방향 추적 발사
+    // 플레이어 방향 추적 발사 - 12발로 증가
     const targetX = player.x + player.width/2;
     const targetY = player.y + player.height/2;
     const baseAngle = Math.atan2(targetY - (boss.y + boss.height/2), targetX - (boss.x + boss.width/2));
     
-    // 3발의 총알을 약간 다른 각도로 발사
-    for (let i = -1; i <= 1; i++) {
-        const spreadAngle = baseAngle + (i * 0.3);
+    // 12발의 총알을 플레이어 방향으로 분산 발사
+    for (let i = 0; i < 12; i++) {
+        const spreadAngle = baseAngle + (i * 0.2 - 1.1); // -1.1 ~ 1.3 범위로 분산
         createBossBullet(boss, spreadAngle, 'targeted');
     }
 }
 
 function bossFireRandomShot(boss) {
-    // 랜덤 방향 발사
-    const randomCount = 6;
+    // 랜덤 방향 발사 - 12발로 증가
+    const randomCount = 12;
     for (let i = 0; i < randomCount; i++) {
         const angle = Math.random() * Math.PI * 2;
         createBossBullet(boss, angle, 'random');
@@ -5086,18 +5105,30 @@ function bossFireRandomShot(boss) {
 }
 
 function bossFireRapidShot(boss) {
-    // 연발형 패턴 - 빠른 속도로 연속 발사
-    const bulletCount = 5;
+    // 보스 객체 유효성 검증
+    if (!boss || typeof boss !== 'object' || boss.health <= 0) {
+        console.warn('bossFireRapidShot: 유효하지 않은 보스 객체', boss);
+        return;
+    }
+    
+    // 연발형 패턴 - 빠른 속도로 연속 발사 - 12발로 증가
+    const bulletCount = 12;
     const baseAngle = Math.random() * Math.PI * 2;
     
     for (let i = 0; i < bulletCount; i++) {
-        const angle = baseAngle + (i * 0.2);
+        const angle = baseAngle + (i * 0.3);
         const bullet = createBossBullet(boss, angle, 'rapid');
         bullet.speed = bullet.speed * 1.5; // 더 빠른 속도
     }
 }
 
 function bossFireVortexShot(boss) {
+    // 보스 객체 유효성 검증
+    if (!boss || typeof boss !== 'object' || boss.health <= 0) {
+        console.warn('bossFireVortexShot: 유효하지 않은 보스 객체', boss);
+        return;
+    }
+    
     // 소용돌이형 패턴 - 나선형으로 회전하며 발사
     const bulletCount = 10;
     for (let i = 0; i < bulletCount; i++) {
@@ -5109,6 +5140,12 @@ function bossFireVortexShot(boss) {
 }
 
 function bossFirePulseShot(boss) {
+    // 보스 객체 유효성 검증
+    if (!boss || typeof boss !== 'object' || boss.health <= 0) {
+        console.warn('bossFirePulseShot: 유효하지 않은 보스 객체', boss);
+        return;
+    }
+    
     // 맥박형 패턴 - 펄스 형태로 발사
     const bulletCount = 8;
     const pulseIntensity = Math.sin(boss.pulsePhase) * 0.5 + 0.5;
@@ -5124,6 +5161,12 @@ function bossFirePulseShot(boss) {
 }
 
 function bossFireCircleShot(boss) {
+    // 보스 객체 유효성 검증
+    if (!boss || typeof boss !== 'object' || boss.health <= 0) {
+        console.warn('bossFireCircleShot: 유효하지 않은 보스 객체', boss);
+        return;
+    }
+    
     // 원형 패턴 - 모든 방향으로 발사
     const bulletCount = 16;
     for (let i = 0; i < bulletCount; i++) {
