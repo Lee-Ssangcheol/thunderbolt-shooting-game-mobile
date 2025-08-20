@@ -2754,7 +2754,7 @@ function checkEnemyCollisions(enemy) {
                     if (shieldedHelicopterDestroyed % 3 === 0) {
                         maxLives++;
                         livesAddedFromHelicopters++;
-                        console.log(`목숨 1개 추가됨. 현재 목숨: ${maxLives}`);
+                        console.log(`목숨 1개 추가됨.`);
                         
                         // 목숨 추가 메시지 설정
                         lifeAddedMessage = `🎉 목숨 1개 추가됨! 🎉`;
@@ -3079,13 +3079,10 @@ function drawUI() {
     if (remainingForNextLife > 0) {
         ctx.fillText(`다음 목숨 추가까지: ${remainingForNextLife}대`, 20, 265);
     } else {
-        ctx.fillText(`목숨 추가 완료!`, 20, 265);
+        ctx.fillText(`다음 목숨 추가까지: 3대`, 20, 265);
     }
     
-    // 헬리콥터로 추가된 목숨 수 표시
-    if (livesAddedFromHelicopters > 0) {
-        ctx.fillText(`헬리콥터로 추가된 목숨: ${livesAddedFromHelicopters}개`, 20, 290);
-    }
+
 
     // 목숨 추가 메시지 표시 (화면 중앙에 큰 글씨로)
     if (lifeAddedMessage && Date.now() - lifeAddedMessageTimer < LIFE_ADDED_MESSAGE_DURATION) {
@@ -3102,10 +3099,10 @@ function drawUI() {
         ctx.textAlign = 'center';
         ctx.fillText(lifeAddedMessage, canvas.width/2, canvas.height/2);
         
-        // 추가 정보 (작은 글씨)
+        // 추가 정보 (작은 글씨) - 실제 남은 목숨 수 표시
         ctx.font = 'bold 18px Arial';
         ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-        ctx.fillText(`현재 목숨: ${maxLives}개`, canvas.width/2, canvas.height/2 + 30);
+        ctx.fillText(`현재 목숨: ${maxLives - collisionCount}개`, canvas.width/2, canvas.height/2 + 30);
     } else if (lifeAddedMessage) {
         // 메시지 표시 시간이 지나면 초기화
         lifeAddedMessage = '';
