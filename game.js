@@ -2406,19 +2406,25 @@ function handlePlayerMovement() {
 function handleEnemies() {
     const currentTime = Date.now();
     const currentDifficulty = difficultySettings[gameLevel];
-    const bossExists = enemies.some(enemy => enemy.type === 'helicopter' && enemy.isBoss);
+    
+    // 보스 존재 여부 체크 - 더 정확한 체크
+    const bossExists = enemies.some(enemy => enemy.isBoss);
+    
+    // 보스 상태 동기화
+    if (bossExists && !isBossActive) {
+        isBossActive = true;
+        bossActive = true;
+        console.log('enemies 배열에서 보스 발견, 상태 동기화');
+    } else if (!bossExists && isBossActive) {
+        // enemies 배열에 보스가 없는데 상태가 활성화되어 있으면 초기화
+        console.log('enemies 배열에 보스가 없는데 상태가 활성화되어 있음, 상태 초기화');
+        resetBossState();
+    }
     
     // 보스 생성 조건 추가 - 게임이 시작된 후에만 보스 생성
     if (gameStarted && score >= 2000 * gameLevel && !isBossActive && !bossExists) {
+        console.log('보스 생성 조건 충족, 보스 생성 시도');
         createBoss();
-        isBossActive = true;
-    }
-    
-    if (bossExists) {
-        isBossActive = true;
-    } else if (isBossActive) {
-        lastHelicopterSpawnTime = currentTime;
-        isBossActive = false;
     }
     
     if (isSnakePatternActive) {
@@ -2664,7 +2670,8 @@ function checkEnemyCollisions(enemy) {
                         ));
                     }
                     
-                    bossActive = false;
+                    // 보스 상태 완전 초기화
+                    resetBossState();
                     return false;
                 }
                 
@@ -2729,7 +2736,8 @@ function checkEnemyCollisions(enemy) {
                     // 보스 파괴 시 충돌음 재생
                     safePlay(collisionSound);
                     
-                    bossActive = false;
+                    // 보스 상태 완전 초기화
+                    resetBossState();
                     return false;
                 }
                 
@@ -3718,15 +3726,15 @@ function handleBullets() {
 const BOSS_SETTINGS = {
     HEALTH: 5000,        // 체력 5000으로 상향 (50발 맞으면 파괴)
     DAMAGE: 50,          // 보스 총알 데미지
-    SPEED: 1,           // 보스 이동 속도를 2에서 1로 줄임
+    SPEED: 2.5,         // 보스 이동 속도를 2.5로 증가 (너무 느리지 않도록)
     BULLET_SPEED: 4,    // 보스 총알 속도를 3에서 4로 증가
     PATTERN_INTERVAL: 2500, // 2.5초(2500ms)로 단축 (기존 대비 반으로 줄임)
-    SPAWN_INTERVAL: 10000,  // 보스 출현 간격 (10초로 단축)
+    SPAWN_INTERVAL: 15000,  // 보스 출현 간격을 15초로 증가 (중복 생성 방지)
     BONUS_SCORE: 500,    // 보스 처치 보너스 점수를 500으로 설정
     PHASE_THRESHOLDS: [  // 페이즈 전환 체력 임계값
-        { health: 3750, speed: 1.5, bulletSpeed: 5 },  // 총알 속도 증가
-        { health: 2500, speed: 2, bulletSpeed: 6 },    // 총알 속도 증가
-        { health: 1250, speed: 2.5, bulletSpeed: 7 }   // 총알 속도 증가
+        { health: 3750, speed: 3, bulletSpeed: 5 },    // 속도 증가
+        { health: 2500, speed: 3.5, bulletSpeed: 6 },  // 속도 증가
+        { health: 1250, speed: 4, bulletSpeed: 7 }     // 속도 증가
     ]
 };
 
@@ -3737,9 +3745,16 @@ let lastBossSpawnTime = Date.now();  // 마지막 보스 출현 시간을 현재
 function createBoss() {
     console.log('보스 헬리콥터 생성 함수 호출됨');
     
-    // 이미 보스가 존재하는 경우
-    if (bossActive) {
-        console.log('보스가 이미 존재하여 생성하지 않음');
+    // 이미 보스가 존재하는 경우 - 더 엄격한 체크
+    if (bossActive || isBossActive) {
+        console.log('보스가 이미 존재하여 생성하지 않음 (bossActive:', bossActive, ', isBossActive:', isBossActive, ')');
+        return;
+    }
+    
+    // enemies 배열에서 보스 존재 여부도 체크
+    const existingBoss = enemies.find(enemy => enemy.isBoss);
+    if (existingBoss) {
+        console.log('enemies 배열에 보스가 이미 존재하여 생성하지 않음');
         return;
     }
     
@@ -3768,8 +3783,15 @@ function createBoss() {
     bossHealth = BOSS_SETTINGS.HEALTH;
     bossPattern = 0;
     bossTimer = currentTime;
-    lastBossSpawnTime = currentTime;
+    lastBossSpawnTime = currentTime; // 보스 생성 시간 기록
     bossDestroyed = false;
+    
+    console.log('보스 상태 초기화 완료:', {
+        bossActive,
+        isBossActive,
+        bossHealth,
+        lastBossSpawnTime: new Date(lastBossSpawnTime).toLocaleTimeString()
+    });
     
     // 보스 헬리콥터 객체 생성
     const boss = {
@@ -3799,7 +3821,7 @@ function createBoss() {
         isBeingHit: false,
         type: ENEMY_TYPES.HELICOPTER,
         rotorAngle: 0,
-        rotorSpeed: 0.1, // 보스 로터 속도를 반으로 줄임
+        rotorSpeed: 0.2, // 보스 로터 속도를 증가 (너무 느리지 않도록)
         hoverHeight: 150,
         hoverTimer: 0,
         hoverDirection: 1,
@@ -3811,6 +3833,30 @@ function createBoss() {
     // 보스 추가
     enemies.push(boss);
     console.log('보스 헬리콥터 생성 완료:', boss);
+}
+
+// 보스 상태 초기화 함수 추가
+function resetBossState() {
+    console.log('보스 상태 초기화 시작');
+    
+    // 모든 보스 관련 상태 변수 초기화
+    bossActive = false;
+    isBossActive = false;
+    bossHealth = 0;
+    bossDestroyed = false;
+    bossPattern = 0;
+    bossTimer = 0;
+    
+    // enemies 배열에서 보스 제거
+    enemies = enemies.filter(enemy => !enemy.isBoss);
+    
+    console.log('보스 상태 초기화 완료:', {
+        bossActive,
+        isBossActive,
+        bossHealth,
+        bossDestroyed,
+        enemiesCount: enemies.length
+    });
 }
 
 // 보스 패턴 처리 함수 수정
