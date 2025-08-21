@@ -3459,50 +3459,155 @@ function handleBullets() {
         }
         
         if (bullet.isBossBullet) {
-            // 보스 총알 처리
-            bullet.x += Math.cos(bullet.angle) * bullet.speed;
-            bullet.y += Math.sin(bullet.angle) * bullet.speed;
+            // 보스 총알 처리 - 패턴별 이동 방식 적용
+            const props = bullet.patternProperties;
             
-            // 회전 효과
-            bullet.rotation += bullet.rotationSpeed;
+            // 패턴별 이동 방식
+            switch(props.movementType) {
+                case 'linear':
+                    // 직선 이동
+                    bullet.x += Math.cos(bullet.angle) * bullet.speed;
+                    bullet.y += Math.sin(bullet.angle) * bullet.speed;
+                    break;
+                    
+                case 'spiral':
+                    // 나선형 이동
+                    const spiralRadius = 2;
+                    const spiralSpeed = 0.1;
+                    bullet.spiralAngle = bullet.spiralAngle || 0;
+                    bullet.spiralAngle += spiralSpeed;
+                    bullet.x += Math.cos(bullet.angle) * bullet.speed + Math.cos(bullet.spiralAngle) * spiralRadius;
+                    bullet.y += Math.sin(bullet.angle) * bullet.speed + Math.sin(bullet.spiralAngle) * spiralRadius;
+                    break;
+                    
+                case 'wave':
+                    // 파도형 이동
+                    const waveAmplitude = 3;
+                    const waveFrequency = 0.05;
+                    bullet.waveOffset = bullet.waveOffset || 0;
+                    bullet.waveOffset += waveFrequency;
+                    bullet.x += Math.cos(bullet.angle) * bullet.speed + Math.sin(bullet.waveOffset) * waveAmplitude;
+                    bullet.y += Math.sin(bullet.angle) * bullet.speed;
+                    break;
+                    
+                case 'homing':
+                    // 유도 이동 (플레이어 방향으로 약간씩 조정)
+                    const targetX = player.x + player.width/2;
+                    const targetY = player.y + player.height/2;
+                    const currentAngle = Math.atan2(bullet.y - targetY, bullet.x - targetX);
+                    const angleDiff = (currentAngle - bullet.angle + Math.PI) % (2 * Math.PI) - Math.PI;
+                    bullet.angle += angleDiff * 0.1; // 부드럽게 방향 조정
+                    bullet.x += Math.cos(bullet.angle) * bullet.speed;
+                    bullet.y += Math.sin(bullet.angle) * bullet.speed;
+                    break;
+                    
+                case 'chaotic':
+                    // 혼돈형 이동 (랜덤한 방향 변화)
+                    bullet.chaosTimer = bullet.chaosTimer || 0;
+                    bullet.chaosTimer++;
+                    if (bullet.chaosTimer % 10 === 0) {
+                        bullet.angle += (Math.random() - 0.5) * 0.3;
+                    }
+                    bullet.x += Math.cos(bullet.angle) * bullet.speed;
+                    bullet.y += Math.sin(bullet.angle) * bullet.speed;
+                    break;
+                    
+                case 'vortex':
+                    // 소용돌이형 이동
+                    const vortexRadius = 4;
+                    const vortexSpeed = 0.15;
+                    bullet.vortexAngle = bullet.vortexAngle || 0;
+                    bullet.vortexAngle += vortexSpeed;
+                    bullet.x += Math.cos(bullet.angle) * bullet.speed + Math.cos(bullet.vortexAngle) * vortexRadius;
+                    bullet.y += Math.sin(bullet.angle) * bullet.speed + Math.sin(bullet.vortexAngle) * vortexRadius;
+                    break;
+                    
+                default:
+                    // 기본 직선 이동
+                    bullet.x += Math.cos(bullet.angle) * bullet.speed;
+                    bullet.y += Math.sin(bullet.angle) * bullet.speed;
+            }
             
-            // 꼬리 효과 업데이트
+                    // 회전 효과 - 패턴별 속도 적용
+        bullet.rotation += props.rotationSpeed;
+        
+        // 패턴별 추가 효과
+        if (props.movementType === 'spiral') {
+            // 나선형: 총알 자체도 회전
+            bullet.rotation += 0.05;
+        } else if (props.movementType === 'vortex') {
+            // 소용돌이형: 빠른 회전
+            bullet.rotation += 0.1;
+        }
+            
+            // 꼬리 효과 업데이트 - 패턴별 길이 적용
             bullet.trail.unshift({x: bullet.x, y: bullet.y});
-            if (bullet.trail.length > 5) bullet.trail.pop();
+            if (bullet.trail.length > props.trailLength) bullet.trail.pop();
             
             // 총알 그리기
             ctx.save();
             ctx.translate(bullet.x, bullet.y);
             ctx.rotate(bullet.rotation);
             
-            // 총알 본체 - 패턴별 색상 적용
+            // 총알 본체 - 패턴별 색상 및 펄스 효과 적용
             const bulletColor = bullet.color || '#FF0000';
             const rgbColor = hexToRgb(bulletColor);
-            const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, bullet.width/2);
+            
+            // 펄스 효과 계산
+            let pulseScale = 1;
+            if (props.pulseEffect) {
+                pulseScale = 1 + Math.sin(Date.now() * 0.01) * 0.2;
+            }
+            
+            const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, (bullet.width/2) * pulseScale);
             gradient.addColorStop(0, `rgba(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b}, 0.8)`);
             gradient.addColorStop(1, `rgba(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b}, 0)`);
             ctx.fillStyle = gradient;
             ctx.beginPath();
-            ctx.arc(0, 0, bullet.width/2, 0, Math.PI * 2);
+            ctx.arc(0, 0, (bullet.width/2) * pulseScale, 0, Math.PI * 2);
             ctx.fill();
             
-            // 총알 꼬리 - 패턴별 색상 적용
+            // 총알 꼬리 - 패턴별 색상 및 효과 적용
             bullet.trail.forEach((pos, index) => {
                 const alpha = 1 - (index / bullet.trail.length);
-                ctx.fillStyle = `rgba(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b}, ${alpha * 0.5})`;
-                ctx.beginPath();
-                ctx.arc(pos.x - bullet.x, pos.y - bullet.y, 
-                        bullet.width/2 * (1 - index/bullet.trail.length), 0, Math.PI * 2);
-                ctx.fill();
+                const trailSize = bullet.width/2 * (1 - index/bullet.trail.length) * pulseScale;
+                
+                // 패턴별 꼬리 효과
+                if (props.movementType === 'spiral' || props.movementType === 'vortex') {
+                    // 나선형/소용돌이형: 회전하는 꼬리
+                    const trailRotation = bullet.rotation + index * 0.2;
+                    ctx.save();
+                    ctx.translate(pos.x - bullet.x, pos.y - bullet.y);
+                    ctx.rotate(trailRotation);
+                    ctx.fillStyle = `rgba(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b}, ${alpha * 0.6})`;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, trailSize, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                } else if (props.movementType === 'wave') {
+                    // 파도형: 물결 모양 꼬리
+                    const waveOffset = Math.sin(index * 0.5 + Date.now() * 0.01) * 2;
+                    ctx.fillStyle = `rgba(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b}, ${alpha * 0.7})`;
+                    ctx.beginPath();
+                    ctx.arc(pos.x - bullet.x + waveOffset, pos.y - bullet.y, trailSize, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    // 기본 꼬리
+                    ctx.fillStyle = `rgba(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b}, ${alpha * 0.5})`;
+                    ctx.beginPath();
+                    ctx.arc(pos.x - bullet.x, pos.y - bullet.y, trailSize, 0, Math.PI * 2);
+                    ctx.fill();
+                }
             });
             
-            // 총알 주변에 빛나는 효과 - 패턴별 색상 적용
-            const glowGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, bullet.width);
+            // 총알 주변에 빛나는 효과 - 패턴별 색상 및 크기 적용
+            const glowSize = bullet.width * (props.pulseEffect ? pulseScale : 1);
+            const glowGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, glowSize);
             glowGradient.addColorStop(0, `rgba(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b}, 0.3)`);
             glowGradient.addColorStop(1, `rgba(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b}, 0)`);
             ctx.fillStyle = glowGradient;
             ctx.beginPath();
-            ctx.arc(0, 0, bullet.width, 0, Math.PI * 2);
+            ctx.arc(0, 0, glowSize, 0, Math.PI * 2);
             ctx.fill();
             
             ctx.restore();
@@ -3909,6 +4014,89 @@ function handleBossPattern(boss) {
     }
 }
 
+// 패턴별 특수 속성 반환 함수
+function getPatternProperties(patternType) {
+    switch(patternType) {
+        case 'spread':
+            return {
+                movementType: 'linear', // 직선 이동
+                rotationSpeed: 0.05, // 천천히 회전
+                trailLength: 3, // 짧은 꼬리
+                pulseEffect: false
+            };
+        case 'cross':
+            return {
+                movementType: 'linear', // 직선 이동
+                rotationSpeed: 0.1, // 빠르게 회전
+                trailLength: 5, // 긴 꼬리
+                pulseEffect: false
+            };
+        case 'spiral':
+            return {
+                movementType: 'spiral', // 나선형 이동
+                rotationSpeed: 0.15, // 빠른 회전
+                trailLength: 4, // 중간 꼬리
+                pulseEffect: false
+            };
+        case 'wave':
+            return {
+                movementType: 'wave', // 파도형 이동
+                rotationSpeed: 0.08, // 중간 회전
+                trailLength: 6, // 긴 꼬리
+                pulseEffect: true
+            };
+        case 'targeted':
+            return {
+                movementType: 'homing', // 유도 이동
+                rotationSpeed: 0.12, // 빠른 회전
+                trailLength: 7, // 매우 긴 꼬리
+                pulseEffect: true
+            };
+        case 'random':
+            return {
+                movementType: 'chaotic', // 혼돈형 이동
+                rotationSpeed: 0.2, // 매우 빠른 회전
+                trailLength: 2, // 짧은 꼬리
+                pulseEffect: false
+            };
+        case 'rapid':
+            return {
+                movementType: 'linear', // 직선 이동
+                rotationSpeed: 0.18, // 빠른 회전
+                trailLength: 4, // 중간 꼬리
+                pulseEffect: false
+            };
+        case 'vortex':
+            return {
+                movementType: 'vortex', // 소용돌이형 이동
+                rotationSpeed: 0.25, // 매우 빠른 회전
+                trailLength: 8, // 매우 긴 꼬리
+                pulseEffect: true
+            };
+        case 'pulse':
+            return {
+                movementType: 'linear', // 직선 이동
+                rotationSpeed: 0.1, // 중간 회전
+                trailLength: 5, // 중간 꼬리
+                pulseEffect: true
+            };
+        case 'circle':
+            return {
+                movementType: 'linear', // 직선 이동
+                rotationSpeed: 0.06, // 천천히 회전
+                trailLength: 3, // 짧은 꼬리
+                pulseEffect: false
+            };
+        default:
+            return {
+                movementType: 'linear',
+                rotationSpeed: 0.1,
+                trailLength: 3,
+                pulseEffect: false
+            };
+    }
+}
+
 // 보스 총알 생성 함수 수정 - 패턴별 색상 구분
 function createBossBullet(boss, angle, patternType = 'spread') {
     // 패턴별 색상 설정
@@ -3976,7 +4164,14 @@ function createBossBullet(boss, angle, patternType = 'spread') {
         rotation: 0, // 회전 효과를 위한 값
         rotationSpeed: 0.1, // 회전 속도
         patternType: patternType, // 패턴 타입 저장
-        color: bulletColor // 패턴별 색상 저장
+        color: bulletColor, // 패턴별 색상 저장
+        // 패턴별 특수 속성 추가
+        patternProperties: getPatternProperties(patternType),
+        // 패턴별 이동을 위한 변수들 초기화
+        spiralAngle: 0,
+        waveOffset: 0,
+        vortexAngle: 0,
+        chaosTimer: 0
     };
     bullets.push(bullet);
 }
@@ -5046,7 +5241,8 @@ function hexToRgb(hex) {
 
 // 보스 발사 패턴 함수들
 function bossFireSpreadShot(boss) {
-    const spreadCount = 24; // 한 번에 24발로 증가 (20발 이상)
+    // 확산탄 패턴: 원형으로 퍼지는 형태
+    const spreadCount = 20; // 20발로 수정
     for (let i = 0; i < spreadCount; i++) {
         const angle = (i * 2 * Math.PI) / spreadCount;
         createBossBullet(boss, angle, 'spread');
@@ -5054,11 +5250,13 @@ function bossFireSpreadShot(boss) {
 }
 
 function bossFireCrossShot(boss) {
-    // 십자형 발사 패턴 - 12발로 증가
+    // 십자형 발사 패턴: 십자 모양으로 정렬된 발사
     const crossCount = 12;
+    const angles = [0, Math.PI/2, Math.PI, 3*Math.PI/2]; // 상, 우, 하, 좌
     for (let i = 0; i < crossCount; i++) {
-        const angle = (i * Math.PI * 2) / crossCount;
-        createBossBullet(boss, angle, 'cross');
+        const baseAngle = angles[i % 4];
+        const spreadAngle = baseAngle + (Math.floor(i/4) - 1) * 0.3; // 각 방향에서 약간씩 분산
+        createBossBullet(boss, spreadAngle, 'cross');
     }
 }
 
@@ -5083,14 +5281,14 @@ function bossFireWaveShot(boss) {
 }
 
 function bossFireTargetedShot(boss) {
-    // 플레이어 방향 추적 발사 - 12발로 증가
+    // 플레이어 방향 추적 발사: 플레이어를 향해 집중 발사
     const targetX = player.x + player.width/2;
     const targetY = player.y + player.height/2;
     const baseAngle = Math.atan2(targetY - (boss.y + boss.height/2), targetX - (boss.x + boss.width/2));
     
-    // 12발의 총알을 플레이어 방향으로 분산 발사
+    // 12발의 총알을 플레이어 방향으로 집중 발사 (좁은 각도로 분산)
     for (let i = 0; i < 12; i++) {
-        const spreadAngle = baseAngle + (i * 0.2 - 1.1); // -1.1 ~ 1.3 범위로 분산
+        const spreadAngle = baseAngle + (i - 6) * 0.15; // -0.9 ~ 0.9 범위로 좁게 분산
         createBossBullet(boss, spreadAngle, 'targeted');
     }
 }
@@ -5111,12 +5309,12 @@ function bossFireRapidShot(boss) {
         return;
     }
     
-    // 연발형 패턴 - 빠른 속도로 연속 발사 - 12발로 증가
+    // 연발형 패턴: 빠른 속도로 연속 발사, 일정한 각도로 분산
     const bulletCount = 12;
     const baseAngle = Math.random() * Math.PI * 2;
     
     for (let i = 0; i < bulletCount; i++) {
-        const angle = baseAngle + (i * 0.3);
+        const angle = baseAngle + (i * 0.3); // 일정한 간격으로 분산
         const bullet = createBossBullet(boss, angle, 'rapid');
         bullet.speed = bullet.speed * 1.5; // 더 빠른 속도
     }
@@ -5129,7 +5327,7 @@ function bossFireVortexShot(boss) {
         return;
     }
     
-    // 소용돌이형 패턴 - 나선형으로 회전하며 발사
+    // 소용돌이형 패턴: 나선형으로 회전하며 발사, 거리에 따라 속도 변화
     const bulletCount = 10;
     for (let i = 0; i < bulletCount; i++) {
         const angle = (i * 36 + boss.vortexAngle) * Math.PI / 180;
@@ -5167,10 +5365,10 @@ function bossFireCircleShot(boss) {
         return;
     }
     
-    // 원형 패턴 - 모든 방향으로 발사
+    // 원형 패턴: 모든 방향으로 균등하게 발사
     const bulletCount = 16;
     for (let i = 0; i < bulletCount; i++) {
-        const angle = (i * 22.5) * Math.PI / 180;
+        const angle = (i * 22.5) * Math.PI / 180; // 360도를 16등분
         const bullet = createBossBullet(boss, angle, 'circle');
     }
 }
