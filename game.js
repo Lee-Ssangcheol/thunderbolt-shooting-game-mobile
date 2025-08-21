@@ -1478,8 +1478,8 @@ function restartGame() {
 }
 
 // 적 생성 함수 수정 - 화면 상단에서 등장하도록 개선
-function createEnemy() {
-    // 레벨 10 이상일 때는 레벨 10의 난이도를 기반으로 점진적 증가 (속도와 발사 간격은 제한)
+function createEnemy(forceType = null) {
+    // 레벨 10 이상일 때는 레벨 10의 난이도를 기반으로 점진적 증가 (속도, 발사 간격, 생성률, 최대 적 수는 제한)
     let currentDifficulty;
     if (gameLevel <= 10) {
         currentDifficulty = difficultySettings[gameLevel] || difficultySettings[1];
@@ -1490,9 +1490,9 @@ function createEnemy() {
         
         currentDifficulty = {
             enemySpeed: baseDifficulty.enemySpeed, // 레벨 10 이상에서 적 속도 증가 제한
-            enemySpawnRate: Math.min(1.0, baseDifficulty.enemySpawnRate * (1 + levelBonus)),
-            maxEnemies: Math.min(20, baseDifficulty.maxEnemies + Math.floor(levelBonus * 5)),
-            enemyHealth: Math.floor(baseDifficulty.enemyHealth * (1 + levelBonus)),
+            enemySpawnRate: baseDifficulty.enemySpawnRate,
+            maxEnemies: baseDifficulty.maxEnemies,
+            enemyHealth: baseDifficulty.enemyHealth, // 레벨 10 이상에서 적 체력 증가 제한,
             patternChance: Math.min(1.0, baseDifficulty.patternChance * (1 + levelBonus)),
             fireInterval: baseDifficulty.fireInterval, // 레벨 10 이상에서 발사 간격 증가 제한
             bombDropChance: Math.min(1.0, baseDifficulty.bombDropChance * (1 + levelBonus)),
@@ -1501,18 +1501,202 @@ function createEnemy() {
         };
     }
     
-    // 헬리콥터 출현 비율을 레벨에 따라 조정
-    const isHelicopter = Math.random() < (0.3 + (gameLevel * 0.05));
+    // 강제 타입이 지정된 경우 해당 타입으로 생성, 그렇지 않으면 기존 로직 사용
+    if (forceType) {
+        if (forceType === 'PLANE') {
+            // 일반 비행기 강제 생성
+            const enemy = {
+                x: Math.random() * (canvas.width - 72), // 72 크기에 맞게 여백 조정
+                y: -72,  // 화면 상단에서 시작 (72 크기에 맞게 조정)
+                width: 72,  // 원래 크기로 복구
+                height: 72, // 원래 크기로 복구
+                speed: currentDifficulty.enemySpeed,
+                type: ENEMY_TYPES.PLANE,
+                health: currentDifficulty.enemyHealth,
+                score: gameLevel <= 10 ? 100 * gameLevel : 1000, // 일반 비행기: 레벨 10 이상에서는 점수 제한
+                isElite: Math.random() < (gameLevel <= 10 ? (0.05 + (gameLevel * 0.02)) : 0.25), // 레벨 10 이상에서는 엘리트 확률 제한
+                specialAbility: Math.random() < (gameLevel <= 10 ? (0.1 + (gameLevel * 0.03)) : 0.4) ? getRandomSpecialAbility() : null, // 레벨 10 이상에서는 특수 능력 확률 제한
+                hasShield: false, // 일반 비행기는 보호막 없음
+                canFire: false, // 초기에는 발사 불가능
+                lastFireTime: 0,
+                fireInterval: currentDifficulty.fireInterval,
+                entryStartTime: Date.now(), // 진입 시작 시간 추가
+                entryDelay: 1000 + Math.random() * 2000,
+                canDropBomb: Math.random() < currentDifficulty.bombDropChance,
+                lastBombDrop: 0,
+                bombDropInterval: 3000,
+                bombCount: 3,
+                bulletCount: 3,
+                bulletSpeed: currentDifficulty.bulletSpeed
+            };
+
+            // 엘리트 적 보너스 (속도, 발사 간격, 체력은 제한)
+            if (enemy.isElite) {
+                // 레벨 10 이상에서는 체력 증가 제한
+                if (gameLevel <= 10) {
+                    enemy.health *= (1.5 + (gameLevel * 0.2));
+                    enemy.speed *= 1.2;
+                } else {
+                    enemy.health *= 1.5; // 레벨 10 이상에서는 기본 보너스만
+                }
+                enemy.score *= 2;
+            }
+
+            enemies.push(enemy);
+            console.log('강제 일반 비행기 생성됨:', enemy);
+            return;
+        } else if (forceType === 'HELICOPTER') {
+            // 보호막 헬리콥터 강제 생성
+            const isHelicopter2 = Math.random() < 0.5;  // 50% 확률로 helicopter2 생성
+            
+            // 화면을 4개 구역으로 나누어 헬리콥터들이 겹치지 않도록 위치 조정
+            const screenWidth = canvas.width;
+            const screenHeight = canvas.height;
+            const zoneWidth = screenWidth / 4;
+            const zoneHeight = screenHeight / 4;
+            
+            // 현재 생성되는 헬리콥터의 구역을 랜덤하게 선택
+            const zoneX = Math.floor(Math.random() * 4);
+            const zoneY = Math.floor(Math.random() * 4);
+            
+            // 선택된 구역 내에서 랜덤한 위치 계산 (구역 경계를 벗어나지 않도록)
+            const x = Math.max(0, Math.min(screenWidth - 48, zoneX * zoneWidth + Math.random() * (zoneWidth - 48)));
+            const y = -48 - Math.random() * 150; // 화면 상단에서 0-150px 높이 차이
+            
+            if (isHelicopter2) {
+                // 헬리콥터2(오렌지계열) 생성
+                const enemy = {
+                    x: x,
+                    y: y,  // 화면 상단에서 시작 (높이 차이 있음)
+                    width: 48,
+                    height: 48,
+                    speed: currentDifficulty.enemySpeed,
+                    type: ENEMY_TYPES.HELICOPTER2,
+                    rotorAngle: 0,
+                    rotorSpeed: 0.2,
+                    hoverHeight: Math.random() * 200 + 100,
+                    hoverTimer: 0,
+                    hoverDirection: 1,
+                    canDropBomb: Math.random() < currentDifficulty.bombDropChance,
+                    lastBombDrop: 0,
+                    bombDropInterval: 3000,
+                    lastUpdateTime: Date.now(),
+                    canFire: true,
+                    lastFireTime: 0,
+                    fireInterval: gameLevel <= 10 ? currentDifficulty.fireInterval * 0.5 : currentDifficulty.fireInterval, // 레벨 10 이상에서는 기본 발사 간격 유지
+                    bulletSpeed: currentDifficulty.bulletSpeed,
+                    health: currentDifficulty.enemyHealth,
+                    score: gameLevel <= 10 ? 50 * gameLevel : 500, // 헬리콥터2: 레벨 10 이상에서는 점수 제한
+                    isElite: Math.random() < (gameLevel <= 10 ? (0.05 + (gameLevel * 0.02)) : 0.25), // 레벨 10 이상에서는 엘리트 확률 제한
+                    specialAbility: Math.random() < (gameLevel <= 10 ? (0.1 + (gameLevel * 0.03)) : 0.4) ? getRandomSpecialAbility() : null, // 레벨 10 이상에서는 특수 능력 확률 제한
+                    // 보호막 시스템 추가
+                    hasShield: true,
+                    shieldHealth: 100, // 100발 맞으면 파괴
+                    shieldHitCount: 0,
+                    shieldColor: '#FFA500', // 헬리콥터2(오렌지계열) 보호막 색상
+                    isShieldBroken: false
+                };
+
+                // 엘리트 적 보너스 (속도, 발사 간격, 체력은 제한)
+                if (enemy.isElite) {
+                    // 레벨 10 이상에서는 체력 증가 제한
+                    if (gameLevel <= 10) {
+                        enemy.health *= (1.5 + (gameLevel * 0.2));
+                        enemy.speed *= 1.2;
+                        enemy.bulletSpeed *= 1.2;
+                        enemy.fireInterval *= 0.8;
+                    } else {
+                        enemy.health *= 1.5; // 레벨 10 이상에서는 기본 보너스만
+                    }
+                    enemy.score *= 2;
+                }
+
+                enemies.push(enemy);
+                console.log('강제 헬리콥터2(오렌지계열) 생성됨:', enemy);
+                return;
+            } else {
+                // 헬리콥터1(블루계열) 생성
+                const helicopter = {
+                    x: Math.random() * (canvas.width - 48),
+                    y: -48,  // 화면 상단에서 시작
+                    width: 48,
+                    height: 48,
+                    speed: currentDifficulty.enemySpeed * 0.8,
+                    type: ENEMY_TYPES.HELICOPTER,
+                    rotorAngle: 0,
+                    rotorSpeed: 0.2,
+                    hoverHeight: Math.random() * 200 + 100,
+                    hoverTimer: 0,
+                    hoverDirection: 1,
+                    canDropBomb: Math.random() < currentDifficulty.bombDropChance,
+                    lastBombDrop: 0,
+                    bombDropInterval: 2000 + Math.random() * 3000,
+                    lastUpdateTime: Date.now(),
+                    canFire: true,
+                    lastFireTime: 0,
+                    fireInterval: gameLevel <= 10 ? currentDifficulty.fireInterval * 0.5 : currentDifficulty.fireInterval, // 레벨 10 이상에서는 기본 발사 간격 유지
+                    bulletSpeed: currentDifficulty.bulletSpeed,
+                    health: currentDifficulty.enemyHealth,
+                    score: gameLevel <= 10 ? 50 * gameLevel : 500, // 헬리콥터2: 레벨 10 이상에서는 점수 제한
+                    isElite: Math.random() < (gameLevel <= 10 ? (0.05 + (gameLevel * 0.02)) : 0.25), // 레벨 10 이상에서는 엘리트 확률 제한
+                    specialAbility: Math.random() < (gameLevel <= 10 ? (0.1 + (gameLevel * 0.03)) : 0.4) ? getRandomSpecialAbility() : null, // 레벨 10 이상에서는 특수 능력 확률 제한
+                    // 보호막 시스템 추가
+                    hasShield: true,
+                    shieldHealth: 100, // 100발 맞으면 파괴
+                    shieldHitCount: 0,
+                    shieldColor: '#008B8B', // 헬리콥터1(블루계열) 보호막 색상
+                    isShieldBroken: false
+                };
+
+                // 엘리트 적 보너스 (속도, 발사 간격, 체력은 제한)
+                if (helicopter.isElite) {
+                    // 레벨 10 이상에서는 체력 증가 제한
+                    if (gameLevel <= 10) {
+                        helicopter.health *= (1.5 + (gameLevel * 0.2));
+                        helicopter.speed *= 1.2;
+                        helicopter.bulletSpeed *= 1.2;
+                        helicopter.fireInterval *= 0.8;
+                    } else {
+                        helicopter.health *= 1.5; // 레벨 10 이상에서는 기본 보너스만
+                    }
+                    helicopter.score *= 2;
+                }
+
+                enemies.push(helicopter);
+                console.log('강제 헬리콥터1(블루계열) 생성됨:', helicopter);
+                return;
+            }
+        }
+    }
+    
+    // 기존 로직: 강제 타입이 지정되지 않은 경우
+    // 헬리콥터 출현 비율을 레벨에 따라 조정 (레벨 10 이상에서는 제한)
+    const helicopterChance = gameLevel <= 10 ? (0.3 + (gameLevel * 0.05)) : 0.8;
+    const isHelicopter = Math.random() < helicopterChance;
     
     if (!isBossActive && isHelicopter) {
+        // 화면을 4개 구역으로 나누어 헬리콥터들이 겹치지 않도록 위치 조정
+        const screenWidth = canvas.width;
+        const screenHeight = canvas.height;
+        const zoneWidth = screenWidth / 4;
+        const zoneHeight = screenHeight / 4;
+        
+        // 현재 생성되는 헬리콥터의 구역을 랜덤하게 선택
+        const zoneX = Math.floor(Math.random() * 4);
+        const zoneY = Math.floor(Math.random() * 4);
+        
+        // 선택된 구역 내에서 랜덤한 위치 계산 (구역 경계를 벗어나지 않도록)
+        const x = Math.max(0, Math.min(screenWidth - 48, zoneX * zoneWidth + Math.random() * (zoneWidth - 48)));
+        const y = -48 - Math.random() * 150; // 화면 상단에서 0-150px 높이 차이
+        
         // 일반 헬리콥터와 helicopter2 중에서 선택
         const isHelicopter2 = Math.random() < 0.5;  // 50% 확률로 helicopter2 생성
         
         if (isHelicopter2) {
             // 헬리콥터2(오렌지계열) 생성
             const enemy = {
-                x: Math.random() * (canvas.width - 48),
-                y: -48,  // 화면 상단에서 시작
+                x: x,
+                y: y,  // 화면 상단에서 시작 (높이 차이 있음)
                 width: 48,
                 height: 48,
                 speed: currentDifficulty.enemySpeed,
@@ -1528,12 +1712,12 @@ function createEnemy() {
                 lastUpdateTime: Date.now(),
                 canFire: true,
                 lastFireTime: 0,
-                fireInterval: currentDifficulty.fireInterval * 0.5, // 현재 대비 반으로 줄임
+                fireInterval: gameLevel <= 10 ? currentDifficulty.fireInterval * 0.5 : currentDifficulty.fireInterval, // 레벨 10 이상에서는 기본 발사 간격 유지
                 bulletSpeed: currentDifficulty.bulletSpeed,
                 health: currentDifficulty.enemyHealth,
-                score: 50 * gameLevel,
-                isElite: Math.random() < (0.05 + (gameLevel * 0.02)),
-                specialAbility: Math.random() < (0.1 + (gameLevel * 0.03)) ? getRandomSpecialAbility() : null,
+                score: gameLevel <= 10 ? 50 * gameLevel : 500, // 헬리콥터2: 레벨 10 이상에서는 점수 제한
+                isElite: Math.random() < (gameLevel <= 10 ? (0.05 + (gameLevel * 0.02)) : 0.25), // 레벨 10 이상에서는 엘리트 확률 제한
+                specialAbility: Math.random() < (gameLevel <= 10 ? (0.1 + (gameLevel * 0.03)) : 0.4) ? getRandomSpecialAbility() : null, // 레벨 10 이상에서는 특수 능력 확률 제한
                 // 보호막 시스템 추가
                 hasShield: true,
                 shieldHealth: 100, // 100발 맞으면 파괴
@@ -1542,16 +1726,18 @@ function createEnemy() {
                 isShieldBroken: false
             };
 
-            // 엘리트 적 보너스 (속도는 제한)
+            // 엘리트 적 보너스 (속도, 발사 간격, 체력은 제한)
             if (enemy.isElite) {
-                enemy.health *= (1.5 + (gameLevel * 0.2));
-                // 레벨 10 이상에서는 속도 증가 제한
+                // 레벨 10 이상에서는 체력 증가 제한
                 if (gameLevel <= 10) {
+                    enemy.health *= (1.5 + (gameLevel * 0.2));
                     enemy.speed *= 1.2;
                     enemy.bulletSpeed *= 1.2;
+                    enemy.fireInterval *= 0.8;
+                } else {
+                    enemy.health *= 1.5; // 레벨 10 이상에서는 기본 보너스만
                 }
                 enemy.score *= 2;
-                enemy.fireInterval *= 0.8;
             }
 
             enemies.push(enemy);
@@ -1560,8 +1746,8 @@ function createEnemy() {
         } else {
             // 헬리콥터1(블루계열) 생성
             const helicopter = {
-                x: Math.random() * (canvas.width - 48),
-                y: -48,  // 화면 상단에서 시작
+                x: x,
+                y: y,  // 화면 상단에서 시작 (높이 차이 있음)
                 width: 48,
                 height: 48,
                 speed: currentDifficulty.enemySpeed * 0.8,
@@ -1577,15 +1763,15 @@ function createEnemy() {
                 lastUpdateTime: Date.now(),
                 canFire: true,
                 lastFireTime: 0,
-                fireInterval: currentDifficulty.fireInterval * 0.5, // 현재 대비 반으로 줄임
+                fireInterval: gameLevel <= 10 ? currentDifficulty.fireInterval * 0.5 : currentDifficulty.fireInterval,
                 bulletSpeed: currentDifficulty.bulletSpeed,
                 health: currentDifficulty.enemyHealth,
-                score: 50 * gameLevel,
-                isElite: Math.random() < (0.05 + (gameLevel * 0.02)),
-                specialAbility: Math.random() < (0.1 + (gameLevel * 0.03)) ? getRandomSpecialAbility() : null,
+                score: gameLevel <= 10 ? 50 * gameLevel : 500,
+                isElite: Math.random() < (gameLevel <= 10 ? (0.05 + (gameLevel * 0.02)) : 0.25),
+                specialAbility: Math.random() < (gameLevel <= 10 ? (0.1 + (gameLevel * 0.03)) : 0.4) ? getRandomSpecialAbility() : null,
                 // 보호막 시스템 추가
                 hasShield: true,
-                shieldHealth: 100, // 100발 맞으면 파괴
+                shieldHealth: 100,
                 shieldHitCount: 0,
                 shieldColor: '#008B8B', // 헬리콥터1(블루계열) 보호막 색상
                 isShieldBroken: false
@@ -1604,6 +1790,7 @@ function createEnemy() {
             }
 
             enemies.push(helicopter);
+            console.log('강제 헬리콥터1(블루계열) 생성됨:', helicopter);
             return;
         }
     }
@@ -1627,9 +1814,10 @@ function createEnemy() {
         movePhase: 0,
         type: ENEMY_TYPES.PLANE,
         lastUpdateTime: Date.now(),
-        canFire: true,
+        canFire: false, // 초기에는 발사 불가능
         lastFireTime: 0,
         fireInterval: currentDifficulty.fireInterval,
+        entryStartTime: Date.now(), // 진입 시작 시간 추가
         entryDelay: 1000 + Math.random() * 2000,
         canDropBomb: Math.random() < currentDifficulty.bombDropChance,
         lastBombDrop: 0,
@@ -1642,21 +1830,23 @@ function createEnemy() {
         bounceSpeed: Math.random() * 0.05 + 0.02,
         bounceDirection: Math.random() < 0.5 ? 1 : -1,
         health: currentDifficulty.enemyHealth,
-        score: 100 * gameLevel,
-        isElite: Math.random() < (0.05 + (gameLevel * 0.02)),
-        specialAbility: Math.random() < (0.1 + (gameLevel * 0.03)) ? getRandomSpecialAbility() : null
+        score: gameLevel <= 10 ? 100 * gameLevel : 1000, // 일반 비행기: 레벨 10 이상에서는 점수 제한
+        isElite: Math.random() < (gameLevel <= 10 ? (0.05 + (gameLevel * 0.02)) : 0.25), // 레벨 10 이상에서는 엘리트 확률 제한
+        specialAbility: Math.random() < (gameLevel <= 10 ? (0.1 + (gameLevel * 0.03)) : 0.4) ? getRandomSpecialAbility() : null, // 레벨 10 이상에서는 특수 능력 확률 제한
     };
 
-    // 엘리트 적 보너스 (속도는 제한)
+    // 엘리트 적 보너스 (속도, 발사 간격, 체력은 제한)
     if (enemy.isElite) {
-        enemy.health *= (1.5 + (gameLevel * 0.2));
-        // 레벨 10 이상에서는 속도 증가 제한
+        // 레벨 10 이상에서는 체력 증가 제한
         if (gameLevel <= 10) {
+            enemy.health *= (1.5 + (gameLevel * 0.2));
             enemy.speed *= 1.2;
             enemy.bulletSpeed *= 1.2;
+            enemy.fireInterval *= 0.8;
+        } else {
+            enemy.health *= 1.5; // 레벨 10 이상에서는 기본 보너스만
         }
         enemy.score *= 2;
-        enemy.fireInterval *= 0.8;
     }
 
     enemies.push(enemy);
@@ -1719,9 +1909,13 @@ function handleEnemyPlaneBullets() {
     const currentTime = Date.now();
     enemies.forEach(enemy => {
         if (enemy.type === ENEMY_TYPES.PLANE) {
+            // entryStartTime이 설정되지 않은 경우 현재 시간으로 설정
+            if (!enemy.entryStartTime) {
+                enemy.entryStartTime = currentTime;
+            }
+            
             // 비행기가 화면에 진입한 후 일정 시간이 지나면 발사 가능하도록 설정
             if (!enemy.canFire && enemy.y >= 0) {
-                enemy.entryStartTime = currentTime;
                 enemy.canFire = true;
             }
 
@@ -2438,6 +2632,9 @@ function gameLoop() {
         // 적 생성 및 이동 처리
         handleEnemies();
         
+        // 적 비행기 총알 발사 처리 (게임 루프에서 직접 호출)
+        handleEnemyPlaneBullets();
+        
         // 보스 체크 및 생성 - 게임이 시작된 후에만 보스 생성
         const currentTime = Date.now();
         if (gameStarted && !bossActive) {
@@ -2448,7 +2645,7 @@ function gameLoop() {
         } else if (bossActive) {
             // 보스가 존재하는 경우 보스 패턴 처리
             const boss = enemies.find(enemy => enemy.isBoss);
-            if (boss && boss.health > 0 && typeof boss === 'object') {
+            if (boss && boss.health > 0 && typeof boss === 'object' && !bossDestroyed) {
                 // 보스 객체가 유효한지 추가 검증
                 try {
                     handleBossPattern(boss);
@@ -2461,9 +2658,43 @@ function gameLoop() {
                 }
             } else {
                 // 보스가 enemies 배열에서 제거되었거나 유효하지 않은 경우 상태 초기화
+                console.log('보스가 제거되었거나 유효하지 않음 - 상태 초기화 및 적 생성 제한');
                 bossActive = false;
                 bossHealth = 0;
                 bossDestroyed = false;
+                
+                // 보스 파괴 후 적 생성 제한 강화
+                lastEnemySpawnTime = Date.now();
+                lastHelicopterSpawnTime = Date.now();
+                
+                // 보스 상태 완전 초기화 강제 실행
+                if (bossDestroyed) {
+                    console.log('보스 파괴 상태 감지 - 강제 초기화 실행');
+                    resetBossState();
+                }
+            }
+        }
+        
+        // 헬리콥터 생성 체크 (게임 루프에서 직접 호출)
+        if (gameStarted && !isBossActive && currentTime - lastHelicopterSpawnTime >= MIN_HELICOPTER_SPAWN_INTERVAL) {
+            // 레벨에 따라 헬리콥터 생성 확률 증가
+            let spawnChance = 0.8; // 기본 80% 확률
+            if (gameLevel >= 5) spawnChance = 0.9; // 레벨 5 이상: 90%
+            if (gameLevel >= 10) spawnChance = 0.95; // 레벨 10 이상: 95%
+            
+            if (Math.random() < spawnChance) {
+                // 2-4대의 헬리콥터를 동시에 생성
+                const helicopterCount = Math.floor(Math.random() * 3) + 2; // 2, 3, 4 중 랜덤
+                
+                for (let i = 0; i < helicopterCount; i++) {
+                    // 약간의 시간차를 두고 생성하여 자연스럽게 등장
+                    setTimeout(() => {
+                        createEnemy('HELICOPTER');
+                    }, i * 150); // 150ms 간격으로 생성 (더 빠르게)
+                }
+                
+                lastHelicopterSpawnTime = currentTime;
+                console.log(`${helicopterCount}대의 헬리콥터 생성됨 (레벨 ${gameLevel}, 확률: ${Math.round(spawnChance * 100)}%) - 시간:`, new Date(currentTime).toLocaleTimeString());
             }
         }
 
@@ -2606,7 +2837,7 @@ function handlePlayerMovement() {
 // 적 처리 함수 수정 - 적 생성 로직 개선
 function handleEnemies() {
     const currentTime = Date.now();
-    // 레벨 10 이상일 때는 레벨 10의 난이도를 기반으로 점진적 증가 (속도는 제한)
+    // 레벨 10 이상일 때는 레벨 10의 난이도를 기반으로 점진적 증가 (속도, 발사 간격, 생성률, 최대 적 수는 제한)
     let currentDifficulty;
     if (gameLevel <= 10) {
         currentDifficulty = difficultySettings[gameLevel] || difficultySettings[1];
@@ -2617,9 +2848,9 @@ function handleEnemies() {
         
         currentDifficulty = {
             enemySpeed: baseDifficulty.enemySpeed, // 레벨 10 이상에서 적 속도 증가 제한
-            enemySpawnRate: Math.min(1.0, baseDifficulty.enemySpawnRate * (1 + levelBonus)),
-            maxEnemies: Math.min(20, baseDifficulty.maxEnemies + Math.floor(levelBonus * 5)),
-            enemyHealth: Math.floor(baseDifficulty.enemyHealth * (1 + levelBonus)),
+            enemySpawnRate: baseDifficulty.enemySpawnRate,
+            maxEnemies: baseDifficulty.maxEnemies,
+            enemyHealth: baseDifficulty.enemyHealth, // 레벨 10 이상에서 적 체력 증가 제한,
             patternChance: Math.min(1.0, baseDifficulty.patternChance * (1 + levelBonus)),
             fireInterval: baseDifficulty.fireInterval, // 레벨 10 이상에서 발사 간격 증가 제한
             bombDropChance: Math.min(1.0, baseDifficulty.bombDropChance * (1 + levelBonus)),
@@ -2653,33 +2884,70 @@ function handleEnemies() {
     }
     
     // 적 생성 로직 개선 - 게임이 시작되고 터치 후에만 적들이 생성되도록
-    if (gameStarted && currentTime - lastEnemySpawnTime >= MIN_ENEMY_SPAWN_INTERVAL &&
+    // 적 비행기와 보호막 헬리콥터 합하여 최대 6~8대 제한, 일반 비행기 최소 4대, 보호막 헬리콥터 기본 2대 보장
+    const currentShieldedHelicopters = enemies.filter(enemy => 
+        (enemy.type === ENEMY_TYPES.HELICOPTER || enemy.type === ENEMY_TYPES.HELICOPTER2) && 
+        enemy.hasShield && !enemy.isShieldBroken
+    ).length;
+    
+    const currentNormalPlanes = enemies.filter(enemy => 
+        enemy.type === ENEMY_TYPES.PLANE
+    ).length;
+    
+    const totalEnemies = currentShieldedHelicopters + currentNormalPlanes;
+    
+    // 생성 조건 체크
+    const canCreateEnemy = gameStarted && 
+        currentTime - lastEnemySpawnTime >= MIN_ENEMY_SPAWN_INTERVAL &&
         Math.random() < currentDifficulty.enemySpawnRate * 0.3 && // 생성 확률을 30%로 더 줄임
         enemies.length < currentDifficulty.maxEnemies &&
-        !isGameOver) {
-        createEnemy();
-        lastEnemySpawnTime = currentTime;
-        console.log('새로운 적 생성됨');
-    }
+        !isGameOver;
     
-    // 헬리콥터 생성 로직 개선 - 게임이 시작되고 터치 후에만 생성되도록
-    if (gameStarted && !isBossActive && currentTime - lastHelicopterSpawnTime >= MIN_HELICOPTER_SPAWN_INTERVAL) {
-        if (Math.random() < 0.01) { // 1% 확률로 헬리콥터 생성
-            const helicopter = createHelicopter();
-            if (helicopter) {
-                enemies.push(helicopter);
-                lastHelicopterSpawnTime = currentTime;
-            }
+    // 적 생성 조건: 일반 비행기 최소 4대, 보호막 헬리콥터 기본 2대 최대 4대, 총합 6~8대
+    if (canCreateEnemy) {
+        let shouldCreate = false;
+        let createType = '';
+        
+        // 일반 비행기가 4대 미만이면 우선 생성
+        if (currentNormalPlanes < 4) {
+            shouldCreate = true;
+            createType = 'PLANE';
+        }
+        // 보호막 헬리콥터가 2대 미만이면 우선 생성
+        else if (currentShieldedHelicopters < 2) {
+            shouldCreate = true;
+            createType = 'HELICOPTER';
+        }
+        // 보호막 헬리콥터가 4대 미만이고 총합이 8대 미만이면 생성 가능
+        else if (currentShieldedHelicopters < 4 && totalEnemies < 8) {
+            shouldCreate = true;
+            createType = 'HELICOPTER';
+        }
+        
+        if (shouldCreate) {
+            createEnemy(createType);
+            lastEnemySpawnTime = currentTime;
+            console.log('새로운 적 생성됨 (보호막 헬리콥터: ' + currentShieldedHelicopters + ', 일반 비행기: ' + currentNormalPlanes + ', 총: ' + totalEnemies + '/8) - 생성 타입: ' + createType);
         }
     }
     
+    // 헬리콥터 생성은 게임 루프에서 처리하므로 여기서는 제거
+    // 중복 생성 방지를 위해 주석 처리
+    
     let helicopterFiredThisFrame = false;
     enemies = enemies.filter(enemy => {
+        // 보스가 파괴된 경우 즉시 제거
+        if (enemy.isBoss && (bossDestroyed || enemy.health <= 0)) {
+            console.log('handleEnemies: 보스 파괴됨 - 즉시 제거');
+            return false;
+        }
+        
         updateEnemyPosition(enemy, {helicopterFiredThisFrame});
         drawEnemy(enemy);
         return checkEnemyCollisions(enemy);
     });
-    handleEnemyPlaneBullets();
+    // 적 비행기 총알 발사는 게임 루프에서 처리하므로 여기서는 제거
+    // handleEnemyPlaneBullets();
     handleEnemyBullets();
     handleHelicopterBullets();
 }
@@ -2868,6 +3136,7 @@ function checkEnemyCollisions(enemy) {
                     enemy.health = 0;
                     bossHealth = 0;
                     bossDestroyed = true;
+                    enemy.isBeingHit = false; // 피격 상태 즉시 해제
                     updateScore(BOSS_SETTINGS.BONUS_SCORE);
                     
                     // 보스 파괴 시 목숨 1개 추가
@@ -2891,8 +3160,13 @@ function checkEnemyCollisions(enemy) {
                         ));
                     }
                     
-                    // 보스 상태 완전 초기화
+                    // 보스 상태 즉시 완전 초기화 (지연 없음)
                     resetBossState();
+                    
+                    // 보스 파괴 후 적 생성 제한 활성화
+                    lastEnemySpawnTime = Date.now();
+                    lastHelicopterSpawnTime = Date.now();
+                    
                     return false;
                 }
                 
@@ -2900,9 +3174,10 @@ function checkEnemyCollisions(enemy) {
                 enemy.hitCount++;
                 console.log('보스 총알 맞은 횟수:', enemy.hitCount);
                 
-                // 피격 상태 설정
+                // 피격 상태 설정 (시간 기반 관리)
                 enemy.isBeingHit = true;
                 enemy.lastHitTime = currentTime;
+                enemy.hitDuration = 200; // 200ms 동안 피격 상태 유지
                 
                 // 보스가 맞았을 때 시각 효과 추가
                 explosions.push(new Explosion(
@@ -2911,9 +3186,10 @@ function checkEnemyCollisions(enemy) {
                     false
                 ));
                 
-                // 체력 감소 (각 총알당 100의 데미지)
-                enemy.health = Math.max(0, enemy.health - 100);
-                bossHealth = enemy.health;
+                // 체력 감소 (각 총알당 100의 데미지) - 동기화 보장
+                const newHealth = Math.max(0, enemy.health - 100);
+                enemy.health = newHealth;
+                bossHealth = newHealth;
                 
                 // 보스 피격음 재생
                 safePlay(collisionSound);
@@ -2926,9 +3202,14 @@ function checkEnemyCollisions(enemy) {
                         health: enemy.health,
                         hitCount: enemy.hitCount
                     });
+                    
+                    // 보스 상태 즉시 정리 (지연 없음)
                     enemy.health = 0;
                     bossHealth = 0;
                     bossDestroyed = true;
+                    enemy.isBeingHit = false; // 피격 상태 즉시 해제
+                    
+                    // 점수 추가
                     updateScore(BOSS_SETTINGS.BONUS_SCORE);
                     
                     // 보스 파괴 시 목숨 1개 추가 (이미 특수 무기로 파괴된 경우는 제외)
@@ -2957,8 +3238,13 @@ function checkEnemyCollisions(enemy) {
                     // 보스 파괴 시 충돌음 재생
                     safePlay(collisionSound);
                     
-                    // 보스 상태 완전 초기화
+                    // 보스 상태 즉시 완전 초기화 (지연 없음)
                     resetBossState();
+                    
+                    // 보스 파괴 후 적 생성 제한 활성화
+                    lastEnemySpawnTime = Date.now();
+                    lastHelicopterSpawnTime = Date.now();
+                    
                     return false;
                 }
                 
@@ -3063,8 +3349,9 @@ function checkEnemyCollisions(enemy) {
         }
     }
 
-    // 보스가 파괴된 경우 enemies 배열에서 제거
-    if (enemy.isBoss && bossDestroyed) {
+    // 보스가 파괴된 경우 enemies 배열에서 즉시 제거
+    if (enemy.isBoss && (bossDestroyed || enemy.health <= 0)) {
+        console.log('보스 파괴됨 - enemies 배열에서 즉시 제거');
         return false;
     }
 
@@ -3286,102 +3573,63 @@ function drawUI() {
         drawAirplane(secondPlane.x, secondPlane.y, secondPlane.width, secondPlane.height, 'white');
     }
 
-    // 점수와 레벨 표시
+    // 점수와 레벨 표시 - 줄 간격 일정하게 유지
     ctx.fillStyle = 'white';
     ctx.font = '20px Arial';
     ctx.textAlign = 'left';
-            ctx.fillText(`점수: ${score}`, 20, 30);
-        ctx.fillText(`레벨: ${gameLevel} (${getDifficultyName(gameLevel)})`, 20, 60);
-        // 레벨 표시 - 무한 레벨업 지원
-        ctx.fillText(`다음 레벨까지: ${levelUpScore - levelScore}`, 20, 90);
-        
-        // 레벨 10 이상에서 속도 및 발사 간격 제한 정보 표시
-        if (gameLevel > 10) {
-            ctx.fillStyle = '#FFFF00'; // 노란색으로 표시
-            ctx.font = '14px Arial';
-            ctx.fillText(`속도 및 발사 간격 제한: 레벨 10 기준 유지`, 20, 110);
-            ctx.fillStyle = 'white'; // 기본 색상으로 복원
-            ctx.font = '20px Arial';
-        }
+    
+    // 기본 정보 (30px 간격)
+    ctx.fillText(`점수: ${score}`, 20, 30);
+    ctx.fillText(`레벨: ${gameLevel} (${getDifficultyName(gameLevel)})`, 20, 60);
+    ctx.fillText(`다음 레벨까지: ${levelUpScore - levelScore}`, 20, 90);
     ctx.fillText(`최고 점수: ${highScore}`, 20, 120);
-    // 확산탄 점수 표시 - 쿨다운 중에는 점수 증가하지 않음
+    
+    // 확산탄 정보 (30px 간격)
     const remainingScore = Math.max(0, 500 - scoreForSpread);
     if (hasSpreadShot) {
         if (isSpreadShotOnCooldown) {
-            ctx.fillStyle = '#FF0000'; // 빨간색으로 표시 (쿨다운 중)
-            const pendingScore = window.pendingSpreadScore || 0;
-            ctx.fillText(`확산탄 쿨다운 중... (${scoreForSpread}/500) +${pendingScore}`, 20, 150);
+            ctx.fillStyle = '#FF0000';
+            ctx.fillText(`확산탄 쿨다운: ${scoreForSpread}/500`, 20, 150);
         } else {
-            ctx.fillStyle = '#00FF00'; // 초록색으로 표시 (사용 가능)
-            ctx.fillText(`확산탄 사용 가능! (${scoreForSpread}/500)`, 20, 150);
+            ctx.fillStyle = '#00FF00';
+            ctx.fillText(`확산탄 사용 가능: ${scoreForSpread}/500`, 20, 150);
         }
     } else {
-        ctx.fillStyle = 'white'; // 기본 색상
+        ctx.fillStyle = 'white';
         ctx.fillText(`다음 확산탄까지: ${remainingScore}점`, 20, 150);
     }
+    
+    // 추가 비행기 정보 (30px 간격)
     if (!hasSecondPlane) {
-        const nextPlaneScore = Math.ceil(score / 2000) * 2000;  // 8000 * gameLevel에서 2000으로 변경
+        const nextPlaneScore = Math.ceil(score / 2000) * 2000;
         ctx.fillText(`다음 추가 비행기까지: ${nextPlaneScore - score}점`, 20, 180);
     } else {
-        // 두 번째 비행기 타이머 표시 - 단순하고 안전한 표시
+        // 두 번째 비행기 타이머 표시 - 간소화
         if (hasSecondPlane && secondPlaneTimer > 0) {
             const elapsedTime = Date.now() - secondPlaneTimer;
             const remainingTime = Math.max(0, Math.ceil((10000 - elapsedTime) / 1000));
             
-                    // 타이머가 10초를 초과했는지 확인
-        if (elapsedTime >= 10000) {
-            ctx.fillStyle = '#FF0000'; // 빨간색으로 표시 (만료됨)
-            ctx.fillText(`추가 비행기 만료됨`, 20, 180);
-        } else {
-            ctx.fillStyle = 'white'; // 기본 색상
-            ctx.fillText(`추가 비행기 남은 시간: ${remainingTime}초`, 20, 180);
-            
-            // 디버깅: 타이머 상태 표시
-            if (gameLevel <= 10) { // 낮은 레벨에서만 디버깅 정보 표시
-                ctx.fillStyle = '#FFFF00'; // 노란색
-                ctx.font = '12px Arial';
-                ctx.fillText(`디버그: 경과=${elapsedTime}ms, 타이머=${secondPlaneTimer}`, 20, 200);
-                
-                            // 추가 디버깅: 타이머 상태 상세 정보
-            const currentTime = Date.now();
-            const timeDiff = currentTime - secondPlaneTimer;
-            const remainingTime = Math.max(0, Math.ceil((10000 - timeDiff) / 1000));
-            ctx.fillText(`현재시간: ${currentTime}, 차이: ${timeDiff}ms, 남은시간: ${remainingTime}초`, 20, 215);
-            
-            // 타이머 상태 경고 (8초 이하일 때)
-            if (remainingTime <= 8) {
-                ctx.fillStyle = '#FF0000'; // 빨간색으로 경고
-                ctx.fillText(`경고: 타이머가 ${remainingTime}초에서 멈춰있음!`, 20, 230);
-                ctx.fillStyle = '#FFFF00'; // 노란색으로 복원
+            if (elapsedTime >= 10000) {
+                ctx.fillStyle = '#FF0000';
+                ctx.fillText(`추가 비행기 만료됨`, 20, 180);
+            } else {
+                ctx.fillStyle = 'white';
+                ctx.fillText(`추가 비행기 남은 시간: ${remainingTime}초`, 20, 180);
             }
-            
-            // 상태 고정 정보 표시
-            ctx.fillStyle = '#00FF00'; // 초록색으로 표시
-            ctx.fillText(`상태 고정: 추가 비행기 활성화 중 재획득 차단됨`, 20, 245);
-            }
-        }
         } else if (hasSecondPlane) {
-            // 두 번째 비행기는 있지만 타이머가 유효하지 않은 경우
-            ctx.fillStyle = '#FFAA00'; // 주황색으로 표시 (오류 상태)
+            ctx.fillStyle = '#FFAA00';
             ctx.fillText(`추가 비행기 타이머 오류`, 20, 180);
         } else if (isSecondPlaneOnCooldown) {
-            // 쿨다운 중인 경우
             const cooldownElapsed = Date.now() - secondPlaneCooldownTimer;
             const remainingCooldown = Math.max(0, Math.ceil((10000 - cooldownElapsed) / 1000));
-            ctx.fillStyle = '#FF8800'; // 주황색으로 표시 (쿨다운 중)
+            ctx.fillStyle = '#FF8800';
             ctx.fillText(`추가 비행기 쿨다운: ${remainingCooldown}초`, 20, 180);
-            
-            // 쿨다운 완료 후 자동 활성화 안내
-            if (remainingCooldown <= 3) {
-                ctx.fillStyle = '#00FF00'; // 초록색으로 안내
-                ctx.fillText(`쿨다운 완료 후 자동 활성화 예정`, 20, 195);
-            }
         }
     }
     
-    // 충돌 횟수 표시 (붉은색으로)
+    // 남은 목숨 표시 (30px 간격)
     ctx.fillStyle = 'red';
-    ctx.font = 'bold 20px Arial';  // 폰트를 진하게 변경
+    ctx.font = 'bold 20px Arial';
     ctx.fillText(`남은 목숨: ${maxLives - collisionCount}`, 20, 210);
 
 
@@ -4359,6 +4607,7 @@ function createBoss() {
         totalHitTime: 0,
         lastHitTime: null,
         isBeingHit: false,
+        hitDuration: null, // 피격 상태 지속 시간
         type: ENEMY_TYPES.HELICOPTER,
         rotorAngle: 0,
         rotorSpeed: 0.2, // 보스 로터 속도를 증가 (너무 느리지 않도록)
@@ -4380,23 +4629,28 @@ function createBoss() {
     console.log('보스 헬리콥터 생성 완료:', boss);
 }
 
-// 보스 상태 초기화 함수 추가
+// 보스 상태 초기화 함수 강화
 function resetBossState() {
     console.log('보스 상태 초기화 시작');
     
-    // 모든 보스 관련 상태 변수 초기화
+    // 모든 보스 관련 상태 변수 완전 초기화
     bossActive = false;
     isBossActive = false;
     bossHealth = 0;
     bossDestroyed = false;
     bossPattern = 0;
     bossTimer = 0;
-    lastBossSpawnTime = Date.now(); // 보스 생성 시간도 리셋
     
-    // enemies 배열에서 보스 제거
+    // 보스 생성 시간 리셋 (다음 보스 출현까지 대기)
+    lastBossSpawnTime = Date.now();
+    
+    // enemies 배열에서 보스 완전 제거
     enemies = enemies.filter(enemy => !enemy.isBoss);
     
-    console.log('보스 상태 초기화 완료:', {
+    // 보스 관련 모든 타이머와 상태 완전 정리 (전역 변수 참조 제거)
+    // boss 변수는 함수 스코프 내에서만 유효하므로 전역 참조 제거
+    
+    console.log('보스 상태 완전 초기화 완료:', {
         bossActive,
         isBossActive,
         bossHealth,
@@ -4416,13 +4670,23 @@ function handleBossPattern(boss) {
     
     const currentTime = Date.now();
     
+    // 피격 상태 자동 해제 (시간 기반)
+    if (boss.isBeingHit && boss.lastHitTime && boss.hitDuration) {
+        if (currentTime - boss.lastHitTime >= boss.hitDuration) {
+            boss.isBeingHit = false;
+            boss.lastHitTime = null;
+            boss.hitDuration = null;
+        }
+    }
+    
     // 디버깅: 함수 호출 확인
     console.log('handleBossPattern 함수 호출됨', {
         boss: boss,
         currentTime: currentTime,
         patternTimer: boss.patternTimer,
         patternInterval: BOSS_SETTINGS.PATTERN_INTERVAL,
-        timeDiff: currentTime - boss.patternTimer
+        timeDiff: currentTime - boss.patternTimer,
+        isBeingHit: boss.isBeingHit
     });
     
     // 보스 페이즈 체크 및 업데이트
@@ -4523,8 +4787,8 @@ function handleBossPattern(boss) {
             }
             
             // 게임 레벨에 따른 패턴 다양성 증가
-            const levelBonus = Math.min(0.3, (gameLevel - 1) * 0.05); // 레벨당 5%씩 증가, 최대 30%
-            patternChoice = Math.random() * (1 + levelBonus); // 레벨이 높을수록 더 다양한 패턴 선택
+            const levelBonus = gameLevel <= 10 ? Math.min(0.3, (gameLevel - 1) * 0.05) : 0.3; // 레벨 10 이상에서는 제한
+            patternChoice = Math.random() * (1 + levelBonus); // 레벨 10 이상에서는 패턴 다양성 제한
             
             // 모든 패턴을 동적으로 선택하도록 개선
             const allPatterns = [
@@ -5278,7 +5542,7 @@ const ENEMY_TYPES = {
     HELICOPTER2: 'helicopter2'  // 새로운 헬리콥터 타입 추가
 };
 
-// 헬리콥터 생성 함수 수정
+// 헬리콥터 생성 함수 수정 - 헬리콥터1과 헬리콥터2를 랜덤으로 생성
 function createHelicopter() {
     // 레벨 10 이상에서는 속도 증가 제한
     let helicopterSpeed = 2;
@@ -5288,13 +5552,22 @@ function createHelicopter() {
         helicopterSpeed = 2 + (10 - 1) * 0.1; // 레벨 10에서 멈춤
     }
     
+    // 50% 확률로 헬리콥터1 또는 헬리콥터2 선택
+    const isHelicopter2 = Math.random() < 0.5;
+    const helicopterType = isHelicopter2 ? ENEMY_TYPES.HELICOPTER2 : ENEMY_TYPES.HELICOPTER;
+    
+    // 헬리콥터2는 더 빠르고 강력하게 설정
+    const speedMultiplier = isHelicopter2 ? 1.2 : 0.8;
+    const healthMultiplier = isHelicopter2 ? 1.5 : 1.0;
+    const scoreMultiplier = isHelicopter2 ? 1.2 : 1.0;
+    
     const helicopter = {
         x: Math.random() * (canvas.width - 48), // 40 * 1.2 = 48
         y: -48,  // 화면 상단에서 시작
         width: 48, // 40 * 1.2 = 48
         height: 48, // 40 * 1.2 = 48
-        speed: helicopterSpeed, // 레벨에 따른 속도 (레벨 10 이상에서는 제한)
-        type: ENEMY_TYPES.HELICOPTER,
+        speed: helicopterSpeed * speedMultiplier, // 타입에 따른 속도 조정
+        type: helicopterType,
         rotorAngle: 0,
         rotorSpeed: 0.2,
         hoverHeight: Math.random() * 200 + 100,
@@ -5302,9 +5575,25 @@ function createHelicopter() {
         hoverDirection: 1,
         canDropBomb: Math.random() < 0.4,  // 40% 확률로 폭탄 투하 가능
         lastBombDrop: 0,
-        bombDropInterval: 2000 + Math.random() * 3000
+        bombDropInterval: 2000 + Math.random() * 3000,
+        // 헬리콥터 총알 발사를 위한 속성 추가
+        canFire: true,
+        lastFireTime: 0,
+        fireInterval: 2000 + Math.random() * 2000, // 2-4초 간격으로 총알 발사
+        bulletSpeed: 3,
+        health: 100 * healthMultiplier,
+        score: Math.floor(50 * gameLevel * scoreMultiplier),
+        // 보호막 시스템 추가
+        hasShield: true,
+        shieldHealth: 100, // 100발 맞으면 파괴
+        shieldHitCount: 0,
+        shieldColor: isHelicopter2 ? '#FFA500' : '#20B2AA', // 타입에 따른 색상
+        isShieldBroken: false
     };
+    
     enemies.push(helicopter);
+    console.log(`${isHelicopter2 ? '헬리콥터2(오렌지)' : '헬리콥터1(블루)'} 생성됨 - 타입: ${helicopterType}`);
+    return helicopter; // 헬리콥터 객체 반환
 }
 
 // 헬리콥터 그리기 함수 수정
@@ -5787,7 +6076,7 @@ const MIN_SHOT_INTERVAL = 5000; // 최소 발사 간격 (5초)
 
 // 전역 변수 추가
 let lastHelicopterSpawnTime = 0;
-const MIN_HELICOPTER_SPAWN_INTERVAL = 10000; // 10초(10000ms)로 설정
+const MIN_HELICOPTER_SPAWN_INTERVAL = 3000; // 3초(3000ms)로 더 단축
 let isBossActive = false; // 보스 활성화 상태 추적
 
 
