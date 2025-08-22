@@ -699,7 +699,7 @@ let enemySpawnRate = 2000;  // 적 생성 주기 (ms)
 let enemySpeed = 2 * mobileSpeedMultiplier;  // 적 이동 속도
 
 // 보호막 헬리콥터 파괴 관련 변수 추가
-let shieldedHelicopterDestroyed = 0;  // 보호막 헬리콥터 파괴 수
+let shieldedHelicopterDestroyed = 0;  // 보호막 헬리콥터 파괴 수 (5대마다 목숨 추가)
 let livesAddedFromHelicopters = 0;    // 헬리콥터 파괴로 추가된 목숨 수
 
 // 목숨 추가 메시지 표시 관련 변수
@@ -3331,14 +3331,14 @@ function checkEnemyCollisions(enemy) {
                     // 보호막 헬리콥터 파괴 카운터 증가
                     shieldedHelicopterDestroyed++;
                     
-                    // 3대 파괴할 때마다 목숨 1개 추가
-                    if (shieldedHelicopterDestroyed % 3 === 0) {
+                    // 5대 파괴할 때마다 목숨 1개 추가
+                    if (shieldedHelicopterDestroyed % 5 === 0) {
                         maxLives++;
                         livesAddedFromHelicopters++;
-                        console.log(`목숨 1개 추가됨.`);
+                        console.log(`보호막 헬리콥터 5대 파괴! 목숨 1개 추가됨.`);
                         
                         // 목숨 추가 메시지 설정
-                        lifeAddedMessage = `🎉 목숨 1개 추가됨! 🎉`;
+                        lifeAddedMessage = `🎉 보호막 헬리콥터 5대 파괴! 목숨 1개 추가됨! 🎉`;
                         lifeAddedMessageTimer = Date.now();
                         
                         // 목숨 추가 효과음 재생
@@ -3657,6 +3657,18 @@ function drawUI() {
         ctx.fillText(`다음 확산탄까지: ${remainingScore}점`, 20, 150);
     }
     
+    // 보호막 헬리콥터 파괴 진행 상황 표시 (30px 간격)
+    const nextLifeAt = Math.ceil(shieldedHelicopterDestroyed / 5) * 5;
+    const remainingHelicopters = nextLifeAt - shieldedHelicopterDestroyed;
+    
+    if (remainingHelicopters > 0) {
+        ctx.fillStyle = '#FFD700'; // 금색으로 표시
+        ctx.fillText(`다음 목숨까지: 보호막 헬리콥터 ${remainingHelicopters}대 파괴`, 20, 180);
+    } else {
+        ctx.fillStyle = '#00FF00'; // 초록색으로 표시
+        ctx.fillText(`보호막 헬리콥터 파괴: ${shieldedHelicopterDestroyed}대`, 20, 180);
+    }
+    
     // 추가 비행기 정보 (30px 간격) - 전체 과정 순서대로 표시
     if (!hasSecondPlane && !isSecondPlaneOnCooldown) {
         // 1단계: 다음 추가 비행기까지 점수 획득 또는 디스카운트
@@ -3676,11 +3688,11 @@ function drawUI() {
             
             if (discountedScore > 0) {
                 ctx.fillStyle = '#00FFFF'; // 청록색으로 디스카운트 표시
-                ctx.fillText(`다음 추가 비행기까지: ${discountedScore}점`, 20, 180);
+                ctx.fillText(`다음 추가 비행기까지: ${discountedScore}점`, 20, 210);
                 console.log(`디스카운트 진행 중: ${discountedScore}점 남음 (${discountSeconds}초 경과)`);
             } else {
                 ctx.fillStyle = '#00FF00'; // 초록색으로 무료 획득 표시
-                ctx.fillText(`다음 추가 비행기까지: 무료 획득!`, 20, 180);
+                ctx.fillText(`다음 추가 비행기까지: 무료 획득!`, 20, 210);
                 console.log(`디스카운트 완료: 무료 획득 가능!`);
                 
                 // 디스카운트 완료 후 무료 획득 처리
@@ -3719,7 +3731,7 @@ function drawUI() {
             }
         } else {
             ctx.fillStyle = 'white';
-            ctx.fillText(`다음 추가 비행기까지: ${nextPlaneScore - score}점`, 20, 180);
+            ctx.fillText(`다음 추가 비행기까지: ${nextPlaneScore - score}점`, 20, 210);
             console.log('디스카운트 비활성화 상태 - cooldownCompletedTime:', window.cooldownCompletedTime);
         }
     } else if (hasSecondPlane && secondPlaneTimer > 0) {
@@ -3729,17 +3741,17 @@ function drawUI() {
         
         if (elapsedTime >= 10000) {
             ctx.fillStyle = '#FF0000';
-            ctx.fillText(`추가 비행기 만료됨`, 20, 180);
+            ctx.fillText(`추가 비행기 만료됨`, 20, 210);
         } else {
             ctx.fillStyle = '#00FF00';
-            ctx.fillText(`추가 비행기 활성화: ${remainingTime}초 남음`, 20, 180);
+            ctx.fillText(`추가 비행기 활성화: ${remainingTime}초 남음`, 20, 210);
         }
     } else if (isSecondPlaneOnCooldown && secondPlaneCooldownTimer > 0) {
         // 3단계: 추가 비행기 쿨다운 (20초)
         const cooldownElapsed = Date.now() - secondPlaneCooldownTimer;
         const remainingCooldown = Math.max(0, Math.ceil((20000 - cooldownElapsed) / 1000));
         ctx.fillStyle = '#FF8800';
-        ctx.fillText(`추가 비행기 쿨다운: ${remainingCooldown}초`, 20, 180);
+        ctx.fillText(`추가 비행기 쿨다운: ${remainingCooldown}초`, 20, 210);
         
         console.log('=== 쿨다운 상태 표시 ===');
         console.log('쿨다운 진행 중:', {
@@ -3753,13 +3765,13 @@ function drawUI() {
         const barWidth = 200;
         const barHeight = 4;
         ctx.fillStyle = '#444444';
-        ctx.fillRect(20, 185, barWidth, barHeight);
+        ctx.fillRect(20, 215, barWidth, barHeight);
         ctx.fillStyle = '#FF8800';
-        ctx.fillRect(20, 185, barWidth * progress, barHeight);
+        ctx.fillRect(20, 215, barWidth * progress, barHeight);
     } else if (hasSecondPlane) {
         // 오류 상태 표시
         ctx.fillStyle = '#FFAA00';
-        ctx.fillText(`추가 비행기 상태 오류`, 20, 180);
+        ctx.fillText(`추가 비행기 상태 오류`, 20, 210);
     }
     
     // 디버깅: 현재 상태 로그 (콘솔에서 확인)
@@ -3828,7 +3840,14 @@ function drawUI() {
     // 남은 목숨 표시 (30px 간격)
     ctx.fillStyle = 'red';
     ctx.font = 'bold 20px Arial';
-    ctx.fillText(`남은 목숨: ${maxLives - collisionCount}`, 20, 210);
+    ctx.fillText(`남은 목숨: ${maxLives - collisionCount}`, 20, 240);
+    
+    // 보호막 헬리콥터로 추가된 목숨 표시
+    if (livesAddedFromHelicopters > 0) {
+        ctx.fillStyle = '#FFD700'; // 금색으로 표시
+        ctx.font = '16px Arial';
+        ctx.fillText(`헬리콥터 파괴로 추가된 목숨: ${livesAddedFromHelicopters}개`, 20, 270);
+    }
 
 
     
@@ -3846,18 +3865,18 @@ function drawUI() {
     if (!specialWeaponCharged) {
         // 게이지 바 배경
         ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.fillRect(20, 240, 200, 20);
+        ctx.fillRect(20, 300, 200, 20);
         
         // 게이지 바
         ctx.fillStyle = 'rgba(0, 255, 255, 0.8)';
-        ctx.fillRect(20, 240, (specialWeaponCharge / SPECIAL_WEAPON_MAX_CHARGE) * 200, 20);
+        ctx.fillRect(20, 300, (specialWeaponCharge / SPECIAL_WEAPON_MAX_CHARGE) * 200, 20);
         
         // 게이지 바 위에 텍스트 표시
         ctx.fillStyle = 'white';
         ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
         const percentText = `특수 무기 : ${Math.floor((specialWeaponCharge / SPECIAL_WEAPON_MAX_CHARGE) * 100)}%`;
-        ctx.fillText(percentText, 120, 255);
+        ctx.fillText(percentText, 120, 315);
     } else {
         // 깜빡이는 효과를 위한 시간 계산
         const blinkSpeed = 500; // 깜빡임 속도 (밀리초)
@@ -3866,29 +3885,29 @@ function drawUI() {
         
         // 배경색 설정 (게이지 바)
         ctx.fillStyle = isRed ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 0, 255, 0.3)';
-        ctx.fillRect(10, 220, 200, 20);
+        ctx.fillRect(10, 280, 200, 20);
         
         // 테두리 효과
         ctx.strokeStyle = isRed ? 'red' : 'cyan';
         ctx.lineWidth = 2;
-        ctx.strokeRect(10, 220, 200, 20);
+        ctx.strokeRect(10, 280, 200, 20);
         
         // 게이지 바 위에 텍스트 표시
         ctx.fillStyle = 'white';
         ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
         const percentText = `특수 무기 : ${Math.floor((specialWeaponCharge / SPECIAL_WEAPON_MAX_CHARGE) * 100)}%`;
-        ctx.fillText(percentText, 120, 235);
+        ctx.fillText(percentText, 120, 295);
         
         // 준비 완료 메시지 배경
         ctx.fillStyle = isRed ? 'rgba(255, 0, 0, 0.2)' : 'rgba(0, 0, 255, 0.2)';
-        ctx.fillRect(10, 240, 300, 30);
+        ctx.fillRect(10, 300, 300, 30);
         
         // 텍스트 색상 설정
         ctx.fillStyle = isRed ? 'red' : 'cyan';
         ctx.font = 'bold 20px Arial';
         ctx.textAlign = 'left';
-        ctx.fillText('특수 무기 준비 완료', 15, 260);
+        ctx.fillText('특수 무기 준비 완료', 15, 320);
     }
     
     // 보스 체력 표시 개선
