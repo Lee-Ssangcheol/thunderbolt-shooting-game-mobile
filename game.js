@@ -671,7 +671,7 @@ let enemies = [];         // 적 배열
 let explosions = [];      // 폭발 효과 배열
 let gameLevel = 1;        // 게임 레벨
 let levelScore = 0;       // 레벨 점수
-let levelUpScore = 1000;  // 레벨업에 필요한 점수
+let levelUpScore = 2500;  // 레벨업에 필요한 점수 (레벨1->2: 2500점)
 let score = 0;           // 현재 점수
 let highScore = 0;       // 최고 점수 (초기값 0으로 설정)
 let scoreForSpread = 0;   // 확산탄을 위한 점수
@@ -1172,6 +1172,7 @@ const ScoreManager = {
             levelScore = 0;
             scoreForSpread = 0;
             gameLevel = 1;
+            levelUpScore = 2500; // 레벨업 기준 점수 초기화
             
             highScore = await this.getHighScore();
             console.log('게임 리셋 - 현재 최고 점수:', highScore);
@@ -1334,6 +1335,8 @@ async function initializeGame() {
         // 파워업 상태 초기화
         hasSpreadShot = false;
         isSpreadShotOnCooldown = false;
+        window.spreadShotCooldownStartTime = 0; // 확산탄 쿨다운 시작 시간 초기화
+        window.cooldownCompletedTime = 0; // 추가 비행기 쿨다운 완료 시간 초기화
         hasShield = false;
         damageMultiplier = 1;
         fireRateMultiplier = 1;
@@ -1450,6 +1453,7 @@ function restartGame() {
     levelScore = 0;
     scoreForSpread = 0;
     gameLevel = 1;
+    levelUpScore = 2500; // 레벨업 기준 점수 초기화
     
     // 특수무기 관련 상태 초기화
     specialWeaponCharged = false;
@@ -1458,6 +1462,8 @@ function restartGame() {
     // 파워업 상태 초기화
     hasSpreadShot = false;
     isSpreadShotOnCooldown = false;
+    window.spreadShotCooldownStartTime = 0; // 확산탄 쿨다운 시작 시간 초기화
+    window.cooldownCompletedTime = 0; // 추가 비행기 쿨다운 완료 시간 초기화
     hasShield = false;
     damageMultiplier = 1;
     fireRateMultiplier = 1;
@@ -1587,7 +1593,7 @@ function createEnemy(forceType = null) {
                     fireInterval: gameLevel <= 10 ? currentDifficulty.fireInterval * 0.5 : currentDifficulty.fireInterval, // 레벨 10 이상에서는 기본 발사 간격 유지
                     bulletSpeed: currentDifficulty.bulletSpeed,
                     health: currentDifficulty.enemyHealth,
-                    score: gameLevel <= 10 ? 15 : 20, // 헬리콥터2: 레벨 10 이하 15점, 레벨 10 이상 20점
+                    score: gameLevel <= 10 ? 20 : 25, // 헬리콥터2: 레벨 10 이하 20점, 레벨 10 이상 25점
                     isElite: Math.random() < (gameLevel <= 10 ? (0.05 + (gameLevel * 0.02)) : 0.25), // 레벨 10 이상에서는 엘리트 확률 제한
                     specialAbility: Math.random() < (gameLevel <= 10 ? (0.1 + (gameLevel * 0.03)) : 0.4) ? getRandomSpecialAbility() : null, // 레벨 10 이상에서는 특수 능력 확률 제한
                     // 보호막 시스템 추가
@@ -1639,7 +1645,7 @@ function createEnemy(forceType = null) {
                     fireInterval: gameLevel <= 10 ? currentDifficulty.fireInterval * 0.5 : currentDifficulty.fireInterval, // 레벨 10 이상에서는 기본 발사 간격 유지
                     bulletSpeed: currentDifficulty.bulletSpeed,
                     health: currentDifficulty.enemyHealth,
-                    score: gameLevel <= 10 ? 15 : 20, // 헬리콥터1: 레벨 10 이하 15점, 레벨 10 이상 20점
+                    score: gameLevel <= 10 ? 20 : 25, // 헬리콥터1: 레벨 10 이하 20점, 레벨 10 이상 25점
                     isElite: Math.random() < (gameLevel <= 10 ? (0.05 + (gameLevel * 0.02)) : 0.25), // 레벨 10 이상에서는 엘리트 확률 제한
                     specialAbility: Math.random() < (gameLevel <= 10 ? (0.1 + (gameLevel * 0.03)) : 0.4) ? getRandomSpecialAbility() : null, // 레벨 10 이상에서는 특수 능력 확률 제한
                     // 보호막 시스템 추가
@@ -1770,7 +1776,7 @@ function createEnemy(forceType = null) {
                 fireInterval: gameLevel <= 10 ? currentDifficulty.fireInterval * 0.5 : currentDifficulty.fireInterval,
                 bulletSpeed: currentDifficulty.bulletSpeed,
                 health: currentDifficulty.enemyHealth,
-                score: gameLevel <= 10 ? 15 : 20, // 헬리콥터1: 레벨 10 이하 15점, 레벨 10 이상 20점
+                score: gameLevel <= 10 ? 20 : 25, // 헬리콥터1: 레벨 10 이하 20점, 레벨 10 이상 25점
                 isElite: Math.random() < (gameLevel <= 10 ? (0.05 + (gameLevel * 0.02)) : 0.25),
                 specialAbility: Math.random() < (gameLevel <= 10 ? (0.1 + (gameLevel * 0.03)) : 0.4) ? getRandomSpecialAbility() : null,
                 // 보호막 시스템 추가
@@ -2710,21 +2716,8 @@ function gameLoop() {
         // 확산탄 처리
         handleSpreadShot();
 
-        // 두 번째 비행기 처리 (쿨다운 완료 후에만 활성화 판단)
-        if (!hasSecondPlane && secondPlaneTimer === 0 && !isSecondPlaneOnCooldown) {
-            // 쿨다운이 완료된 상태에서만 추가 비행기 활성화 판단
-            const nextThreshold = Math.floor(score / 2000) * 2000;
-            if (score >= nextThreshold && score >= (window.lastSecondPlaneScore || 0) + 2000) {
-                console.log('게임 루프에서 점수 조건 충족 - 추가 비행기 활성화 실행');
-                handleSecondPlane();
-            }
-        } else if (hasSecondPlane || secondPlaneTimer > 0) {
-            // 추가 비행기가 활성화된 상태에서는 점수 조건과 상관없이 재획득 차단
-            const nextThreshold = Math.floor(score / 2000) * 2000;
-            if (score >= nextThreshold && score >= (window.lastSecondPlaneScore || 0) + 2000) {
-                console.log(`게임 루프에서 점수 조건 충족 감지 - 추가 비행기 활성화 중이므로 획득 차단`);
-            }
-        }
+        // 두 번째 비행기 처리 (매 프레임마다 점수 조건 확인)
+        handleSecondPlane();
         
         // 두 번째 비행기 타이머 관리 (매 프레임마다 업데이트)
         updateSecondPlaneTimer();
@@ -2734,14 +2727,14 @@ function gameLoop() {
             const currentTime = Date.now();
             const elapsedTime = currentTime - secondPlaneTimer;
             
-            // 타이머가 정상적으로 작동하는지 확인
-            if (elapsedTime >= 0 && elapsedTime < 10000) {
-                // 타이머가 정상 작동 중
-                const remainingTime = Math.max(0, Math.ceil((10000 - elapsedTime) / 1000));
-                if (remainingTime <= 3) { // 3초 이하일 때만 로그
-                    console.log(`프레임별 타이머 확인: ${remainingTime}초 남음 (경과: ${elapsedTime}ms)`);
-                }
+                    // 타이머가 정상적으로 작동하는지 확인
+        if (elapsedTime >= 0 && elapsedTime < 10000) {
+            // 타이머가 정상 작동 중
+            const remainingTime = Math.max(0, Math.ceil((10000 - elapsedTime) / 1000));
+            if (remainingTime <= 3) { // 3초 이하일 때만 로그
+                console.log(`프레임별 타이머 확인: ${remainingTime}초 남음 (경과: ${elapsedTime}ms)`);
             }
+        }
         }
         
         // 추가 안전장치: 타이머가 멈춰있을 경우 강제 업데이트
@@ -2754,10 +2747,11 @@ function gameLoop() {
                 console.warn(`레벨 ${gameLevel}에서 타이머 강제 업데이트: 10초 경과하여 즉시 처리`);
                 hasSecondPlane = false;
                 secondPlaneTimer = 0;
+                // 20초 쿨다운 시작
                 isSecondPlaneOnCooldown = true;
                 secondPlaneCooldownTimer = currentTime;
                 showSecondPlaneMessage('추가 비행기 소멸!', 'red');
-                console.log('두 번째 비행기 강제 소멸 - 쿨다운 시작 (10초)');
+                console.log('두 번째 비행기 강제 소멸 - 20초 쿨다운 시작');
             }
             
             // 타이머가 8초 이상에서 멈춰있는 경우 경고
@@ -3082,7 +3076,6 @@ function handleSnakePattern() {
                             enemy.x + enemy.width/2,
                             enemy.y + enemy.height/2
                         ));
-                        updateScore(100);
                         safePlay(shootSound);
                         enemy.isHit = true;
                         return false;
@@ -3591,47 +3584,190 @@ function drawUI() {
     ctx.fillText(`최고 점수: ${highScore}`, 20, 120);
     
     // 확산탄 정보 (30px 간격)
-    const remainingScore = Math.max(0, 500 - scoreForSpread);
+            const remainingScore = Math.max(0, 1000 - scoreForSpread);
     if (hasSpreadShot) {
         if (isSpreadShotOnCooldown) {
             ctx.fillStyle = '#FF0000';
-            ctx.fillText(`확산탄 쿨다운: ${scoreForSpread}/500`, 20, 150);
+            // 쿨다운 남은 시간 계산
+            const cooldownElapsed = Date.now() - (window.spreadShotCooldownStartTime || 0);
+            const remainingCooldown = Math.max(0, Math.ceil((20000 - cooldownElapsed) / 1000));
+            ctx.fillText(`확산탄 쿨다운: ${remainingCooldown}초`, 20, 150);
         } else {
             ctx.fillStyle = '#00FF00';
-            ctx.fillText(`확산탄 사용 가능: ${scoreForSpread}/500`, 20, 150);
+            ctx.fillText(`확산탄 사용 가능: ${scoreForSpread}/1000`, 20, 150);
         }
     } else {
         ctx.fillStyle = 'white';
         ctx.fillText(`다음 확산탄까지: ${remainingScore}점`, 20, 150);
     }
     
-    // 추가 비행기 정보 (30px 간격)
-    if (!hasSecondPlane) {
-        const nextPlaneScore = Math.ceil(score / 2000) * 2000;
-        ctx.fillText(`다음 추가 비행기까지: ${nextPlaneScore - score}점`, 20, 180);
-    } else {
-        // 두 번째 비행기 타이머 표시 - 간소화
-        if (hasSecondPlane && secondPlaneTimer > 0) {
-            const elapsedTime = Date.now() - secondPlaneTimer;
-            const remainingTime = Math.max(0, Math.ceil((10000 - elapsedTime) / 1000));
+    // 추가 비행기 정보 (30px 간격) - 전체 과정 순서대로 표시
+    if (!hasSecondPlane && !isSecondPlaneOnCooldown) {
+        // 1단계: 다음 추가 비행기까지 점수 획득 또는 디스카운트
+        const nextPlaneScore = Math.ceil(score / 1000) * 1000;
+        
+        // 추가 비행기 소멸 후 점수 디스카운트 표시
+        if (window.cooldownCompletedTime && window.cooldownCompletedTime > 0) {
+            const timeSinceCooldown = Date.now() - window.cooldownCompletedTime;
+            const discountSeconds = Math.floor(timeSinceCooldown / 1000);
+            const discountedScore = Math.max(0, 500 - (discountSeconds * 5)); // 500점부터 1초당 5점씩 디스카운트
             
-            if (elapsedTime >= 10000) {
-                ctx.fillStyle = '#FF0000';
-                ctx.fillText(`추가 비행기 만료됨`, 20, 180);
+            console.log('=== 디스카운트 상태 확인 ===');
+            console.log('cooldownCompletedTime:', window.cooldownCompletedTime);
+            console.log('timeSinceCooldown:', timeSinceCooldown, 'ms');
+            console.log('discountSeconds:', discountSeconds);
+            console.log('discountedScore:', discountedScore);
+            
+            if (discountedScore > 0) {
+                ctx.fillStyle = '#00FFFF'; // 청록색으로 디스카운트 표시
+                ctx.fillText(`다음 추가 비행기까지: ${discountedScore}점`, 20, 180);
+                console.log(`디스카운트 진행 중: ${discountedScore}점 남음 (${discountSeconds}초 경과)`);
             } else {
-                ctx.fillStyle = 'white';
-                ctx.fillText(`추가 비행기 남은 시간: ${remainingTime}초`, 20, 180);
+                ctx.fillStyle = '#00FF00'; // 초록색으로 무료 획득 표시
+                ctx.fillText(`다음 추가 비행기까지: 무료 획득!`, 20, 180);
+                console.log(`디스카운트 완료: 무료 획득 가능!`);
+                
+                // 디스카운트 완료 후 무료 획득 처리
+                if (!hasSecondPlane && !isSecondPlaneOnCooldown) {
+                    console.log('=== 디스카운트 완료 - 무료 추가 비행기 획득! ===');
+                    console.log('획득 전 상태:', {
+                        hasSecondPlane,
+                        isSecondPlaneOnCooldown,
+                        cooldownCompletedTime: window.cooldownCompletedTime
+                    });
+                    
+                    hasSecondPlane = true;
+                    secondPlane.x = player.x - 60;
+                    secondPlane.y = player.y;
+                    secondPlaneTimer = Date.now();
+                    window.lastSecondPlaneScore = Math.ceil(score / 1000) * 1000;
+                    
+                    // 상태 고정 변수 설정
+                    window.secondPlaneAcquired = true;
+                    window.secondPlaneAcquireTime = Date.now();
+                    
+                    // 획득 메시지 표시
+                    showSecondPlaneMessage('무료 추가 비행기 획득!', 'yellow');
+                    
+                    // 디스카운트 완료 시간 초기화
+                    window.cooldownCompletedTime = 0;
+                    
+                    console.log('획득 후 상태:', {
+                        hasSecondPlane,
+                        secondPlaneTimer,
+                        isSecondPlaneOnCooldown,
+                        cooldownCompletedTime: window.cooldownCompletedTime
+                    });
+                    console.log('=== 무료 획득 완료 ===');
+                }
             }
-        } else if (hasSecondPlane) {
-            ctx.fillStyle = '#FFAA00';
-            ctx.fillText(`추가 비행기 타이머 오류`, 20, 180);
-        } else if (isSecondPlaneOnCooldown) {
-            const cooldownElapsed = Date.now() - secondPlaneCooldownTimer;
-            const remainingCooldown = Math.max(0, Math.ceil((10000 - cooldownElapsed) / 1000));
-            ctx.fillStyle = '#FF8800';
-            ctx.fillText(`추가 비행기 쿨다운: ${remainingCooldown}초`, 20, 180);
+        } else {
+            ctx.fillStyle = 'white';
+            ctx.fillText(`다음 추가 비행기까지: ${nextPlaneScore - score}점`, 20, 180);
+            console.log('디스카운트 비활성화 상태 - cooldownCompletedTime:', window.cooldownCompletedTime);
         }
+    } else if (hasSecondPlane && secondPlaneTimer > 0) {
+        // 2단계: 추가 비행기 활성화 (10초)
+        const elapsedTime = Date.now() - secondPlaneTimer;
+        const remainingTime = Math.max(0, Math.ceil((10000 - elapsedTime) / 1000));
+        
+        if (elapsedTime >= 10000) {
+            ctx.fillStyle = '#FF0000';
+            ctx.fillText(`추가 비행기 만료됨`, 20, 180);
+        } else {
+            ctx.fillStyle = '#00FF00';
+            ctx.fillText(`추가 비행기 활성화: ${remainingTime}초 남음`, 20, 180);
+        }
+    } else if (isSecondPlaneOnCooldown && secondPlaneCooldownTimer > 0) {
+        // 3단계: 추가 비행기 쿨다운 (20초)
+        const cooldownElapsed = Date.now() - secondPlaneCooldownTimer;
+        const remainingCooldown = Math.max(0, Math.ceil((20000 - cooldownElapsed) / 1000));
+        ctx.fillStyle = '#FF8800';
+        ctx.fillText(`추가 비행기 쿨다운: ${remainingCooldown}초`, 20, 180);
+        
+        console.log('=== 쿨다운 상태 표시 ===');
+        console.log('쿨다운 진행 중:', {
+            cooldownElapsed,
+            remainingCooldown,
+            secondPlaneCooldownTimer
+        });
+        
+        // 쿨다운 진행률 표시
+        const progress = Math.min(1, cooldownElapsed / 20000);
+        const barWidth = 200;
+        const barHeight = 4;
+        ctx.fillStyle = '#444444';
+        ctx.fillRect(20, 185, barWidth, barHeight);
+        ctx.fillStyle = '#FF8800';
+        ctx.fillRect(20, 185, barWidth * progress, barHeight);
+    } else if (hasSecondPlane) {
+        // 오류 상태 표시
+        ctx.fillStyle = '#FFAA00';
+        ctx.fillText(`추가 비행기 상태 오류`, 20, 180);
     }
+    
+    // 디버깅: 현재 상태 로그 (콘솔에서 확인)
+    if (window.debugSecondPlaneState) {
+        console.log('UI 상태:', {
+            hasSecondPlane,
+            secondPlaneTimer,
+            isSecondPlaneOnCooldown,
+            secondPlaneCooldownTimer,
+            cooldownCompletedTime: window.cooldownCompletedTime
+        });
+    }
+    
+    // 디버깅 모드 활성화 (F12 콘솔에서 확인)
+    window.debugSecondPlaneState = true;
+    
+    // 디버깅: 수동으로 쿨다운 완료 테스트 (F12 콘솔에서 테스트)
+    window.testCooldownComplete = function() {
+        console.log('=== 수동 쿨다운 완료 테스트 ===');
+        console.log('테스트 전 상태:', {
+            isSecondPlaneOnCooldown,
+            secondPlaneCooldownTimer,
+            cooldownCompletedTime: window.cooldownCompletedTime
+        });
+        
+        // 쿨다운 상태 강제 완료
+        isSecondPlaneOnCooldown = false;
+        secondPlaneCooldownTimer = 0;
+        window.cooldownCompletedTime = Date.now();
+        
+        console.log('테스트 후 상태:', {
+            isSecondPlaneOnCooldown,
+            secondPlaneCooldownTimer,
+            cooldownCompletedTime: window.cooldownCompletedTime
+        });
+        console.log('이제 디스카운트가 시작되어야 합니다.');
+    };
+    
+    // 디버깅: 현재 상태 확인 (F12 콘솔에서 테스트)
+    window.checkSecondPlaneState = function() {
+        console.log('=== 현재 추가 비행기 상태 ===');
+        console.log('기본 상태:', {
+            hasSecondPlane,
+            secondPlaneTimer,
+            isSecondPlaneOnCooldown,
+            secondPlaneCooldownTimer
+        });
+        console.log('전역 변수:', {
+            cooldownCompletedTime: window.cooldownCompletedTime,
+            lastSecondPlaneScore: window.lastSecondPlaneScore,
+            secondPlaneAcquired: window.secondPlaneAcquired
+        });
+        
+        if (window.cooldownCompletedTime && window.cooldownCompletedTime > 0) {
+            const timeSinceCooldown = Date.now() - window.cooldownCompletedTime;
+            const discountSeconds = Math.floor(timeSinceCooldown / 1000);
+            const discountedScore = Math.max(0, 500 - (discountSeconds * 5));
+            console.log('디스카운트 정보:', {
+                timeSinceCooldown,
+                discountSeconds,
+                discountedScore
+            });
+        }
+    };
     
     // 남은 목숨 표시 (30px 간격)
     ctx.fillStyle = 'red';
@@ -3965,12 +4101,8 @@ function updateScore(points) {
         saveHighScoreDirectly(highScore, 'updateScore');
     }
 
-    // 추가 비행기 구간 진입 체크
-    const prevPlaneZone = Math.floor(prevScore / 2000);
-    const currPlaneZone = Math.floor(score / 2000);
-    if (currPlaneZone > prevPlaneZone && score >= 2000) {
-        handleSecondPlane(true); // 강제 등장 플래그
-    }
+    // 추가 비행기 구간 진입 체크 - 자동 활성화 제거
+    // 플레이어가 직접 점수를 모아야 함
 }
 
 // 두 번째 비행기 처리 함수 수정 - 획득/소멸만 담당
@@ -3981,10 +4113,7 @@ function handleSecondPlane(forceAppear = false) {
         // 전역 변수 초기화
         if (!window.lastSecondPlaneScore) window.lastSecondPlaneScore = 0;
         
-        // 두 번째 비행기 획득 조건 체크 - 더 엄격한 조건
-        const nextThreshold = Math.floor(score / 2000) * 2000;
-    
-    // 강제 등장이 아니고, 이미 두 번째 비행기가 있거나 타이머가 활성화된 상태면 획득하지 않음
+            // 강제 등장이 아니고, 이미 두 번째 비행기가 있거나 타이머가 활성화된 상태면 획득하지 않음
     // 단, 강제 등장인 경우에는 쿨다운을 무시
     if (!forceAppear && (hasSecondPlane || secondPlaneTimer > 0 || isSecondPlaneOnCooldown)) {
         // 획득 차단 로그는 2초마다만 출력 (성능 최적화)
@@ -3997,17 +4126,39 @@ function handleSecondPlane(forceAppear = false) {
     
     // 추가 안전장치: 점수 조건이 충족되어도 추가 비행기가 활성화된 상태에서는 절대 획득하지 않음
     if (hasSecondPlane || secondPlaneTimer > 0) {
-        console.log(`점수 조건 충족되었지만 추가 비행기 활성화 중 - 획득 차단: 점수=${score}, 임계값=${nextThreshold}`);
+        console.log(`점수 조건 충족되었지만 추가 비행기 활성화 중 - 획득 차단`);
         return;
     }
     
-    // 쿨다운 완료 후에만 추가 비행기 활성화 판단
+    // 쿨다운 완료 후 디스카운트 단계에서는 자동 획득 방지
+    if (window.cooldownCompletedTime && window.cooldownCompletedTime > 0) {
+        console.log(`쿨다운 완료 후 디스카운트 단계 - 자동 획득 차단`);
+        return;
+    }
+    
+            // 다음 임계값 계산
+        const nextThreshold = Math.ceil(score / 1000) * 1000;
+    
+    // 쿨다운 진행 중에는 추가 비행기 획득 불가
     if (isSecondPlaneOnCooldown) {
         console.log(`쿨다운 진행 중 - 추가 비행기 획득 불가: 점수=${score}, 임계값=${nextThreshold}`);
         return;
     }
     
-    const shouldGetPlane = forceAppear || (score >= 2000 && score >= window.lastSecondPlaneScore + 2000);
+    // 디스카운트 단계에서는 점수 조건이 충족되어도 자동 획득하지 않음
+    // (디스카운트가 완료될 때까지 대기)
+    if (window.cooldownCompletedTime && window.cooldownCompletedTime > 0) {
+        const timeSinceCooldown = Date.now() - window.cooldownCompletedTime;
+        const discountSeconds = Math.floor(timeSinceCooldown / 1000);
+        const discountedScore = Math.max(0, 500 - (discountSeconds * 5));
+        
+        if (discountedScore > 0) {
+            console.log(`디스카운트 진행 중 - 자동 획득 차단: ${discountedScore}점 남음 (${discountSeconds}초 경과)`);
+            return;
+        }
+    }
+    
+    const shouldGetPlane = score >= 1000 && score >= (window.lastSecondPlaneScore || 0) + 1000;
     
     if (shouldGetPlane) {
         // 두 번째 비행기 획득
@@ -4027,9 +4178,12 @@ function handleSecondPlane(forceAppear = false) {
         
         console.log(`두 번째 비행기 획득 - 타이머 시작: 점수=${score}, 임계값=${nextThreshold}, 강제등장=${forceAppear}, 타이머값=${secondPlaneTimer}`);
         console.log(`상태 고정: 추가 비행기 활성화 중에는 절대 재획득 불가`);
+        console.log(`획득 후 상태: hasSecondPlane=${hasSecondPlane}, secondPlaneTimer=${secondPlaneTimer}, isSecondPlaneOnCooldown=${isSecondPlaneOnCooldown}`);
         
         // 획득 메시지 표시 (한 번만)
         showSecondPlaneMessage('추가 비행기 획득!', 'yellow');
+    } else {
+        console.log(`점수 조건 미충족: 현재점수=${score}, 필요점수=${(window.lastSecondPlaneScore || 0) + 2000}, nextThreshold=${nextThreshold}`);
     }
     } catch (error) {
         console.error('두 번째 비행기 처리 중 오류 발생:', error);
@@ -4077,14 +4231,14 @@ function updateSecondPlaneTimer() {
             hasSecondPlane = false;
             secondPlaneTimer = 0;
             
-            // 10초 쿨다운 시작
+            // 20초 쿨다운 시작
             isSecondPlaneOnCooldown = true;
             secondPlaneCooldownTimer = currentTime;
             
             // 소멸 메시지 표시
             showSecondPlaneMessage('추가 비행기 소멸!', 'red');
             
-            console.log('두 번째 비행기 소멸 완료 - 10초 쿨다운 시작');
+            console.log('두 번째 비행기 소멸 완료 - 20초 쿨다운 시작');
             return;
         }
         
@@ -4109,29 +4263,34 @@ function updateSecondPlaneTimer() {
     // 쿨다운 타이머 관리
     if (isSecondPlaneOnCooldown) {
         const cooldownElapsed = currentTime - secondPlaneCooldownTimer;
-        if (cooldownElapsed >= 10000) { // 10초 쿨다운
+        
+        // 쿨다운 진행 상황 로그 (5초마다)
+        if (Math.floor(cooldownElapsed / 5000) !== Math.floor((cooldownElapsed - 16) / 5000) && cooldownElapsed > 0) {
+            const remainingCooldown = Math.max(0, Math.ceil((20000 - cooldownElapsed) / 1000));
+            console.log(`쿨다운 진행 중: ${remainingCooldown}초 남음 (경과: ${cooldownElapsed}ms)`);
+        }
+        
+        if (cooldownElapsed >= 20000) { // 20초 쿨다운
+            console.log('=== 쿨다운 완료 감지 ===');
+            console.log('쿨다운 경과 시간:', cooldownElapsed, 'ms');
+            console.log('쿨다운 완료 전 상태:', {
+                isSecondPlaneOnCooldown,
+                secondPlaneCooldownTimer,
+                cooldownCompletedTime: window.cooldownCompletedTime
+            });
+            
             isSecondPlaneOnCooldown = false;
             secondPlaneCooldownTimer = 0;
-            console.log('두 번째 비행기 쿨다운 완료 (10초) - 이제 추가 비행기 획득 가능');
+            window.cooldownCompletedTime = currentTime; // 쿨다운 완료 시점 기록
             
-            // 쿨다운 완료 후 점수 조건 확인하여 추가 비행기 활성화 판단
-            const nextThreshold = Math.floor(score / 2000) * 2000;
-            if (score >= nextThreshold && score >= (window.lastSecondPlaneScore || 0) + 2000) {
-                console.log('쿨다운 완료 후 점수 조건 충족 - 추가 비행기 자동 활성화');
-                // 추가 비행기 자동 활성화
-                hasSecondPlane = true;
-                secondPlane.x = player.x - 60;
-                secondPlane.y = player.y;
-                secondPlaneTimer = currentTime;
-                window.lastSecondPlaneScore = nextThreshold;
-                
-                // 상태 고정 변수 설정
-                window.secondPlaneAcquired = true;
-                window.secondPlaneAcquireTime = currentTime;
-                
-                // 획득 메시지 표시
-                showSecondPlaneMessage('추가 비행기 자동 획득!', 'yellow');
-            }
+            console.log('쿨다운 완료 후 상태:', {
+                isSecondPlaneOnCooldown,
+                secondPlaneCooldownTimer,
+                cooldownCompletedTime: window.cooldownCompletedTime
+            });
+            console.log('두 번째 비행기 쿨다운 완료 (20초) - 이제 디스카운트 시작');
+            console.log('디스카운트 시작 시점:', new Date(currentTime).toLocaleTimeString());
+            console.log('=== 쿨다운 완료 처리 완료 ===');
         }
     }
     
@@ -4146,6 +4305,17 @@ function updateSecondPlaneTimer() {
         secondPlaneTimer = 0;
     }
     
+    // 쿨다운 상태 검증
+    if (isSecondPlaneOnCooldown && secondPlaneCooldownTimer === 0) {
+        console.warn('쿨다운 상태 불일치 감지: isSecondPlaneOnCooldown=true, secondPlaneCooldownTimer=0 - 복구');
+        isSecondPlaneOnCooldown = false;
+    }
+    
+    if (!isSecondPlaneOnCooldown && secondPlaneCooldownTimer > 0) {
+        console.warn('쿨다운 상태 불일치 감지: isSecondPlaneOnCooldown=false, secondPlaneCooldownTimer>0 - 복구');
+        secondPlaneCooldownTimer = 0;
+    }
+    
     // 타이머 강제 동기화 (타이머가 멈춰있을 경우)
     if (hasSecondPlane && secondPlaneTimer > 0) {
         const forceCheckTime = Date.now();
@@ -4156,10 +4326,11 @@ function updateSecondPlaneTimer() {
             console.error(`타이머 강제 동기화: ${forceElapsed}ms 경과하여 상태 강제 정리`);
             hasSecondPlane = false;
             secondPlaneTimer = 0;
+            // 20초 쿨다운 시작
             isSecondPlaneOnCooldown = true;
             secondPlaneCooldownTimer = forceCheckTime;
             showSecondPlaneMessage('추가 비행기 소멸!', 'red');
-            console.log('강제 소멸 완료 - 10초 쿨다운 시작');
+            console.log('강제 소멸 완료 - 20초 쿨다운 시작');
         }
     }
     } catch (error) {
@@ -4195,15 +4366,16 @@ function showSecondPlaneMessage(message, color) {
 // 확산탄 처리 함수 추가
 function handleSpreadShot() {
     // 확산탄 자동 활성화: 500점에 도달하면 자동으로 활성화
-    if (scoreForSpread >= 500 && !hasSpreadShot) {
+            if (scoreForSpread >= 1000 && !hasSpreadShot) {
         hasSpreadShot = true;
         console.log('확산탄 자동 활성화!');
     }
     
     // 확산탄 발사 조건: 활성화되어 있고, 충분한 점수가 있으며, 쿨다운이 아닐 때
-    if (hasSpreadShot && scoreForSpread >= 500 && !isSpreadShotOnCooldown) {
-        // 발사 쿨다운 설정 (3초)
+    if (hasSpreadShot && scoreForSpread >= 1000 && !isSpreadShotOnCooldown) {
+        // 발사 쿨다운 설정 (20초)
         isSpreadShotOnCooldown = true;
+        window.spreadShotCooldownStartTime = Date.now(); // 쿨다운 시작 시간 기록
         setTimeout(() => {
             isSpreadShotOnCooldown = false;
             // 쿨다운 완료 시 누적된 점수 반영
@@ -4212,7 +4384,7 @@ function handleSpreadShot() {
                 console.log('확산탄 쿨다운 완료 - 누적 점수 반영:', window.pendingSpreadScore);
                 window.pendingSpreadScore = 0;
             }
-        }, 3000);
+        }, 20000);
         
         // 24발의 확산탄을 원형으로 발사 (8발에서 3배 증가)
         for (let i = 0; i < 24; i++) {
@@ -4518,7 +4690,7 @@ function handleBullets() {
 
 // 보스 점수 계산 함수
 function getBossScore() {
-    return gameLevel <= 10 ? 20 : 25;
+    return gameLevel <= 10 ? 25 : 30; // 보스 헬리콥터 파괴 시 점수
 }
 
 // 보스 관련 상수 추가
@@ -4529,7 +4701,6 @@ const BOSS_SETTINGS = {
     BULLET_SPEED: 4,    // 보스 총알 속도를 3에서 4로 증가
     PATTERN_INTERVAL: 2500, // 2.5초(2500ms)로 단축 (기존 대비 반으로 줄임)
     SPAWN_INTERVAL: 15000,  // 보스 출현 간격을 15초로 증가 (중복 생성 방지)
-    BONUS_SCORE: 500,    // 보스 처치 보너스 점수 (동적으로 계산됨)
     PHASE_THRESHOLDS: [  // 페이즈 전환 체력 임계값
         { health: 3750, speed: 3, bulletSpeed: 5 },    // 속도 증가
         { health: 2500, speed: 3.5, bulletSpeed: 6 },  // 속도 증가
@@ -5090,7 +5261,7 @@ function checkLevelUp() {
         safePlay(levelUpSound);
         gameLevel++;
         levelScore = 0;
-        levelUpScore = 800 * gameLevel; // 1000에서 800으로 감소
+        levelUpScore = 2500 + (gameLevel - 1) * 1000; // 레벨1->2: 2500점부터 시작하여 1000점씩 증가
         
         // 레벨업 메시지 표시
         const ctx = canvas.getContext('2d');
