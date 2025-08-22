@@ -1553,6 +1553,25 @@ function createEnemy(forceType = null) {
             console.log('강제 일반 비행기 생성됨:', enemy);
             return;
         } else if (forceType === 'HELICOPTER') {
+            // 현재 보호막 헬리콥터 수 확인 (보스 제외)
+            const currentShieldedHelicopters = enemies.filter(enemy => 
+                (enemy.type === ENEMY_TYPES.HELICOPTER || enemy.type === ENEMY_TYPES.HELICOPTER2) && 
+                enemy.hasShield && !enemy.isShieldBroken && !enemy.isBoss
+            ).length;
+            
+            // 현재 일반 비행기 수 확인 (보스 제외)
+            const currentNormalPlanes = enemies.filter(enemy => 
+                enemy.type === ENEMY_TYPES.PLANE && !enemy.isBoss
+            ).length;
+            
+            const totalEnemies = currentShieldedHelicopters + currentNormalPlanes;
+            
+            // 6대 제한 체크 (보스 제외)
+            if (totalEnemies >= 6) {
+                console.log(`강제 헬리콥터 생성 제한: 현재 총 적 수 ${totalEnemies}/6으로 인해 생성 불가`);
+                return;
+            }
+            
             // 보호막 헬리콥터 강제 생성
             const isHelicopter2 = Math.random() < 0.5;  // 50% 확률로 helicopter2 생성
             
@@ -1684,6 +1703,24 @@ function createEnemy(forceType = null) {
     const isHelicopter = Math.random() < helicopterChance;
     
     if (!isBossActive && isHelicopter) {
+        // 현재 보호막 헬리콥터 수 확인 (보스 제외)
+        const currentShieldedHelicopters = enemies.filter(enemy => 
+            (enemy.type === ENEMY_TYPES.HELICOPTER || enemy.type === ENEMY_TYPES.HELICOPTER2) && 
+            enemy.hasShield && !enemy.isShieldBroken && !enemy.isBoss
+        ).length;
+        
+        // 현재 일반 비행기 수 확인 (보스 제외)
+        const currentNormalPlanes = enemies.filter(enemy => 
+            enemy.type === ENEMY_TYPES.PLANE && !enemy.isBoss
+        ).length;
+        
+        const totalEnemies = currentShieldedHelicopters + currentNormalPlanes;
+        
+        // 6대 제한 체크 (보스 제외)
+        if (totalEnemies >= 6) {
+            console.log(`일반 헬리콥터 생성 제한: 현재 총 적 수 ${totalEnemies}/6으로 인해 생성 불가`);
+            return;
+        }
         // 화면을 4개 구역으로 나누어 헬리콥터들이 겹치지 않도록 위치 조정
         const screenWidth = canvas.width;
         const screenHeight = canvas.height;
@@ -2689,24 +2726,43 @@ function gameLoop() {
         
         // 헬리콥터 생성 체크 (게임 루프에서 직접 호출)
         if (gameStarted && !isBossActive && currentTime - lastHelicopterSpawnTime >= MIN_HELICOPTER_SPAWN_INTERVAL) {
-            // 레벨에 따라 헬리콥터 생성 확률 증가
-            let spawnChance = 0.8; // 기본 80% 확률
-            if (gameLevel >= 5) spawnChance = 0.9; // 레벨 5 이상: 90%
-            if (gameLevel >= 10) spawnChance = 0.95; // 레벨 10 이상: 95%
+            // 현재 보호막 헬리콥터 수 확인 (보스 제외)
+            const currentShieldedHelicopters = enemies.filter(enemy => 
+                (enemy.type === ENEMY_TYPES.HELICOPTER || enemy.type === ENEMY_TYPES.HELICOPTER2) && 
+                enemy.hasShield && !enemy.isShieldBroken && !enemy.isBoss
+            ).length;
             
-            if (Math.random() < spawnChance) {
-                // 2-4대의 헬리콥터를 동시에 생성
-                const helicopterCount = Math.floor(Math.random() * 3) + 2; // 2, 3, 4 중 랜덤
+            // 현재 일반 비행기 수 확인 (보스 제외)
+            const currentNormalPlanes = enemies.filter(enemy => 
+                enemy.type === ENEMY_TYPES.PLANE && !enemy.isBoss
+            ).length;
+            
+            const totalEnemies = currentShieldedHelicopters + currentNormalPlanes;
+            
+            // 6대 제한 체크 (보스 제외)
+            if (totalEnemies < 6) {
+                // 레벨에 따라 헬리콥터 생성 확률 증가
+                let spawnChance = 0.8; // 기본 80% 확률
+                if (gameLevel >= 5) spawnChance = 0.9; // 레벨 5 이상: 90%
+                if (gameLevel >= 10) spawnChance = 0.95; // 레벨 10 이상: 95%
                 
-                for (let i = 0; i < helicopterCount; i++) {
-                    // 약간의 시간차를 두고 생성하여 자연스럽게 등장
-                    setTimeout(() => {
-                        createEnemy('HELICOPTER');
-                    }, i * 150); // 150ms 간격으로 생성 (더 빠르게)
+                if (Math.random() < spawnChance) {
+                    // 남은 공간에 맞춰 헬리콥터 수 조정
+                    const maxHelicoptersToSpawn = Math.min(6 - totalEnemies, 4); // 최대 4대까지 생성 가능
+                    const helicopterCount = Math.min(Math.floor(Math.random() * 3) + 2, maxHelicoptersToSpawn); // 2, 3, 4 중 랜덤하되 제한 내에서
+                    
+                    for (let i = 0; i < helicopterCount; i++) {
+                        // 약간의 시간차를 두고 생성하여 자연스럽게 등장
+                        setTimeout(() => {
+                            createEnemy('HELICOPTER');
+                        }, i * 150); // 150ms 간격으로 생성 (더 빠르게)
+                    }
+                    
+                    lastHelicopterSpawnTime = currentTime;
+                    console.log(`${helicopterCount}대의 헬리콥터 생성됨 (레벨 ${gameLevel}, 확률: ${Math.round(spawnChance * 100)}%) - 현재 총 적 수: ${totalEnemies + helicopterCount}/6 - 시간:`, new Date(currentTime).toLocaleTimeString());
                 }
-                
-                lastHelicopterSpawnTime = currentTime;
-                console.log(`${helicopterCount}대의 헬리콥터 생성됨 (레벨 ${gameLevel}, 확률: ${Math.round(spawnChance * 100)}%) - 시간:`, new Date(currentTime).toLocaleTimeString());
+            } else {
+                console.log(`헬리콥터 생성 제한: 현재 총 적 수 ${totalEnemies}/6으로 인해 생성 불가`);
             }
         }
 
@@ -2884,14 +2940,14 @@ function handleEnemies() {
     }
     
     // 적 생성 로직 개선 - 게임이 시작되고 터치 후에만 적들이 생성되도록
-    // 적 비행기와 보호막 헬리콥터 합하여 최대 6~8대 제한, 일반 비행기 최소 4대, 보호막 헬리콥터 기본 2대 보장
+    // 적 비행기와 보호막 헬리콥터 합하여 최대 6대 제한 (보스 제외), 일반 비행기 최소 4대, 보호막 헬리콥터 기본 2대 보장
     const currentShieldedHelicopters = enemies.filter(enemy => 
         (enemy.type === ENEMY_TYPES.HELICOPTER || enemy.type === ENEMY_TYPES.HELICOPTER2) && 
-        enemy.hasShield && !enemy.isShieldBroken
+        enemy.hasShield && !enemy.isShieldBroken && !enemy.isBoss
     ).length;
     
     const currentNormalPlanes = enemies.filter(enemy => 
-        enemy.type === ENEMY_TYPES.PLANE
+        enemy.type === ENEMY_TYPES.PLANE && !enemy.isBoss
     ).length;
     
     const totalEnemies = currentShieldedHelicopters + currentNormalPlanes;
@@ -2903,7 +2959,7 @@ function handleEnemies() {
         enemies.length < currentDifficulty.maxEnemies &&
         !isGameOver;
     
-    // 적 생성 조건: 일반 비행기 최소 4대, 보호막 헬리콥터 기본 2대 최대 4대, 총합 6~8대
+    // 적 생성 조건: 일반 비행기 최소 4대, 보호막 헬리콥터 기본 2대 최대 4대, 총합 6대 제한 (보스 제외)
     if (canCreateEnemy) {
         let shouldCreate = false;
         let createType = '';
@@ -2918,8 +2974,8 @@ function handleEnemies() {
             shouldCreate = true;
             createType = 'HELICOPTER';
         }
-        // 보호막 헬리콥터가 4대 미만이고 총합이 8대 미만이면 생성 가능
-        else if (currentShieldedHelicopters < 4 && totalEnemies < 8) {
+        // 보호막 헬리콥터가 4대 미만이고 총합이 6대 미만이면 생성 가능
+        else if (currentShieldedHelicopters < 4 && totalEnemies < 6) {
             shouldCreate = true;
             createType = 'HELICOPTER';
         }
@@ -2927,7 +2983,7 @@ function handleEnemies() {
         if (shouldCreate) {
             createEnemy(createType);
             lastEnemySpawnTime = currentTime;
-            console.log('새로운 적 생성됨 (보호막 헬리콥터: ' + currentShieldedHelicopters + ', 일반 비행기: ' + currentNormalPlanes + ', 총: ' + totalEnemies + '/8) - 생성 타입: ' + createType);
+            console.log('새로운 적 생성됨 (보호막 헬리콥터: ' + currentShieldedHelicopters + ', 일반 비행기: ' + currentNormalPlanes + ', 총: ' + totalEnemies + '/6) - 생성 타입: ' + createType);
         }
     }
     
@@ -5726,6 +5782,25 @@ const ENEMY_TYPES = {
 
 // 헬리콥터 생성 함수 수정 - 헬리콥터1과 헬리콥터2를 랜덤으로 생성
 function createHelicopter() {
+    // 현재 보호막 헬리콥터 수 확인 (보스 제외)
+    const currentShieldedHelicopters = enemies.filter(enemy => 
+        (enemy.type === ENEMY_TYPES.HELICOPTER || enemy.type === ENEMY_TYPES.HELICOPTER2) && 
+        enemy.hasShield && !enemy.isShieldBroken && !enemy.isBoss
+    ).length;
+    
+    // 현재 일반 비행기 수 확인 (보스 제외)
+    const currentNormalPlanes = enemies.filter(enemy => 
+        enemy.type === ENEMY_TYPES.PLANE && !enemy.isBoss
+    ).length;
+    
+    const totalEnemies = currentShieldedHelicopters + currentNormalPlanes;
+    
+    // 6대 제한 체크 (보스 제외)
+    if (totalEnemies >= 6) {
+        console.log(`createHelicopter 함수 제한: 현재 총 적 수 ${totalEnemies}/6으로 인해 생성 불가`);
+        return null;
+    }
+    
     // 레벨 10 이상에서는 속도 증가 제한
     let helicopterSpeed = 2;
     if (gameLevel <= 10) {
