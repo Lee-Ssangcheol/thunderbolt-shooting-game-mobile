@@ -13,17 +13,6 @@ const mobileSpeedMultiplier = isMobile ? 1.0 : 1.0;
 const MOBILE_FPS_LIMIT = isMobile ? 100 : 100;
 const MOBILE_FRAME_INTERVAL = 800 / MOBILE_FPS_LIMIT;
 
-// 성능 모니터링 변수
-let frameCount = 0;
-let lastFPS = 0;
-let lastFPSTime = Date.now();
-let performanceWarningCount = 0;
-const PERFORMANCE_WARNING_THRESHOLD = 3; // 3번 연속으로 FPS가 낮으면 경고
-
-// 적 업데이트 최적화 변수
-let currentEnemyUpdateIndex = 0;
-const enemiesPerFrame = 3; // 한 프레임에 3개씩만 업데이트
-
 // 전체화면 상태 추적 변수
 let isFullscreenActive = false;
 let fullscreenActivationInProgress = false;
@@ -33,71 +22,6 @@ const FULLSCREEN_COOLDOWN = 1000; // 1초 쿨다운
 
 // 게임 상태 변수
 let gameStarted = false;
-
-// 성능 모니터링 및 자동 최적화 함수
-function updatePerformance() {
-    frameCount++;
-    const currentTime = Date.now();
-    
-    if (currentTime - lastFPSTime >= 1000) {
-        lastFPS = frameCount;
-        frameCount = 0;
-        lastFPSTime = currentTime;
-        
-        // FPS가 낮으면 경고 카운트 증가
-        if (lastFPS < 30 && isMobile) {
-            performanceWarningCount++;
-            console.warn(`성능 경고: FPS ${lastFPS} (${performanceWarningCount}/${PERFORMANCE_WARNING_THRESHOLD})`);
-            
-            // 연속으로 경고가 발생하면 자동 최적화 실행
-            if (performanceWarningCount >= PERFORMANCE_WARNING_THRESHOLD) {
-                console.log('성능 자동 최적화 실행');
-                autoOptimizePerformance();
-                performanceWarningCount = 0; // 카운트 리셋
-            }
-        } else {
-            // FPS가 정상이면 경고 카운트 감소
-            performanceWarningCount = Math.max(0, performanceWarningCount - 1);
-        }
-        
-        // 성능 정보 로그 (디버깅용)
-        if (performanceWarningCount > 0) {
-            console.log(`현재 성능: FPS ${lastFPS}, 경고 카운트: ${performanceWarningCount}`);
-        }
-    }
-}
-
-// 자동 성능 최적화 함수
-function autoOptimizePerformance() {
-    console.log('자동 성능 최적화 시작');
-    
-    // 현재 난이도 설정 가져오기
-    const currentDifficulty = difficultySettings[gameLevel] || difficultySettings[1];
-    
-    // 적 개체 수를 20% 더 줄이기
-    if (currentDifficulty.maxEnemies > 3) {
-        currentDifficulty.maxEnemies = Math.max(3, Math.floor(currentDifficulty.maxEnemies * 0.8));
-        console.log(`자동 최적화: 적 개체 수를 ${currentDifficulty.maxEnemies}개로 조정`);
-    }
-    
-    // 적 생성 빈도를 30% 더 줄이기
-    currentDifficulty.enemySpawnRate = Math.max(0.1, currentDifficulty.enemySpawnRate * 0.7);
-    console.log(`자동 최적화: 적 생성 빈도를 ${currentDifficulty.enemySpawnRate.toFixed(2)}로 조정`);
-    
-    // 총알 발사 간격을 50% 늘리기
-    currentDifficulty.fireInterval = Math.min(5000, currentDifficulty.fireInterval * 1.5);
-    console.log(`자동 최적화: 총알 발사 간격을 ${currentDifficulty.fireInterval}ms로 조정`);
-    
-    // 총알 개체 수를 더 엄격하게 제한
-    if (bullets.length > 30) {
-        bullets = bullets.slice(0, 30);
-        console.log('자동 최적화: 플레이어 총알을 30개로 제한');
-    }
-    if (enemyBullets.length > 20) {
-        enemyBullets = enemyBullets.slice(0, 20);
-        console.log('자동 최적화: 적 총알을 20개로 제한');
-    }
-}
 
 // 전체화면 상태 확인 함수
 function checkFullscreenState() {
@@ -911,23 +835,6 @@ const difficultySettings = {
         specialPatternChance: 1.0
     }
 };
-
-// 모바일 환경에서 자동 최적화 적용
-if (isMobile) {
-    console.log('모바일 환경 감지됨 - 자동 성능 최적화 적용');
-    
-    // 모바일에서는 적 개체 수를 50% 줄이기
-    Object.keys(difficultySettings).forEach(level => {
-        const levelNum = parseInt(level);
-        if (difficultySettings[levelNum]) {
-            difficultySettings[levelNum].maxEnemies = Math.floor(difficultySettings[levelNum].maxEnemies * 0.5);
-            difficultySettings[levelNum].enemySpawnRate *= 0.7;
-            difficultySettings[levelNum].fireInterval *= 1.5;
-            
-            console.log(`레벨 ${level} 모바일 최적화: 적 ${difficultySettings[levelNum].maxEnemies}개, 생성률 ${difficultySettings[levelNum].enemySpawnRate.toFixed(2)}, 발사간격 ${difficultySettings[levelNum].fireInterval}ms`);
-        }
-    });
-}
 
 // IndexedDB 설정
 const dbName = 'SpaceShooterGameDB_v1';
@@ -2862,20 +2769,6 @@ function gameLoop() {
             console.log('보스 파괴 후 남은 보스 총알 정리 완료');
         }
         
-        // 총알 개체 수 제한 (성능 최적화)
-        if (bullets.length > 50) {
-            bullets = bullets.slice(0, 50);
-            console.log('플레이어 총알 개체 수 제한: 50개로 제한됨');
-        }
-        if (enemyBullets.length > 30) {
-            enemyBullets = enemyBullets.slice(0, 30);
-            console.log('적 총알 개체 수 제한: 30개로 제한됨');
-        }
-        if (helicopterBullets.length > 20) {
-            helicopterBullets = helicopterBullets.slice(0, 20);
-            console.log('헬리콥터 총알 개체 수 제한: 20개로 제한됨');
-        }
-        
         // 총알 이동 및 충돌 체크
         handleBullets();
 
@@ -2943,9 +2836,6 @@ function gameLoop() {
 
         // UI 그리기
         drawUI();
-        
-        // 성능 모니터링 및 자동 최적화
-        updatePerformance();
         
         // 모바일 컨트롤 상태 표시
         showMobileControlStatus();
@@ -3028,16 +2918,6 @@ function handleEnemies() {
         };
     }
     
-    // 모바일 환경에서 추가 최적화 적용
-    if (isMobile) {
-        // 레벨 7 이상에서는 적 개체 수를 추가로 제한
-        if (gameLevel >= 7) {
-            currentDifficulty.maxEnemies = Math.min(currentDifficulty.maxEnemies, 8);
-            currentDifficulty.enemySpawnRate = Math.min(currentDifficulty.enemySpawnRate, 0.6);
-            console.log(`모바일 레벨 ${gameLevel} 추가 최적화: 적 ${currentDifficulty.maxEnemies}개, 생성률 ${currentDifficulty.enemySpawnRate.toFixed(2)}`);
-        }
-    }
-    
     // 보스 존재 여부 체크 - 더 정확한 체크
     const bossExists = enemies.some(enemy => enemy.isBoss);
     
@@ -3114,50 +2994,17 @@ function handleEnemies() {
     // 중복 생성 방지를 위해 주석 처리
     
     let helicopterFiredThisFrame = false;
-    
-    // 적 업데이트를 프레임별로 분산 처리 (성능 최적화)
-    if (isMobile) {
-        // 모바일에서는 한 프레임에 3개씩만 업데이트
-        for (let i = 0; i < enemiesPerFrame; i++) {
-            if (currentEnemyUpdateIndex < enemies.length) {
-                const enemy = enemies[currentEnemyUpdateIndex];
-                
-                // 보스가 파괴된 경우 즉시 제거
-                if (enemy.isBoss && (bossDestroyed || enemy.health <= 0)) {
-                    console.log('handleEnemies: 보스 파괴됨 - 즉시 제거');
-                    enemies.splice(currentEnemyUpdateIndex, 1);
-                    continue; // 다음 적으로
-                }
-                
-                updateEnemyPosition(enemy, {helicopterFiredThisFrame});
-                drawEnemy(enemy);
-                checkEnemyCollisions(enemy);
-                
-                currentEnemyUpdateIndex++;
-            }
+    enemies = enemies.filter(enemy => {
+        // 보스가 파괴된 경우 즉시 제거
+        if (enemy.isBoss && (bossDestroyed || enemy.health <= 0)) {
+            console.log('handleEnemies: 보스 파괴됨 - 즉시 제거');
+            return false;
         }
         
-        // 모든 적을 처리했으면 인덱스 리셋
-        if (currentEnemyUpdateIndex >= enemies.length) {
-            currentEnemyUpdateIndex = 0;
-        }
-        
-        // 파괴된 적들을 제거
-        enemies = enemies.filter(enemy => enemy.health > 0);
-    } else {
-        // PC에서는 기존 방식대로 모든 적을 한 번에 업데이트
-        enemies = enemies.filter(enemy => {
-            // 보스가 파괴된 경우 즉시 제거
-            if (enemy.isBoss && (bossDestroyed || enemy.health <= 0)) {
-                console.log('handleEnemies: 보스 파괴됨 - 즉시 제거');
-                return false;
-            }
-            
-            updateEnemyPosition(enemy, {helicopterFiredThisFrame});
-            drawEnemy(enemy);
-            return checkEnemyCollisions(enemy);
-        });
-    }
+        updateEnemyPosition(enemy, {helicopterFiredThisFrame});
+        drawEnemy(enemy);
+        return checkEnemyCollisions(enemy);
+    });
     // 적 비행기 총알 발사는 게임 루프에서 처리하므로 여기서는 제거
     // handleEnemyPlaneBullets();
     handleEnemyBullets();
@@ -4136,23 +3983,6 @@ function drawUI() {
         if (currentPhase >= 0) {
             ctx.fillText(`페이즈 ${currentPhase + 1}`, canvas.width/2, 60);
         }
-    }
-    
-    // 성능 정보 표시 (모바일에서만)
-    if (isMobile && lastFPS > 0) {
-        ctx.fillStyle = performanceWarningCount > 0 ? '#FF8800' : '#00FF00';
-        ctx.font = '14px Arial';
-        ctx.textAlign = 'left';
-        ctx.fillText(`FPS: ${lastFPS}`, 20, 350);
-        
-        if (performanceWarningCount > 0) {
-            ctx.fillStyle = '#FF8800';
-            ctx.fillText(`성능 경고: ${performanceWarningCount}/${PERFORMANCE_WARNING_THRESHOLD}`, 20, 370);
-        }
-        
-        // 현재 적 및 총알 개체 수 표시
-        ctx.fillStyle = '#00FFFF';
-        ctx.fillText(`적: ${enemies.length}개, 총알: ${bullets.length + enemyBullets.length + helicopterBullets.length}개`, 20, 390);
     }
     
 
