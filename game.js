@@ -6,12 +6,15 @@ const TOP_EFFECT_ZONE = 20;  // 상단 효과 무시 영역 (픽셀)
 // 모바일 디바이스 감지
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
+// 디버그 모드 (개발 시에만 true로 설정)
+const DEBUG_MODE = false;
+
 // 모바일 속도 조절 (더 느리게 조정)
 const mobileSpeedMultiplier = isMobile ? 1.0 : 1.0;
 
-// 모바일 프레임 제한 (60fps 대신 55fps로 완화)
-const MOBILE_FPS_LIMIT = isMobile ? 100 : 100;
-const MOBILE_FRAME_INTERVAL = 800 / MOBILE_FPS_LIMIT;
+// 모바일 프레임 제한 (60fps로 고정하여 성능 향상)
+const MOBILE_FPS_LIMIT = isMobile ? 60 : 60;
+const MOBILE_FRAME_INTERVAL = 1000 / MOBILE_FPS_LIMIT;
 
 // 전체화면 상태 추적 변수
 let isFullscreenActive = false;
@@ -22,6 +25,60 @@ const FULLSCREEN_COOLDOWN = 1000; // 1초 쿨다운
 
 // 게임 상태 변수
 let gameStarted = false;
+
+// 객체 풀링 시스템 (성능 최적화)
+const ObjectPool = {
+    bullets: [],
+    explosions: [],
+    damageTexts: [],
+    
+    // 총알 풀에서 가져오기
+    getBullet() {
+        if (this.bullets.length > 0) {
+            return this.bullets.pop();
+        }
+        return null;
+    },
+    
+    // 총알 풀에 반환
+    returnBullet(bullet) {
+        if (this.bullets.length < 100) { // 최대 100개까지만 유지
+            // 객체 초기화
+            bullet.x = 0;
+            bullet.y = 0;
+            bullet.speed = 0;
+            bullet.angle = 0;
+            bullet.isSpecial = false;
+            bullet.isSpread = false;
+            bullet.isBossBullet = false;
+            bullet.trail = [];
+            bullet.life = 0;
+            this.bullets.push(bullet);
+        }
+    },
+    
+    // 폭발 효과 풀에서 가져오기
+    getExplosion() {
+        if (this.explosions.length > 0) {
+            return this.explosions.pop();
+        }
+        return null;
+    },
+    
+    // 폭발 효과 풀에 반환
+    returnExplosion(explosion) {
+        if (this.explosions.length < 50) { // 최대 50개까지만 유지
+            this.explosions.push(explosion);
+        }
+    }
+};
+
+// 디버그 로그 함수 (성능 최적화)
+function debugLog(...args) {
+    if (DEBUG_MODE) {
+        console.log(...args);
+    }
+}
 
 // 전체화면 상태 확인 함수
 function checkFullscreenState() {
@@ -2619,7 +2676,7 @@ function drawAirplane(x, y, width, height, color, isEnemy = false) {
 // 게임 루프 수정
 function gameLoop() {
     if (!gameLoopRunning) {
-        console.log('게임 루프가 실행되지 않음: gameLoopRunning =', gameLoopRunning);
+        debugLog('게임 루프가 실행되지 않음: gameLoopRunning =', gameLoopRunning);
         return;
     }
     
@@ -2638,12 +2695,12 @@ function gameLoop() {
     }
 
     if (isStartScreen) {
-        console.log('시작 화면 렌더링 중...');
+        debugLog('시작 화면 렌더링 중...');
         try {
             // 시작 화면에서는 검정색 배경을 그리지 않고 drawStartScreen에서 처리
             drawStartScreen();
         } catch (error) {
-            console.error('시작 화면 그리기 중 오류:', error);
+            debugLog('시작 화면 그리기 중 오류:', error);
             // 오류 발생 시 기본 시작 화면 표시
             ctx.fillStyle = '#000033';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -2777,7 +2834,7 @@ function gameLoop() {
                 try {
                     handleBossPattern(boss);
                 } catch (error) {
-                    console.error('보스 패턴 처리 중 오류:', error, boss);
+                    debugLog('보스 패턴 처리 중 오류:', error, boss);
                     // 오류 발생 시 보스 상태 초기화
                     bossActive = false;
                     bossHealth = 0;
@@ -2785,7 +2842,7 @@ function gameLoop() {
                 }
             } else {
                 // 보스가 enemies 배열에서 제거되었거나 유효하지 않은 경우 상태 초기화
-                console.log('보스가 제거되었거나 유효하지 않음 - 상태 초기화 및 적 생성 제한');
+                debugLog('보스가 제거되었거나 유효하지 않음 - 상태 초기화 및 적 생성 제한');
                 bossActive = false;
                 bossHealth = 0;
                 bossDestroyed = false;
@@ -2796,7 +2853,7 @@ function gameLoop() {
                 
                 // 보스 상태 완전 초기화 강제 실행
                 if (bossDestroyed) {
-                    console.log('보스 파괴 상태 감지 - 강제 초기화 실행');
+                    debugLog('보스 파괴 상태 감지 - 강제 초기화 실행');
                     resetBossState();
                 }
             }
@@ -2837,17 +2894,17 @@ function gameLoop() {
                     }
                     
                     lastHelicopterSpawnTime = currentTime;
-                    console.log(`${helicopterCount}대의 헬리콥터 생성됨 (레벨 ${gameLevel}, 확률: ${Math.round(spawnChance * 100)}%) - 현재 총 적 수: ${totalEnemies + helicopterCount}/6 - 시간:`, new Date(currentTime).toLocaleTimeString());
+                    debugLog(`${helicopterCount}대의 헬리콥터 생성됨 (레벨 ${gameLevel}, 확률: ${Math.round(spawnChance * 100)}%) - 현재 총 적 수: ${totalEnemies + helicopterCount}/6 - 시간:`, new Date(currentTime).toLocaleTimeString());
                 }
             } else {
-                console.log(`헬리콥터 생성 제한: 현재 총 적 수 ${totalEnemies}/6으로 인해 생성 불가`);
+                debugLog(`헬리콥터 생성 제한: 현재 총 적 수 ${totalEnemies}/6으로 인해 생성 불가`);
             }
         }
 
         // 보스 총알 정리 (보스가 파괴된 후 남은 총알 제거)
         if (bossDestroyed || !bossActive) {
             bullets = bullets.filter(bullet => !bullet.isBossBullet);
-            console.log('보스 파괴 후 남은 보스 총알 정리 완료');
+            debugLog('보스 파괴 후 남은 보스 총알 정리 완료');
         }
         
         // 총알 이동 및 충돌 체크
@@ -2872,7 +2929,7 @@ function gameLoop() {
             // 타이머가 정상 작동 중
             const remainingTime = Math.max(0, Math.ceil((10000 - elapsedTime) / 1000));
             if (remainingTime <= 3) { // 3초 이하일 때만 로그
-                console.log(`프레임별 타이머 확인: ${remainingTime}초 남음 (경과: ${elapsedTime}ms)`);
+                debugLog(`프레임별 타이머 확인: ${remainingTime}초 남음 (경과: ${elapsedTime}ms)`);
             }
         }
         }
@@ -2884,19 +2941,19 @@ function gameLoop() {
             
             // 10초 정확히 경과했을 때만 강제 처리 (타이머가 멈춰있는 경우)
             if (elapsedTime >= 10000) {
-                console.warn(`레벨 ${gameLevel}에서 타이머 강제 업데이트: 10초 경과하여 즉시 처리`);
+                debugLog(`레벨 ${gameLevel}에서 타이머 강제 업데이트: 10초 경과하여 즉시 처리`);
                 hasSecondPlane = false;
                 secondPlaneTimer = 0;
                 // 20초 쿨다운 시작
                 isSecondPlaneOnCooldown = true;
                 secondPlaneCooldownTimer = currentTime;
                 showSecondPlaneMessage('추가 비행기 소멸!', 'red');
-                console.log('두 번째 비행기 강제 소멸 - 20초 쿨다운 시작');
+                debugLog('두 번째 비행기 강제 소멸 - 20초 쿨다운 시작');
             }
             
             // 타이머가 8초 이상에서 멈춰있는 경우 경고
             if (elapsedTime >= 8000 && elapsedTime < 10000) {
-                console.warn(`타이머 경고: ${elapsedTime}ms 경과했지만 아직 10초에 도달하지 않음`);
+                debugLog(`타이머 경고: ${elapsedTime}ms 경과했지만 아직 10초에 도달하지 않음`);
             }
         }
 
@@ -2930,9 +2987,9 @@ function gameLoop() {
             requestAnimationFrame(gameLoop);
         }
     } catch (error) {
-        console.error('게임 루프 실행 중 오류:', error);
-        console.error('오류 스택:', error.stack);
-        console.error('오류 발생 위치:', error.fileName, error.lineNumber);
+        debugLog('게임 루프 실행 중 오류:', error);
+        debugLog('오류 스택:', error.stack);
+        debugLog('오류 발생 위치:', error.fileName, error.lineNumber);
         
         // 오류 발생 시 게임 오버 처리
         handleGameOver();
@@ -3067,7 +3124,13 @@ function handleEnemies() {
     enemies = enemies.filter(enemy => {
         // 보스가 파괴된 경우 즉시 제거
         if (enemy.isBoss && (bossDestroyed || enemy.health <= 0)) {
-            console.log('handleEnemies: 보스 파괴됨 - 즉시 제거');
+            debugLog('handleEnemies: 보스 파괴됨 - 즉시 제거');
+            return false;
+        }
+        
+        // 화면 밖 적 제거 (성능 최적화)
+        if (enemy.y > canvas.height + 100 || enemy.y < -100 || 
+            enemy.x > canvas.width + 100 || enemy.x < -100) {
             return false;
         }
         
@@ -3245,6 +3308,12 @@ function checkEnemyCollisions(enemy) {
         return false;
     }
 
+    // 화면 밖 적은 충돌 체크 생략 (성능 최적화)
+    if (enemy.y < -100 || enemy.y > canvas.height + 100 || 
+        enemy.x < -100 || enemy.x > canvas.width + 100) {
+        return true;
+    }
+
     // 총알과 충돌 체크
     let isHit = false;
     bullets = bullets.filter(bullet => {
@@ -3253,13 +3322,22 @@ function checkEnemyCollisions(enemy) {
             return true;
         }
 
+        // 화면 밖 총알은 충돌 체크 생략 (성능 최적화)
+        if (bullet.y < -50 || bullet.y > canvas.height + 50 || 
+            bullet.x < -50 || bullet.x > canvas.width + 50) {
+            return true;
+        }
+
         if (checkCollision(bullet, enemy)) {
-            console.log('총알과 적 충돌 감지:', {
+            debugLog('총알과 적 충돌 감지:', {
                 bulletType: bullet.isSpecial ? '특수무기' : (bullet.isSpread ? '확산탄' : '일반총알'),
                 enemyType: enemy.type,
                 enemyHealth: enemy.health,
                 isBoss: enemy.isBoss
             });
+            
+            // 충돌한 총알을 객체 풀에 반환
+            ObjectPool.returnBullet(bullet);
             
             // 보스인 경우 체력 감소
             if (enemy.isBoss) {
@@ -3795,6 +3873,12 @@ function handleSpecialWeapon() {
 // 폭발 효과 업데이트 및 그리기
 function handleExplosions() {
     explosions = explosions.filter(explosion => {
+        // 화면 밖 폭발 효과 제거 (성능 최적화)
+        if (explosion.y < -100 || explosion.y > canvas.height + 100 || 
+            explosion.x < -100 || explosion.x > canvas.width + 100) {
+            return false;
+        }
+        
         // 상단 효과 무시 영역 체크
         if (explosion.y < TOP_EFFECT_ZONE) {
             return false; // 폭발 효과 제거
@@ -4730,6 +4814,14 @@ function handleSpreadShot() {
 // 총알 이동 및 충돌 체크 함수 수정
 function handleBullets() {
     bullets = bullets.filter(bullet => {
+        // 화면 밖 총알 제거 (성능 최적화)
+        if (bullet.y < -50 || bullet.y > canvas.height + 50 || 
+            bullet.x < -50 || bullet.x > canvas.width + 50) {
+            // 객체 풀에 반환
+            ObjectPool.returnBullet(bullet);
+            return false;
+        }
+        
         // 상단 효과 무시 영역 체크
         if (bullet.y < TOP_EFFECT_ZONE) {
             return true; // 총알은 계속 이동하되 효과는 발생하지 않음
@@ -5248,8 +5340,8 @@ function handleBossPattern(boss) {
         }
     }
     
-    // 디버깅: 함수 호출 확인
-    console.log('handleBossPattern 함수 호출됨', {
+    // 디버깅: 함수 호출 확인 (성능 최적화)
+    debugLog('handleBossPattern 함수 호출됨', {
         boss: boss,
         currentTime: currentTime,
         patternTimer: boss.patternTimer,
@@ -5303,7 +5395,7 @@ function handleBossPattern(boss) {
             boss.movePhase = 1;
             boss.timer = currentTime;
             boss.centerX = canvas.width / 2 - boss.width / 2; // 중앙 기준점 설정
-            console.log('🚁 보스 중앙 호버링 시작 - 역동적 패턴 준비', {
+            debugLog('🚁 보스 중앙 호버링 시작 - 역동적 패턴 준비', {
                 centerX: boss.centerX,
                 hoverHeight: boss.hoverHeight,
                 currentX: boss.x,
@@ -7671,32 +7763,53 @@ function createUnifiedBullet() {
         
         for (let i = 0; i < 24; i++) { // 24발 발사
             const angle = startAngle + (i * angleStep);
-            const bullet = {
-                x: player.x + player.width / 2,
-                y: player.y,
-                width: 8,   // 크기 2배 증가 (4에서 8로)
-                height: 16, // 크기 2배 증가 (8에서 16으로)
-                speed: 6,   // 통일된 속도
-                angle: angle,
-                damage: 200, // 확산탄 데미지 (일반 총알의 2배)
-                isBossBullet: false,
-                isSpecial: false,
-                isSpread: true
-            };
+            
+            // 객체 풀에서 총알 가져오기 (성능 최적화)
+            let bullet = ObjectPool.getBullet();
+            if (!bullet) {
+                bullet = {
+                    x: 0, y: 0, width: 8, height: 16, speed: 6,
+                    angle: 0, damage: 200, isBossBullet: false,
+                    isSpecial: false, isSpread: true, trail: [], life: 0
+                };
+            }
+            
+            // 총알 속성 설정
+            bullet.x = player.x + player.width / 2;
+            bullet.y = player.y;
+            bullet.width = 8;   // 크기 2배 증가 (4에서 8로)
+            bullet.height = 16; // 크기 2배 증가 (8에서 16으로)
+            bullet.speed = 6;   // 통일된 속도
+            bullet.angle = angle;
+            bullet.damage = 200; // 확산탄 데미지 (일반 총알의 2배)
+            bullet.isBossBullet = false;
+            bullet.isSpecial = false;
+            bullet.isSpread = true;
+            
             bullets.push(bullet);
         }
     } else {
         // 일반 총알 발사 (레벨 1 수준으로 제한)
-        const bullet = {
-            x: player.x + player.width / 2,
-            y: player.y,
-            width: 4,   // 통일된 크기
-            height: 8,  // 통일된 크기
-            speed: 6,   // 통일된 속도
-            damage: 100,
-            isBossBullet: false,
-            isSpecial: false
-        };
+        let bullet = ObjectPool.getBullet();
+        if (!bullet) {
+            bullet = {
+                x: 0, y: 0, width: 4, height: 8, speed: 6,
+                damage: 100, isBossBullet: false, isSpecial: false,
+                isSpread: false, trail: [], life: 0
+            };
+        }
+        
+        // 총알 속성 설정
+        bullet.x = player.x + player.width / 2;
+        bullet.y = player.y;
+        bullet.width = 4;   // 통일된 크기
+        bullet.height = 8;  // 통일된 크기
+        bullet.speed = 6;   // 통일된 속도
+        bullet.damage = 100;
+        bullet.isBossBullet = false;
+        bullet.isSpecial = false;
+        bullet.isSpread = false;
+        
         bullets.push(bullet);
     }
     
@@ -7710,31 +7823,52 @@ function createUnifiedBullet() {
                 
                 for (let i = 0; i < 24; i++) { // 24발 발사
                     const angle = startAngle + (i * angleStep);
-                    const bullet = {
-                        x: secondPlane.x + secondPlane.width / 2,
-                        y: secondPlane.y,
-                        width: 8,   // 크기 2배 증가 (4에서 8로)
-                        height: 16, // 크기 2배 증가 (8에서 16으로)
-                        speed: 6,   // 통일된 속도
-                        angle: angle,
-                        damage: 200, // 확산탄 데미지 (일반 총알의 2배)
-                        isBossBullet: false,
-                        isSpecial: false,
-                        isSpread: true
-                    };
+                    
+                    // 객체 풀에서 총알 가져오기 (성능 최적화)
+                    let bullet = ObjectPool.getBullet();
+                    if (!bullet) {
+                        bullet = {
+                            x: 0, y: 0, width: 8, height: 16, speed: 6,
+                            angle: 0, damage: 200, isBossBullet: false,
+                            isSpecial: false, isSpread: true, trail: [], life: 0
+                        };
+                    }
+                    
+                    // 총알 속성 설정
+                    bullet.x = secondPlane.x + secondPlane.width / 2;
+                    bullet.y = secondPlane.y;
+                    bullet.width = 8;   // 크기 2배 증가 (4에서 8로)
+                    bullet.height = 16; // 크기 2배 증가 (8에서 16으로)
+                    bullet.speed = 6;   // 통일된 속도
+                    bullet.angle = angle;
+                    bullet.damage = 200; // 확산탄 데미지 (일반 총알의 2배)
+                    bullet.isBossBullet = false;
+                    bullet.isSpecial = false;
+                    bullet.isSpread = true;
+                    
                     bullets.push(bullet);
                 }
             } else {
-            const bullet = {
-                x: secondPlane.x + secondPlane.width / 2,
-                y: secondPlane.y,
-                width: 4,   // 통일된 크기
-                height: 8,  // 통일된 크기
-                speed: 6,   // 통일된 속도
-                damage: 100,
-                isBossBullet: false,
-                isSpecial: false
-            };
+            let bullet = ObjectPool.getBullet();
+            if (!bullet) {
+                bullet = {
+                    x: 0, y: 0, width: 4, height: 8, speed: 6,
+                    damage: 100, isBossBullet: false, isSpecial: false,
+                    isSpread: false, trail: [], life: 0
+                };
+            }
+            
+            // 총알 속성 설정
+            bullet.x = secondPlane.x + secondPlane.width / 2;
+            bullet.y = secondPlane.y;
+            bullet.width = 4;   // 통일된 크기
+            bullet.height = 8;  // 통일된 크기
+            bullet.speed = 6;   // 통일된 속도
+            bullet.damage = 100;
+            bullet.isBossBullet = false;
+            bullet.isSpecial = false;
+            bullet.isSpread = false;
+            
             bullets.push(bullet);
         }
     }
