@@ -803,36 +803,91 @@ const difficultySettings = {
     },
     8: {
         enemySpeed: 4,        // 속도 제한 (4로 고정)
-        enemySpawnRate: 0.9,
-        maxEnemies: 11,
-        enemyHealth: 8,
-        patternChance: 0.9,
-        fireInterval: 700,    // 발사 간격도 제한
-        bombDropChance: 0.8,
+        enemySpawnRate: 0.85, // 레벨 7과 동일하게 제한
+        maxEnemies: 10,       // 레벨 7과 동일하게 제한
+        enemyHealth: 7,       // 레벨 7과 동일하게 제한
+        patternChance: 0.85,  // 레벨 7과 동일하게 제한
+        fireInterval: 800,    // 레벨 7과 동일하게 제한
+        bombDropChance: 0.75, // 레벨 7과 동일하게 제한
         bulletSpeed: 10,      // 총알 속도 제한 (10으로 고정)
-        specialPatternChance: 0.8
+        specialPatternChance: 0.7 // 레벨 7과 동일하게 제한
     },
     9: {
         enemySpeed: 4,        // 속도 제한 (4로 고정)
-        enemySpawnRate: 0.95,
-        maxEnemies: 12,
-        enemyHealth: 9,
-        patternChance: 0.95,
-        fireInterval: 600,    // 발사 간격 제한
-        bombDropChance: 0.85,
+        enemySpawnRate: 0.85, // 레벨 7과 동일하게 제한
+        maxEnemies: 10,       // 레벨 7과 동일하게 제한
+        enemyHealth: 7,       // 레벨 7과 동일하게 제한
+        patternChance: 0.85,  // 레벨 7과 동일하게 제한
+        fireInterval: 800,    // 레벨 7과 동일하게 제한
+        bombDropChance: 0.75, // 레벨 7과 동일하게 제한
         bulletSpeed: 10,      // 총알 속도 제한 (10으로 고정)
-        specialPatternChance: 0.9
+        specialPatternChance: 0.7 // 레벨 7과 동일하게 제한
     },
     10: {
         enemySpeed: 4,        // 속도 제한 (4로 고정)
-        enemySpawnRate: 1.0,
-        maxEnemies: 15,
-        enemyHealth: 10,
-        patternChance: 1.0,
-        fireInterval: 500,    // 발사 간격 제한
-        bombDropChance: 0.9,
+        enemySpawnRate: 0.85, // 레벨 7과 동일하게 제한
+        maxEnemies: 10,       // 레벨 7과 동일하게 제한
+        enemyHealth: 7,       // 레벨 7과 동일하게 제한
+        patternChance: 0.85,  // 레벨 7과 동일하게 제한
+        fireInterval: 800,    // 레벨 7과 동일하게 제한
+        bombDropChance: 0.75, // 레벨 7과 동일하게 제한
         bulletSpeed: 10,      // 총알 속도 제한 (10으로 고정)
-        specialPatternChance: 1.0
+        specialPatternChance: 0.7 // 레벨 7과 동일하게 제한
+    },
+    11: {
+        enemySpeed: 4,        // 속도 제한 (4로 고정)
+        enemySpawnRate: 0.85, // 레벨 7과 동일하게 제한
+        maxEnemies: 10,       // 레벨 7과 동일하게 제한
+        enemyHealth: 7,       // 레벨 7과 동일하게 제한
+        patternChance: 0.85,  // 레벨 7과 동일하게 제한
+        fireInterval: 800,    // 레벨 7과 동일하게 제한
+        bombDropChance: 0.75, // 레벨 7과 동일하게 제한
+        bulletSpeed: 10,      // 총알 속도 제한 (10으로 고정)
+        specialPatternChance: 0.7 // 레벨 7과 동일하게 제한
+    },
+    12: {
+        enemySpeed: 4,        // 속도 제한 (4로 고정)
+        enemySpawnRate: 0.85, // 레벨 7과 동일하게 제한
+        maxEnemies: 10,       // 레벨 7과 동일하게 제한
+        enemyHealth: 7,       // 레벨 7과 동일하게 제한
+        patternChance: 0.85,  // 레벨 7과 동일하게 제한
+        fireInterval: 800,    // 레벨 7과 동일하게 제한
+        bombDropChance: 0.75, // 레벨 7과 동일하게 제한
+        bulletSpeed: 10,      // 총알 속도 제한 (10으로 고정)
+        specialPatternChance: 0.7 // 레벨 7과 동일하게 제한
+    },
+    13: {
+        enemySpeed: 4,        // 속도 제한 (4로 고정)
+        enemySpawnRate: 0.85, // 레벨 7과 동일하게 제한
+        maxEnemies: 10,       // 레벨 7과 동일하게 제한
+        enemyHealth: 7,       // 레벨 7과 동일하게 제한
+        patternChance: 0.85,  // 레벨 7과 동일하게 제한
+        fireInterval: 800,    // 레벨 7과 동일하게 제한
+        bombDropChance: 0.75, // 레벨 7과 동일하게 제한
+        bulletSpeed: 10,      // 총알 속도 제한 (10으로 고정)
+        specialPatternChance: 0.7 // 레벨 7과 동일하게 제한
+    },
+    14: {
+        enemySpeed: 4,        // 속도 제한 (4로 고정)
+        enemySpawnRate: 0.85, // 레벨 7과 동일하게 제한
+        maxEnemies: 10,       // 레벨 7과 동일하게 제한
+        enemyHealth: 7,       // 레벨 7과 동일하게 제한
+        patternChance: 0.85,  // 레벨 7과 동일하게 제한
+        fireInterval: 800,    // 레벨 7과 동일하게 제한
+        bombDropChance: 0.75, // 레벨 7과 동일하게 제한
+        bulletSpeed: 10,      // 총알 속도 제한 (10으로 고정)
+        specialPatternChance: 0.7 // 레벨 7과 동일하게 제한
+    },
+    15: {
+        enemySpeed: 4,        // 속도 제한 (4로 고정)
+        enemySpawnRate: 0.85, // 레벨 7과 동일하게 제한
+        maxEnemies: 10,       // 레벨 7과 동일하게 제한
+        enemyHealth: 7,       // 레벨 7과 동일하게 제한
+        patternChance: 0.85,  // 레벨 7과 동일하게 제한
+        fireInterval: 800,    // 레벨 7과 동일하게 제한
+        bombDropChance: 0.75, // 레벨 7과 동일하게 제한
+        bulletSpeed: 10,      // 총알 속도 제한 (10으로 고정)
+        specialPatternChance: 0.7 // 레벨 7과 동일하게 제한
     }
 };
 
@@ -1482,26 +1537,15 @@ function restartGame() {
 
 // 적 생성 함수 수정 - 화면 상단에서 등장하도록 개선
 function createEnemy(forceType = null) {
-    // 레벨 10 이상일 때는 레벨 10의 난이도를 기반으로 점진적 증가 (속도, 발사 간격, 생성률, 최대 적 수는 제한)
+    // 레벨 7 이상일 때는 레벨 7의 난이도로 고정 (모든 속성 증가 제한)
     let currentDifficulty;
-    if (gameLevel <= 10) {
+    if (gameLevel <= 6) {
         currentDifficulty = difficultySettings[gameLevel] || difficultySettings[1];
     } else {
-        // 레벨 10 이상: 기본 난이도 + 레벨 보너스 (속도와 발사 간격은 제한)
-        const baseDifficulty = difficultySettings[10];
-        const levelBonus = (gameLevel - 10) * 0.1; // 레벨당 10%씩 증가
+        // 레벨 7 이상: 모든 속성을 레벨 7과 동일하게 고정 (증가 제한)
+        currentDifficulty = difficultySettings[7];
         
-        currentDifficulty = {
-            enemySpeed: baseDifficulty.enemySpeed, // 레벨 10 이상에서 적 속도 증가 제한
-            enemySpawnRate: baseDifficulty.enemySpawnRate,
-            maxEnemies: baseDifficulty.maxEnemies,
-            enemyHealth: baseDifficulty.enemyHealth, // 레벨 10 이상에서 적 체력 증가 제한,
-            patternChance: Math.min(1.0, baseDifficulty.patternChance * (1 + levelBonus)),
-            fireInterval: baseDifficulty.fireInterval, // 레벨 10 이상에서 발사 간격 증가 제한
-            bombDropChance: Math.min(1.0, baseDifficulty.bombDropChance * (1 + levelBonus)),
-            bulletSpeed: baseDifficulty.bulletSpeed, // 레벨 10 이상에서 총알 속도 증가 제한
-            specialPatternChance: Math.min(1.0, baseDifficulty.specialPatternChance * (1 + levelBonus))
-        };
+        console.log(`createEnemy - 레벨 ${gameLevel}: 레벨 7 난이도로 고정 (속도: ${currentDifficulty.enemySpeed}, 적 수: ${currentDifficulty.maxEnemies}, 생성률: ${currentDifficulty.enemySpawnRate})`);
     }
     
     // 강제 타입이 지정된 경우 해당 타입으로 생성, 그렇지 않으면 기존 로직 사용
@@ -1516,9 +1560,9 @@ function createEnemy(forceType = null) {
                 speed: currentDifficulty.enemySpeed,
                 type: ENEMY_TYPES.PLANE,
                 health: currentDifficulty.enemyHealth,
-                score: gameLevel <= 10 ? 10 : 15, // 일반 비행기: 레벨 10 이하 10점, 레벨 10 이상 15점
-                isElite: Math.random() < (gameLevel <= 10 ? (0.05 + (gameLevel * 0.02)) : 0.25), // 레벨 10 이상에서는 엘리트 확률 제한
-                specialAbility: Math.random() < (gameLevel <= 10 ? (0.1 + (gameLevel * 0.03)) : 0.4) ? getRandomSpecialAbility() : null, // 레벨 10 이상에서는 특수 능력 확률 제한
+                score: gameLevel <= 6 ? 10 : 12, // 일반 비행기: 레벨 6 이하 10점, 레벨 7 이상 12점 (제한)
+                isElite: Math.random() < (gameLevel <= 6 ? (0.05 + (gameLevel * 0.02)) : 0.15), // 레벨 7 이상에서는 엘리트 확률 제한
+                specialAbility: Math.random() < (gameLevel <= 6 ? (0.1 + (gameLevel * 0.03)) : 0.25) ? getRandomSpecialAbility() : null, // 레벨 7 이상에서는 특수 능력 확률 제한
                 hasShield: false, // 일반 비행기는 보호막 없음
                 canFire: false, // 초기에는 발사 불가능
                 lastFireTime: 0,
@@ -1533,14 +1577,14 @@ function createEnemy(forceType = null) {
                 bulletSpeed: currentDifficulty.bulletSpeed
             };
 
-            // 엘리트 적 보너스 (속도, 발사 간격, 체력은 제한)
+            // 엘리트 적 보너스 (레벨 7 이상에서는 제한)
             if (enemy.isElite) {
-                // 레벨 10 이상에서는 체력 증가 제한
-                if (gameLevel <= 10) {
+                // 레벨 7 이상에서는 체력 증가 제한
+                if (gameLevel <= 6) {
                     enemy.health *= (1.5 + (gameLevel * 0.2));
                     enemy.speed *= 1.2;
                 } else {
-                    enemy.health *= 1.5; // 레벨 10 이상에서는 기본 보너스만
+                    enemy.health *= 1.5; // 레벨 7 이상에서는 기본 보너스만
                 }
                 // 엘리트 보너스 점수 비활성화
                 // enemy.score *= 2;
@@ -2896,26 +2940,15 @@ function handlePlayerMovement() {
 // 적 처리 함수 수정 - 적 생성 로직 개선
 function handleEnemies() {
     const currentTime = Date.now();
-    // 레벨 10 이상일 때는 레벨 10의 난이도를 기반으로 점진적 증가 (속도, 발사 간격, 생성률, 최대 적 수는 제한)
+    // 레벨 7 이상일 때는 레벨 7의 난이도로 고정 (모든 속성 증가 제한)
     let currentDifficulty;
-    if (gameLevel <= 10) {
+    if (gameLevel <= 6) {
         currentDifficulty = difficultySettings[gameLevel] || difficultySettings[1];
     } else {
-        // 레벨 10 이상: 기본 난이도 + 레벨 보너스 (속도와 발사 간격은 제한)
-        const baseDifficulty = difficultySettings[10];
-        const levelBonus = (gameLevel - 10) * 0.1; // 레벨당 10%씩 증가
+        // 레벨 7 이상: 모든 속성을 레벨 7과 동일하게 고정 (증가 제한)
+        currentDifficulty = difficultySettings[7];
         
-        currentDifficulty = {
-            enemySpeed: baseDifficulty.enemySpeed, // 레벨 10 이상에서 적 속도 증가 제한
-            enemySpawnRate: baseDifficulty.enemySpawnRate,
-            maxEnemies: baseDifficulty.maxEnemies,
-            enemyHealth: baseDifficulty.enemyHealth, // 레벨 10 이상에서 적 체력 증가 제한,
-            patternChance: Math.min(1.0, baseDifficulty.patternChance * (1 + levelBonus)),
-            fireInterval: baseDifficulty.fireInterval, // 레벨 10 이상에서 발사 간격 증가 제한
-            bombDropChance: Math.min(1.0, baseDifficulty.bombDropChance * (1 + levelBonus)),
-            bulletSpeed: baseDifficulty.bulletSpeed, // 레벨 10 이상에서 총알 속도 증가 제한
-            specialPatternChance: Math.min(1.0, baseDifficulty.specialPatternChance * (1 + levelBonus))
-        };
+        console.log(`handleEnemies - 레벨 ${gameLevel}: 레벨 7 난이도로 고정 (속도: ${currentDifficulty.enemySpeed}, 적 수: ${currentDifficulty.maxEnemies}, 생성률: ${currentDifficulty.enemySpawnRate})`);
     }
     
     // 보스 존재 여부 체크 - 더 정확한 체크
@@ -3516,9 +3549,9 @@ function handleBulletFiring() {
         canFire = false;  // 발사 후 즉시 발사 불가 상태로 변경
         
         if (hasSpreadShot) {
-            // 확산탄 발사
-            for (let i = -3; i <= 3; i++) {
-                const angle = (i * 12) * (Math.PI / 180);
+            // 확산탄 발사 (레벨 1 수준으로 제한 - 3발만 발사)
+            for (let i = -1; i <= 1; i++) { // -3~3에서 -1~1로 제한 (3발만)
+                const angle = (i * 15) * (Math.PI / 180); // 각도 간격을 12도에서 15도로 조정
                 const bullet = {
                     x: player.x + player.width/2, // 기본값에서
                     y: player.y,                  // 기본값에서
@@ -3556,8 +3589,9 @@ function handleBulletFiring() {
         // 두 번째 비행기 발사
         if (hasSecondPlane) {
             if (hasSpreadShot) {
-                for (let i = -3; i <= 3; i++) {
-                    const angle = (i * 12) * (Math.PI / 180);
+                // 두 번째 비행기 확산탄 발사 (레벨 1 수준으로 제한 - 3발만 발사)
+                for (let i = -1; i <= 1; i++) { // -3~3에서 -1~1로 제한 (3발만)
+                    const angle = (i * 15) * (Math.PI / 180); // 각도 간격을 12도에서 15도로 조정
                     const bullet = {
                         x: secondPlane.x + secondPlane.width/2,
                         y: secondPlane.y,
@@ -3602,36 +3636,36 @@ function handleBulletFiring() {
 // 특수 무기 처리 함수 수정
 function handleSpecialWeapon() {
     if (specialWeaponCharged && keys.KeyB) {  // KeyN을 KeyB로 변경
-        // 특수 무기 발사 - 더 많은 총알과 강력한 효과
-        for (let i = 0; i < 360; i += 5) { // 각도 간격을 10도에서 5도로 감소
+        // 특수 무기 발사 (레벨 1 수준으로 제한 - 총알 수 감소)
+        for (let i = 0; i < 360; i += 15) { // 각도 간격을 5도에서 15도로 증가 (총알 수 감소)
             const angle = (i * Math.PI) / 180;
             const bullet = {
                 x: player.x + player.width/2,
                 y: player.y,
-                width: 12,  // 총알 크기 증가
-                height: 12, // 총알 크기 증가
-                speed: 12,  // 속도 증가
+                width: 8,   // 총알 크기 제한 (12에서 8로 감소)
+                height: 8,  // 총알 크기 제한 (12에서 8로 감소)
+                speed: 10,  // 속도 제한 (12에서 10으로 감소)
                 angle: angle,
                 isSpecial: true,
-                life: 100,  // 총알 지속 시간 추가
+                life: 80,   // 총알 지속 시간 제한 (100에서 80으로 감소)
                 trail: []   // 꼬리 효과를 위한 배열
             };
             bullets.push(bullet);
         }
         
-        // 두 번째 비행기가 있을 경우 추가 발사
+        // 두 번째 비행기가 있을 경우 추가 발사 (레벨 1 수준으로 제한)
         if (hasSecondPlane) {
-            for (let i = 0; i < 360; i += 5) {
+            for (let i = 0; i < 360; i += 15) { // 각도 간격을 5도에서 15도로 증가 (총알 수 감소)
                 const angle = (i * Math.PI) / 180;
                 const bullet = {
                     x: secondPlane.x + secondPlane.width/2,
                     y: secondPlane.y,
-                    width: 12,
-                    height: 12,
-                    speed: 12,
+                    width: 8,   // 총알 크기 제한 (12에서 8로 감소)
+                    height: 8,  // 총알 크기 제한 (12에서 8로 감소)
+                    speed: 10,  // 속도 제한 (12에서 10으로 감소)
                     angle: angle,
                     isSpecial: true,
-                    life: 100,
+                    life: 80,   // 총알 지속 시간 제한 (100에서 80으로 감소)
                     trail: []
                 };
                 bullets.push(bullet);
@@ -4505,28 +4539,28 @@ function handleSpreadShot() {
             }
         }, 20000);
         
-        // 24발의 확산탄을 원형으로 발사 (8발에서 3배 증가)
-        for (let i = 0; i < 24; i++) {
-            const angle = (i * 15) * (Math.PI / 180); // 360도를 24등분 (360/24 = 15도)
+        // 8발의 확산탄을 원형으로 발사 (레벨 1 수준으로 제한 - 24발에서 8발로 감소)
+        for (let i = 0; i < 8; i++) { // 24발에서 8발로 감소
+            const angle = (i * 45) * (Math.PI / 180); // 360도를 8등분 (360/8 = 45도)
             const missile = {
                 x: player.x + player.width/2,  // 비행기 중앙 X좌표
                 y: player.y - player.height/2,  // 비행기 앞부분 Y좌표
-                width: 10,
-                height: 25,
-                speed: 8,  // 속도를 14.4에서 8로 감소
+                width: 8,   // 크기 제한 (10에서 8로 감소)
+                height: 20, // 크기 제한 (25에서 20으로 감소)
+                speed: 7,   // 속도 제한 (8에서 7로 감소)
                 angle: angle,
                 isSpread: true
             };
             bullets.push(missile);
 
-            // 두 번째 비행기가 있으면 확산탄 발사
+            // 두 번째 비행기가 있으면 확산탄 발사 (레벨 1 수준으로 제한)
             if (hasSecondPlane) {
                 const secondMissile = {
                     x: secondPlane.x + secondPlane.width/2,  // 두 번째 비행기 중앙 X좌표
                     y: secondPlane.y - secondPlane.height/2,  // 두 번째 비행기 앞부분 Y좌표
-                    width: 10,
-                    height: 25,
-                    speed: 8,  // 속도를 14.4에서 8로 감소
+                    width: 8,   // 크기 제한 (10에서 8로 감소)
+                    height: 20, // 크기 제한 (25에서 20으로 감소)
+                    speed: 7,   // 속도 제한 (8에서 7로 감소)
                     angle: angle,
                     isSpread: true
                 };
@@ -5845,25 +5879,10 @@ let singleShotCooldown = 500;  // 단발 발사 쿨다운 시간 (더 길게)
 let minPressDuration = 200;  // 연속 발사로 전환되는 최소 누름 시간
 let minReleaseDuration = 100;  // 단발 발사를 위한 최소 해제 시간
 
-// 총알 크기 계산 함수 수정
+// 총알 크기 계산 함수 수정 (레벨/점수 증가 제한)
 function calculateBulletSize() {
-    let size = baseBulletSize;
-    
-    // 현재 게임 점수에 따른 크기 증가
-    if (score >= 10000) {
-        size = 7.5;  // 1.5배 증가
-    } else if (score >= 5000) {
-        size = 6.75;  // 1.5배 증가
-    }
-    
-    // 난이도에 따른 크기 증가
-    if (gameLevel >= 4) {
-        size = Math.max(size, 7.5);  // 1.5배 증가
-    } else if (gameLevel >= 3) {
-        size = Math.max(size, 6.75);  // 1.5배 증가
-    }
-    
-    return size;
+    // 레벨 1의 기본 크기로 고정 (증가 제한)
+    return baseBulletSize;
 }
 
 // 게임 상태 변수에 추가
@@ -7456,53 +7475,85 @@ function startGameLoop() {
 // 게임 루프 실행 상태 변수
 let gameLoopRunning = false;
 
-// 총알 발사 함수
+// 통합된 총알 생성 함수 (PC/모바일 공통)
+function createUnifiedBullet() {
+    // 확산탄 발사
+    if (hasSpreadShot) {
+        // 확산탄 발사 (레벨 1 수준으로 제한 - 3발만 발사)
+        for (let i = -1; i <= 1; i++) { // -1~1로 제한 (3발만)
+            const angle = (i * 15) * (Math.PI / 180); // 각도 간격 15도
+            const bullet = {
+                x: player.x + player.width / 2,
+                y: player.y,
+                width: 4,   // 통일된 크기
+                height: 8,  // 통일된 크기
+                speed: 6,   // 통일된 속도
+                angle: angle,
+                damage: 100,
+                isBossBullet: false,
+                isSpecial: false
+            };
+            bullets.push(bullet);
+        }
+    } else {
+        // 일반 총알 발사 (레벨 1 수준으로 제한)
+        const bullet = {
+            x: player.x + player.width / 2,
+            y: player.y,
+            width: 4,   // 통일된 크기
+            height: 8,  // 통일된 크기
+            speed: 6,   // 통일된 속도
+            damage: 100,
+            isBossBullet: false,
+            isSpecial: false
+        };
+        bullets.push(bullet);
+    }
+    
+    // 두 번째 비행기 발사 (레벨 1 수준으로 제한)
+    if (hasSecondPlane) {
+        if (hasSpreadShot) {
+            // 두 번째 비행기 확산탄 발사 (레벨 1 수준으로 제한 - 3발만 발사)
+            for (let i = -1; i <= 1; i++) { // -1~1로 제한 (3발만)
+                const angle = (i * 15) * (Math.PI / 180); // 각도 간격 15도
+                const bullet = {
+                    x: secondPlane.x + secondPlane.width / 2,
+                    y: secondPlane.y,
+                    width: 4,   // 통일된 크기
+                    height: 8,  // 통일된 크기
+                    speed: 6,   // 통일된 속도
+                    angle: angle,
+                    damage: 100,
+                    isBossBullet: false,
+                    isSpecial: false
+                };
+                bullets.push(bullet);
+            }
+        } else {
+            const bullet = {
+                x: secondPlane.x + secondPlane.width / 2,
+                y: secondPlane.y,
+                width: 4,   // 통일된 크기
+                height: 8,  // 통일된 크기
+                speed: 6,   // 통일된 속도
+                damage: 100,
+                isBossBullet: false,
+                isSpecial: false
+            };
+            bullets.push(bullet);
+        }
+    }
+}
+
+// 통합된 총알 발사 함수 (PC/모바일 공통)
 function fireBullet() {
     if (!canFire || !gameStarted || isGameOver) return;
     
     const currentTime = Date.now();
     if (currentTime - lastFireTime < fireDelay) return;
     
-    // 확산탄 발사
-    if (hasSpreadShot) {
-        const spreadAngles = [-15, -12, -9, -6, -3, -1, 0, 1, 3, 6, 9, 12, 15, -10, -7, -4, -2, 2, 4, 7, 10, -8, -5, 5, 8, -11, -13, 11, 13, -14, 14];
-        spreadAngles.forEach(angle => {
-            const bullet = {
-                x: player.x + player.width / 2,
-                y: player.y,
-                width: 4,
-                height: 8,
-                speed: 6 * mobileSpeedMultiplier,
-                angle: (angle * Math.PI) / 180
-            };
-            bullets.push(bullet);
-        });
-    } else {
-        // 일반 총알 발사
-        const bullet = {
-            x: player.x + player.width / 2,
-            y: player.y,
-            width: 4,
-            height: 8,
-            speed: 6 * mobileSpeedMultiplier
-        };
-        bullets.push(bullet);
-    }
-    
-    // 두 번째 비행기 발사
-    if (hasSecondPlane) {
-        const bullet = {
-            x: secondPlane.x + secondPlane.width / 2,
-            y: secondPlane.y,
-            width: 4,
-            height: 8,
-            speed: 6 * mobileSpeedMultiplier
-        };
-        bullets.push(bullet);
-    }
-    
-    // 발사음은 제거 (적기에 맞았을 때만 재생)
-    // safePlay(shootSound);
+    // 통합된 총알 생성 (레벨 1 수준으로 제한)
+    createUnifiedBullet();
     
     lastFireTime = currentTime;
     canFire = false;
