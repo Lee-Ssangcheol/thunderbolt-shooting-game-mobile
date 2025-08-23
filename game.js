@@ -2076,29 +2076,47 @@ function handleEnemyPlaneBullets() {
     });
 }
 
-// 적 비행기 총알 발사 함수
+// 적 비행기 총알 발사 함수 (성능 최적화로 발사 개수 제한)
 function fireEnemyBullet(enemy) {
+    // 현재 화면에 있는 총알과 폭탄 개수 제한 (성능 최적화)
+    if (enemyBullets.length > 20) {
+        console.log('적 총알 개수 제한: 20개로 제한됨');
+        return; // 총알이 너무 많으면 발사 중단
+    }
+    
+    if (bombs.length > 8) {
+        console.log('폭탄 개수 제한: 8개로 제한됨');
+        return; // 폭탄이 너무 많으면 발사 중단
+    }
+    
     // 랜덤으로 총알 또는 폭탄 발사 결정
     if (Math.random() < 0.7) {  // 70% 확률로 총알 발사
         const leftX = enemy.x + enemy.width * 0.18;
         const rightX = enemy.x + enemy.width * 0.82;
         const bulletY = enemy.y + enemy.height;
-        enemyBullets.push({
-            x: leftX,
-            y: bulletY,
-            width: 8,
-            height: 18,
-            speed: enemy.bulletSpeed
-        });
-        enemyBullets.push({
-            x: rightX,
-            y: bulletY,
-            width: 8,
-            height: 18,
-            speed: enemy.bulletSpeed
-        });
+        
+        // 총알 개수 제한 (2발에서 1발로 감소)
+        if (Math.random() < 0.5) { // 50% 확률로 왼쪽만 발사
+            enemyBullets.push({
+                x: leftX,
+                y: bulletY,
+                width: 8,
+                height: 18,
+                speed: enemy.bulletSpeed
+            });
+        } else { // 50% 확률로 오른쪽만 발사
+            enemyBullets.push({
+                x: rightX,
+                y: bulletY,
+                width: 8,
+                height: 18,
+                speed: enemy.bulletSpeed
+            });
+        }
     } else {  // 30% 확률로 폭탄 발사
-        for (let i = 0; i < enemy.bombCount; i++) {
+        // 폭탄 개수 제한 (기존 bombCount에서 최대 2개로 제한)
+        const maxBombs = Math.min(enemy.bombCount, 2);
+        for (let i = 0; i < maxBombs; i++) {
             createBomb(enemy);
         }
     }
@@ -2116,12 +2134,12 @@ function handleEnemyMissiles() {
         if (enemy.type === ENEMY_TYPES.PLANE && enemy.missiles) {
             const currentTime = Date.now();
 
-            // 10초 간격으로 1발씩, 최대 2발만 발사
+            // 미사일 발사 개수 제한 (성능 최적화)
             if (
                 enemy.canFire &&
                 currentTime - enemy.lastFireTime >= enemy.fireInterval &&
                 enemy.missileCount > 0 &&
-                enemy.missiles.length < 2 // 동시에 2발까지만
+                enemy.missiles.length < 1 // 동시에 1발까지만 (2발에서 1발로 제한)
             ) {
                 createEnemyMissile(enemy);
                 enemy.lastFireTime = currentTime;
@@ -3217,6 +3235,13 @@ function checkEnemyCollisions(enemy) {
         }
 
         if (checkCollision(bullet, enemy)) {
+            console.log('총알과 적 충돌 감지:', {
+                bulletType: bullet.isSpecial ? '특수무기' : (bullet.isSpread ? '확산탄' : '일반총알'),
+                enemyType: enemy.type,
+                enemyHealth: enemy.health,
+                isBoss: enemy.isBoss
+            });
+            
             // 보스인 경우 체력 감소
             if (enemy.isBoss) {
                 const currentTime = Date.now();
@@ -3450,11 +3475,49 @@ function checkEnemyCollisions(enemy) {
                     isHit = true;
                 }
             } else {
-                // 일반 적 처치
-                explosions.push(new Explosion(
-                    enemy.x + enemy.width/2,
-                    enemy.y + enemy.height/2
-                ));
+                // 일반 적 처치 (특수무기와 확산탄 포함)
+                console.log('일반 적 파괴됨:', {
+                    type: enemy.type,
+                    isSpecial: bullet.isSpecial,
+                    isSpread: bullet.isSpread,
+                    bulletSize: `${bullet.width}x${bullet.height}`
+                });
+                
+                // 특수무기나 확산탄인 경우 즉시 파괴 + 더 큰 폭발 효과
+                if (bullet.isSpecial || bullet.isSpread) {
+                    console.log(`${bullet.isSpecial ? '특수무기' : '확산탄'}로 적 즉시 파괴!`);
+                    
+                    // 적 즉시 파괴
+                    enemy.health = 0;
+                    
+                    // 큰 폭발 효과
+                    explosions.push(new Explosion(
+                        enemy.x + enemy.width/2,
+                        enemy.y + enemy.height/2,
+                        true // 큰 폭발
+                    ));
+                    
+                    // 추가 폭발 효과 (특수무기/확산탄용)
+                    for (let i = 0; i < 6; i++) {
+                        const angle = (Math.PI * 2 / 6) * i;
+                        const distance = 30;
+                        explosions.push(new Explosion(
+                            enemy.x + enemy.width/2 + Math.cos(angle) * distance,
+                            enemy.y + enemy.height/2 + Math.sin(angle) * distance,
+                            false
+                        ));
+                    }
+                    
+                    // 특수무기/확산탄 효과음
+                    safePlay(explosionSound);
+                } else {
+                    // 일반 총알인 경우 기본 폭발 효과
+                    explosions.push(new Explosion(
+                        enemy.x + enemy.width/2,
+                        enemy.y + enemy.height/2
+                    ));
+                }
+                
                 updateScore(enemy.score);
                 // 추가: 플레이어 총알이 적 비행기/헬기에 명중 시 발사음 재생
                 safePlay(shootSound);
@@ -3636,36 +3699,45 @@ function handleBulletFiring() {
 // 특수 무기 처리 함수 수정
 function handleSpecialWeapon() {
     if (specialWeaponCharged && keys.KeyB) {  // KeyN을 KeyB로 변경
-        // 특수 무기 발사 (레벨 1 수준으로 제한 - 총알 수 감소)
-        for (let i = 0; i < 360; i += 15) { // 각도 간격을 5도에서 15도로 증가 (총알 수 감소)
-            const angle = (i * Math.PI) / 180;
+        // 특수 무기 발사 (45도 범위 내에서 24개 발사, 완전히 상단 방향)
+        // 상단 방향은 -90도(왼쪽 위)에서 -90도(오른쪽 위)까지
+        const startAngle = -90 * (Math.PI / 180) - (22.5 * Math.PI / 180); // -112.5도 시작
+        const endAngle = -90 * (Math.PI / 180) + (22.5 * Math.PI / 180);   // -67.5도 끝 (총 45도 범위)
+        const angleStep = (endAngle - startAngle) / 23; // 24개 총알을 위한 각도 간격
+        
+        for (let i = 0; i < 24; i++) { // 24발 발사
+            const angle = startAngle + (i * angleStep);
             const bullet = {
                 x: player.x + player.width/2,
                 y: player.y,
-                width: 8,   // 총알 크기 제한 (12에서 8로 감소)
-                height: 8,  // 총알 크기 제한 (12에서 8로 감소)
-                speed: 10,  // 속도 제한 (12에서 10으로 감소)
+                width: 12,  // 총알 크기 2배 증가 (6에서 12로)
+                height: 12, // 총알 크기 2배 증가 (6에서 12로)
+                speed: 12,  // 속도 최적화
                 angle: angle,
                 isSpecial: true,
-                life: 80,   // 총알 지속 시간 제한 (100에서 80으로 감소)
+                life: 100,  // 총알 지속 시간 최적화
                 trail: []   // 꼬리 효과를 위한 배열
             };
             bullets.push(bullet);
         }
         
-        // 두 번째 비행기가 있을 경우 추가 발사 (레벨 1 수준으로 제한)
+        // 두 번째 비행기가 있을 경우 추가 발사 (45도 범위 내에서 24개 발사, 완전히 상단 방향)
         if (hasSecondPlane) {
-            for (let i = 0; i < 360; i += 15) { // 각도 간격을 5도에서 15도로 증가 (총알 수 감소)
-                const angle = (i * Math.PI) / 180;
+            const startAngle = -90 * (Math.PI / 180) - (22.5 * Math.PI / 180); // -112.5도 시작
+            const endAngle = -90 * (Math.PI / 180) + (22.5 * Math.PI / 180);   // -67.5도 끝 (총 45도 범위)
+            const angleStep = (endAngle - startAngle) / 23; // 24개 총알을 위한 각도 간격
+            
+            for (let i = 0; i < 24; i++) { // 24발 발사
+                const angle = startAngle + (i * angleStep);
                 const bullet = {
                     x: secondPlane.x + secondPlane.width/2,
                     y: secondPlane.y,
-                    width: 8,   // 총알 크기 제한 (12에서 8로 감소)
-                    height: 8,  // 총알 크기 제한 (12에서 8로 감소)
-                    speed: 10,  // 속도 제한 (12에서 10으로 감소)
+                    width: 12,  // 총알 크기 2배 증가 (6에서 12로)
+                    height: 12, // 총알 크기 2배 증가 (6에서 12로)
+                    speed: 12,  // 속도 최적화
                     angle: angle,
                     isSpecial: true,
-                    life: 80,   // 총알 지속 시간 제한 (100에서 80으로 감소)
+                    life: 100,  // 총알 지속 시간 최적화
                     trail: []
                 };
                 bullets.push(bullet);
@@ -4539,28 +4611,33 @@ function handleSpreadShot() {
             }
         }, 20000);
         
-        // 8발의 확산탄을 원형으로 발사 (레벨 1 수준으로 제한 - 24발에서 8발로 감소)
-        for (let i = 0; i < 8; i++) { // 24발에서 8발로 감소
-            const angle = (i * 45) * (Math.PI / 180); // 360도를 8등분 (360/8 = 45도)
+        // 24발의 확산탄을 45도 범위 내에서 부채꼴 모양으로 발사 (상단 방향)
+        // 상단 방향은 -90도(왼쪽 위)에서 -90도(오른쪽 위)까지
+        const startAngle = -90 * (Math.PI / 180) - (22.5 * Math.PI / 180); // -112.5도 시작
+        const endAngle = -90 * (Math.PI / 180) + (22.5 * Math.PI / 180);   // -67.5도 끝 (총 45도 범위)
+        const angleStep = (endAngle - startAngle) / 23; // 24개 총알을 위한 각도 간격
+        
+        for (let i = 0; i < 24; i++) { // 24발 발사
+            const angle = startAngle + (i * angleStep);
             const missile = {
                 x: player.x + player.width/2,  // 비행기 중앙 X좌표
                 y: player.y - player.height/2,  // 비행기 앞부분 Y좌표
-                width: 8,   // 크기 제한 (10에서 8로 감소)
-                height: 20, // 크기 제한 (25에서 20으로 감소)
-                speed: 7,   // 속도 제한 (8에서 7로 감소)
+                width: 12,  // 크기 2배 증가 (6에서 12로)
+                height: 32, // 크기 2배 증가 (16에서 32로)
+                speed: 8,   // 속도 최적화
                 angle: angle,
                 isSpread: true
             };
             bullets.push(missile);
 
-            // 두 번째 비행기가 있으면 확산탄 발사 (레벨 1 수준으로 제한)
+            // 두 번째 비행기가 있으면 확산탄 발사
             if (hasSecondPlane) {
                 const secondMissile = {
                     x: secondPlane.x + secondPlane.width/2,  // 두 번째 비행기 중앙 X좌표
                     y: secondPlane.y - secondPlane.height/2,  // 두 번째 비행기 앞부분 Y좌표
-                    width: 8,   // 크기 제한 (10에서 8로 감소)
-                    height: 20, // 크기 제한 (25에서 20으로 감소)
-                    speed: 7,   // 속도 제한 (8에서 7로 감소)
+                    width: 12,  // 크기 2배 증가 (6에서 12로)
+                    height: 32, // 크기 2배 증가 (16에서 32로)
+                    speed: 8,   // 속도 최적화
                     angle: angle,
                     isSpread: true
                 };
@@ -4748,7 +4825,7 @@ function handleBullets() {
                 return false;
             }
         } else if (bullet.isSpecial) {
-            // 특수 무기 총알 처리
+            // 특수 무기 총알 처리 (상단 방향으로 발사)
             bullet.x += Math.cos(bullet.angle) * bullet.speed;
             bullet.y += Math.sin(bullet.angle) * bullet.speed;
             
@@ -4756,20 +4833,25 @@ function handleBullets() {
             bullet.trail.unshift({x: bullet.x, y: bullet.y});
             if (bullet.trail.length > 5) bullet.trail.pop();
             
-            // 총알 그리기
+            // 총알 그리기 (청록색 원형, 더 큰 크기로 시각적 효과 향상)
             ctx.fillStyle = '#00ffff';
-            ctx.fillRect(bullet.x - bullet.width/2, bullet.y - bullet.height/2, bullet.width, bullet.height);
             
-            // 꼬리 그리기
+            // 원형 특수무기 총알 그리기
+            ctx.beginPath();
+            ctx.arc(bullet.x, bullet.y, bullet.width/2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 꼬리 그리기 (원형)
             bullet.trail.forEach((pos, index) => {
                 const alpha = 1 - (index / bullet.trail.length);
+                const trailSize = bullet.width/2 * (1 - index/bullet.trail.length);
                 ctx.fillStyle = `rgba(0, 255, 255, ${alpha * 0.5})`;
-                ctx.fillRect(pos.x - bullet.width/2, pos.y - bullet.height/2, 
-                            bullet.width * (1 - index/bullet.trail.length), 
-                            bullet.height * (1 - index/bullet.trail.length));
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, trailSize, 0, Math.PI * 2);
+                ctx.fill();
             });
             
-            // 총알 주변에 빛나는 효과
+            // 총알 주변에 빛나는 효과 (원형)
             const gradient = ctx.createRadialGradient(
                 bullet.x, bullet.y, 0,
                 bullet.x, bullet.y, bullet.width
@@ -4777,23 +4859,52 @@ function handleBullets() {
             gradient.addColorStop(0, 'rgba(0, 255, 255, 0.3)');
             gradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
             ctx.fillStyle = gradient;
-            ctx.fillRect(bullet.x - bullet.width, bullet.y - bullet.height, 
-                        bullet.width * 2, bullet.height * 2);
+            ctx.beginPath();
+            ctx.arc(bullet.x, bullet.y, bullet.width, 0, Math.PI * 2);
+            ctx.fill();
             
             // 총알 지속 시간 감소
             bullet.life--;
             if (bullet.life <= 0) return false;
+            
+            // 특수무기 충돌 감지는 기존 충돌 감지 시스템에서 처리됨
+            // 여기서는 총알만 제거하지 않고 계속 이동하도록 함
         } else if (bullet.isSpread) {
-            // 확산탄 이동
-            bullet.x += Math.sin(bullet.angle) * bullet.speed;
-            bullet.y -= Math.cos(bullet.angle) * bullet.speed;
-            ctx.fillStyle = '#00CED1';
-            ctx.fillRect(bullet.x - bullet.width/2, bullet.y - bullet.height/2, bullet.width, bullet.height);
+            // 확산탄 이동 (각도 계산 수정)
+            bullet.x += Math.cos(bullet.angle) * bullet.speed;
+            bullet.y += Math.sin(bullet.angle) * bullet.speed;
+            
+            // 확산탄 그리기 (노란색 원형, 더 큰 크기로 시각적 효과 향상)
+            ctx.fillStyle = '#FFD700'; // 노란색으로 변경
+            
+            // 원형 확산탄 그리기
+            ctx.beginPath();
+            ctx.arc(bullet.x, bullet.y, bullet.width/2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 확산탄 주변에 빛나는 효과 (노란색 원형)
+            const gradient = ctx.createRadialGradient(
+                bullet.x, bullet.y, 0,
+                bullet.x, bullet.y, bullet.width
+            );
+            gradient.addColorStop(0, 'rgba(255, 215, 0, 0.3)'); // 노란색
+            gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');   // 노란색
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(bullet.x, bullet.y, bullet.width, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 확산탄 충돌 감지는 기존 충돌 감지 시스템에서 처리됨
+            // 여기서는 총알만 제거하지 않고 계속 이동하도록 함
         } else {
             // 일반 총알 이동
             bullet.y -= bullet.speed;
             ctx.fillStyle = 'yellow';
-            ctx.fillRect(bullet.x - bullet.width/2, bullet.y - bullet.height/2, bullet.width, bullet.height);
+            
+            // 원형 일반 총알 그리기
+            ctx.beginPath();
+            ctx.arc(bullet.x, bullet.y, bullet.width/2, 0, Math.PI * 2);
+            ctx.fill();
         }
         
         // 헬리콥터 총알과 충돌 체크
@@ -7477,16 +7588,19 @@ let gameLoopRunning = false;
 
 // 통합된 총알 생성 함수 (PC/모바일 공통)
 function createUnifiedBullet() {
-    // 확산탄 발사
+    // 확산탄 발사 (45도 범위 내에서 24개 발사, 상단 방향)
     if (hasSpreadShot) {
-        // 확산탄 발사 (레벨 1 수준으로 제한 - 3발만 발사)
-        for (let i = -1; i <= 1; i++) { // -1~1로 제한 (3발만)
-            const angle = (i * 15) * (Math.PI / 180); // 각도 간격 15도
+        const startAngle = -90 * (Math.PI / 180) - (22.5 * Math.PI / 180); // -112.5도 시작
+        const endAngle = -90 * (Math.PI / 180) + (22.5 * Math.PI / 180);   // -67.5도 끝 (총 45도 범위)
+        const angleStep = (endAngle - startAngle) / 23; // 24개 총알을 위한 각도 간격
+        
+        for (let i = 0; i < 24; i++) { // 24발 발사
+            const angle = startAngle + (i * angleStep);
             const bullet = {
                 x: player.x + player.width / 2,
                 y: player.y,
-                width: 4,   // 통일된 크기
-                height: 8,  // 통일된 크기
+                width: 8,   // 크기 2배 증가 (4에서 8로)
+                height: 16, // 크기 2배 증가 (8에서 16으로)
                 speed: 6,   // 통일된 속도
                 angle: angle,
                 damage: 100,
@@ -7510,26 +7624,30 @@ function createUnifiedBullet() {
         bullets.push(bullet);
     }
     
-    // 두 번째 비행기 발사 (레벨 1 수준으로 제한)
-    if (hasSecondPlane) {
-        if (hasSpreadShot) {
-            // 두 번째 비행기 확산탄 발사 (레벨 1 수준으로 제한 - 3발만 발사)
-            for (let i = -1; i <= 1; i++) { // -1~1로 제한 (3발만)
-                const angle = (i * 15) * (Math.PI / 180); // 각도 간격 15도
-                const bullet = {
-                    x: secondPlane.x + secondPlane.width / 2,
-                    y: secondPlane.y,
-                    width: 4,   // 통일된 크기
-                    height: 8,  // 통일된 크기
-                    speed: 6,   // 통일된 속도
-                    angle: angle,
-                    damage: 100,
-                    isBossBullet: false,
-                    isSpecial: false
-                };
-                bullets.push(bullet);
-            }
-        } else {
+            // 두 번째 비행기 발사 (레벨 1 수준으로 제한)
+        if (hasSecondPlane) {
+            if (hasSpreadShot) {
+                // 두 번째 비행기 확산탄 발사 (45도 범위 내에서 24개 발사, 상단 방향)
+                const startAngle = -90 * (Math.PI / 180) - (22.5 * Math.PI / 180); // -112.5도 시작
+                const endAngle = -90 * (Math.PI / 180) + (22.5 * Math.PI / 180);   // -67.5도 끝 (총 45도 범위)
+                const angleStep = (endAngle - startAngle) / 23; // 24개 총알을 위한 각도 간격
+                
+                for (let i = 0; i < 24; i++) { // 24발 발사
+                    const angle = startAngle + (i * angleStep);
+                    const bullet = {
+                        x: secondPlane.x + secondPlane.width / 2,
+                        y: secondPlane.y,
+                        width: 8,   // 크기 2배 증가 (4에서 8로)
+                        height: 16, // 크기 2배 증가 (8에서 16으로)
+                        speed: 6,   // 통일된 속도
+                        angle: angle,
+                        damage: 100,
+                        isBossBullet: false,
+                        isSpecial: false
+                    };
+                    bullets.push(bullet);
+                }
+            } else {
             const bullet = {
                 x: secondPlane.x + secondPlane.width / 2,
                 y: secondPlane.y,
