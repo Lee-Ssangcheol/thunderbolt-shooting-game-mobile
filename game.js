@@ -1305,6 +1305,7 @@ async function initializeGame() {
         
         // 보스 관련 상태 초기화
         bossActive = false;
+        isBossActive = false;
         bossHealth = 0;
         bossDestroyed = false;
         lastBossSpawnTime = Date.now();
@@ -1419,6 +1420,15 @@ function restartGame() {
     helicopterBullets = [];
     enemyBullets = [];
     collisionEffects = [];
+    
+    // 보스 관련 상태 완전 초기화
+    bossActive = false;
+    isBossActive = false;
+    bossHealth = 0;
+    bossDestroyed = false;
+    bossPattern = 0;
+    bossTimer = 0;
+    lastBossSpawnTime = Date.now();
     
     // 보호막 헬리콥터 관련 변수 초기화
     shieldedHelicopterDestroyed = 0;
@@ -2753,6 +2763,12 @@ function gameLoop() {
             }
         }
 
+        // 보스 총알 정리 (보스가 파괴된 후 남은 총알 제거)
+        if (bossDestroyed || !bossActive) {
+            bullets = bullets.filter(bullet => !bullet.isBossBullet);
+            console.log('보스 파괴 후 남은 보스 총알 정리 완료');
+        }
+        
         // 총알 이동 및 충돌 체크
         handleBullets();
 
@@ -3238,16 +3254,25 @@ function checkEnemyCollisions(enemy) {
                 // 추가: 플레이어 총알이 보스에 명중 시 발사음도 재생
                 safePlay(shootSound);
                 
-                // 체력이 0이 되면 보스 파괴 (최소 체류 시간 체크)
+                // 체력이 0이 되면 보스 파괴 (25발 맞으면 즉시 파괴)
                 if (enemy.health <= 0) {
                     const currentTime = Date.now();
                     const timeSinceSpawn = currentTime - (enemy.spawnTime || currentTime);
                     const minStayTime = enemy.minStayTime || BOSS_SETTINGS.MIN_STAY_TIME;
                     
-                    // 최소 체류 시간이 지나지 않았으면 파괴 방지
-                    if (timeSinceSpawn < minStayTime) {
+                    // 25발을 맞춘 경우 (hitCount >= 25) 즉시 파괴
+                    if (enemy.hitCount >= 25) {
+                        console.log('보스 25발 맞음 - 즉시 파괴:', {
+                            health: enemy.health,
+                            hitCount: enemy.hitCount,
+                            timeSinceSpawn: timeSinceSpawn,
+                            minStayTime: minStayTime
+                        });
+                    } else if (timeSinceSpawn < minStayTime) {
+                        // 25발 미만이고 최소 체류 시간이 지나지 않았으면 파괴 방지
                         console.log('보스 최소 체류 시간 미달 - 파괴 방지:', {
                             health: enemy.health,
+                            hitCount: enemy.hitCount,
                             timeSinceSpawn: timeSinceSpawn,
                             minStayTime: minStayTime,
                             remainingTime: minStayTime - timeSinceSpawn
@@ -3259,12 +3284,22 @@ function checkEnemyCollisions(enemy) {
                         return false;
                     }
                     
-                    console.log('보스 파괴됨 - 체력 소진:', {
-                        health: enemy.health,
-                        hitCount: enemy.hitCount,
-                        timeSinceSpawn: timeSinceSpawn,
-                        minStayTime: minStayTime
-                    });
+                    // 파괴 조건에 따른 로그 메시지
+                    if (enemy.hitCount >= 25) {
+                        console.log('🎯 보스 파괴됨 - 25발 명중 달성!:', {
+                            health: enemy.health,
+                            hitCount: enemy.hitCount,
+                            timeSinceSpawn: timeSinceSpawn,
+                            minStayTime: minStayTime
+                        });
+                    } else {
+                        console.log('⏰ 보스 파괴됨 - 최소 체류 시간 완료:', {
+                            health: enemy.health,
+                            hitCount: enemy.hitCount,
+                            timeSinceSpawn: timeSinceSpawn,
+                            minStayTime: minStayTime
+                        });
+                    }
                     
                     // 보스 상태 즉시 정리 (지연 없음)
                     enemy.health = 0;
@@ -4779,17 +4814,17 @@ function getBossScore() {
 
 // 보스 관련 상수 추가
 const BOSS_SETTINGS = {
-    HEALTH: 5000,        // 체력 5000으로 상향 (50발 맞으면 파괴)
+    HEALTH: 5000,        // 체력 5000으로 원상복구 (50발 맞으면 파괴)
     DAMAGE: 50,          // 보스 총알 데미지
     SPEED: 2.0,         // 보스 이동 속도를 2.0으로 조정 (적당한 속도)
     BULLET_SPEED: 4,    // 보스 총알 속도를 3에서 4로 증가
-    PATTERN_INTERVAL: 2000, // 2초(2000ms)로 단축 (더 빠른 패턴 전환)
+    PATTERN_INTERVAL: 3000, // 3초(3000ms)로 증가 (기존 1.5초의 2배)
     SPAWN_INTERVAL: 8000,   // 보스 출현 간격을 8초로 단축 (더 자주 등장)
-    MIN_STAY_TIME: 12000,   // 보스 최소 체류 시간 12초
-    PHASE_THRESHOLDS: [  // 페이즈 전환 체력 임계값
-        { health: 3750, speed: 2.5, bulletSpeed: 5 },    // 속도 증가
-        { health: 2500, speed: 3.0, bulletSpeed: 6 },    // 속도 증가
-        { health: 1250, speed: 3.5, bulletSpeed: 7 }     // 속도 증가
+    MIN_STAY_TIME: 10000,   // 보스 최소 체류 시간 10초로 단축
+    PHASE_THRESHOLDS: [  // 페이즈 전환 체력 임계값 (체력 5000 기준으로 원상복구)
+        { health: 3750, speed: 2.5, bulletSpeed: 5 },    // 속도 증가 (75%)
+        { health: 2500, speed: 3.0, bulletSpeed: 6 },    // 속도 증가 (50%)
+        { health: 1250, speed: 3.5, bulletSpeed: 7 }     // 속도 증가 (25%)
     ]
 };
 
@@ -4910,7 +4945,7 @@ function createBoss() {
         hitDuration: null, // 피격 상태 지속 시간
         type: ENEMY_TYPES.HELICOPTER,
         rotorAngle: 0,
-        rotorSpeed: 0.16, // 보스 로터 속도를 80%로 감소 (0.2 * 0.8 = 0.16)
+        rotorSpeed: 0.1, // 보스 로터 속도를 50%로 감소 (0.2 * 0.5 = 0.1)
         hoverHeight: 150,
         hoverTimer: 0,
         hoverDirection: 1,
@@ -4924,8 +4959,8 @@ function createBoss() {
         meteorPhase: 0,    // 유성형 패턴용 페이즈
         // 보스 체류 시간 관리
         spawnTime: currentTime,           // 생성 시간 기록
-        minStayTime: BOSS_SETTINGS.MIN_STAY_TIME,  // 최소 체류 시간
-        canBeDestroyed: false            // 최소 체류 시간 전까지는 파괴 불가
+        minStayTime: BOSS_SETTINGS.MIN_STAY_TIME,  // 최소 체류 시간 (10초)
+        // 파괴 조건: 25발 명중 또는 10초 경과
     };
     
     // 보스 추가
@@ -4971,9 +5006,14 @@ function resetBossState() {
 
 // 보스 패턴 처리 함수 수정
 function handleBossPattern(boss) {
-    // 보스 객체 유효성 검증
-    if (!boss || typeof boss !== 'object' || boss.health <= 0) {
-        console.warn('handleBossPattern: 유효하지 않은 보스 객체', boss);
+    // 보스 객체 유효성 검증 (더 엄격하게)
+    if (!boss || typeof boss !== 'object' || boss.health <= 0 || bossDestroyed || !bossActive) {
+        console.warn('handleBossPattern: 유효하지 않은 보스 상태', {
+            boss: boss,
+            bossDestroyed: bossDestroyed,
+            bossActive: bossActive,
+            health: boss ? boss.health : 'N/A'
+        });
         return;
     }
     
@@ -5028,45 +5068,230 @@ function handleBossPattern(boss) {
         boss.rotorAngle += boss.rotorSpeed;
     }
     
-    // 보스 이동 패턴 (개선된 체류 시간)
+    // 보스 이동 패턴 (화면 중앙 체공 및 역동적 움직임)
     if (boss.movePhase === 0) {
-        // 초기 진입 - 비규칙적인 경로로 진입 (더 천천히)
+        // 초기 진입 - 화면 중앙으로 진입
         if (typeof boss.speed !== 'undefined') {
-            boss.y += boss.speed * 0.5; // 진입 속도 절반으로 감소
+            boss.y += boss.speed * 0.6; // 진입 속도 조정
         }
-        boss.x += Math.sin(currentTime / 800) * 1.5; // 진입 움직임 감소
+        // 화면 중앙으로 수렴하는 진입 경로
+        const targetX = canvas.width / 2 - boss.width / 2;
+        const dx = targetX - boss.x;
+        boss.x += dx * 0.02; // 부드럽게 중앙으로 이동
+        
         if (typeof boss.hoverHeight !== 'undefined' && boss.y >= boss.hoverHeight) {
             boss.movePhase = 1;
             boss.timer = currentTime;
-            console.log('🚁 보스 호버링 시작 - 체류 시간 보장');
+            boss.centerX = canvas.width / 2 - boss.width / 2; // 중앙 기준점 설정
+            console.log('🚁 보스 중앙 호버링 시작 - 역동적 패턴 준비', {
+                centerX: boss.centerX,
+                hoverHeight: boss.hoverHeight,
+                currentX: boss.x,
+                currentY: boss.y
+            });
         }
     } else if (boss.movePhase === 1) {
-        // 호버링 패턴 (더 오래 머물도록 개선)
+        // 중앙 호버링 패턴 (화면 중앙에서 다양한 움직임)
         const timeFactor = (currentTime - boss.timer) / 1000;
         
-        // 기본 호버링 움직임 (더 부드럽게)
-        if (typeof boss.speed !== 'undefined') {
-            boss.x += Math.sin(timeFactor * 0.3) * boss.speed * 0.8; // 좌우 움직임 감소
-        }
-        if (typeof boss.hoverHeight !== 'undefined') {
-            boss.y = boss.hoverHeight + Math.sin(timeFactor * 0.3) * 15; // 상하 움직임 감소
+        // 중앙 기준 움직임 (점핑 현상 완전 제거 - 완전히 새로운 시스템)
+        if (typeof boss.centerX !== 'undefined' && typeof boss.hoverHeight !== 'undefined') {
+            // 움직임을 매우 작은 단위로 제한하고 부드럽게 처리
+            const baseAmplitude = 40; // 기본 진폭을 40px로 대폭 축소
+            const phaseMultiplier = Math.max(0.5, 1 - (boss.phase * 0.1)); // 페이즈가 높을수록 움직임 감소
+            
+            // 1. 기본 호버링 움직임 (매우 부드럽게)
+            const centerOffset = Math.sin(timeFactor * 0.2) * baseAmplitude * phaseMultiplier; // 속도와 진폭 모두 감소
+            const verticalOffset = Math.sin(timeFactor * 0.3) * (baseAmplitude * 0.3) * phaseMultiplier; // 상하 움직임 더 작게
+            
+            // 2. 페이즈별 추가 움직임 (극히 작은 범위)
+            let additionalX = 0;
+            let additionalY = 0;
+            
+            if (boss.phase >= 2) {
+                // 2페이즈: 극히 작은 원형 움직임
+                const circleRadius = 8; // 반지름 대폭 축소
+                const circleSpeed = 0.3; // 속도 대폭 감소
+                additionalX = Math.cos(timeFactor * circleSpeed) * circleRadius * 0.02; // 영향력 극소화
+                additionalY = Math.sin(timeFactor * circleSpeed) * circleRadius * 0.02;
+            }
+            
+            if (boss.phase >= 3) {
+                // 3페이즈: 극히 작은 지그재그 움직임
+                const zigzagOffset = Math.sin(timeFactor * 0.4) * 5; // 범위 대폭 축소
+                additionalX += zigzagOffset * 0.01; // 영향력 극소화
+            }
+            
+            // 3. 최종 위치 설정 (매우 안정적으로)
+            const newX = boss.centerX + centerOffset + additionalX;
+            const newY = boss.hoverHeight + verticalOffset + additionalY;
+            
+            // 4. 위치 변화량 제한 (한 프레임에 최대 2px만 이동)
+            const maxFrameMove = 2;
+            const deltaX = newX - boss.x;
+            const deltaY = newY - boss.y;
+            
+            if (Math.abs(deltaX) > maxFrameMove) {
+                boss.x += Math.sign(deltaX) * maxFrameMove;
+            } else {
+                boss.x = newX;
+            }
+            
+            if (Math.abs(deltaY) > maxFrameMove) {
+                boss.y += Math.sign(deltaY) * maxFrameMove;
+            } else {
+                boss.y = newY;
+            }
+            
+            // 디버깅: 위치 변화 모니터링
+            if (!boss.lastDebugLog || currentTime - boss.lastDebugLog > 2000) {
+                console.log('🔍 보스 움직임 디버깅 (새로운 시스템):', {
+                    centerX: Math.round(boss.centerX),
+                    hoverHeight: Math.round(boss.hoverHeight),
+                    centerOffset: Math.round(centerOffset),
+                    verticalOffset: Math.round(verticalOffset),
+                    additionalX: Math.round(additionalX),
+                    additionalY: Math.round(additionalY),
+                    deltaX: Math.round(deltaX),
+                    deltaY: Math.round(deltaY),
+                    finalX: Math.round(boss.x),
+                    finalY: Math.round(boss.y),
+                    phase: boss.phase,
+                    phaseMultiplier: Math.round(phaseMultiplier * 100) / 100
+                });
+                boss.lastDebugLog = currentTime;
+            }
         }
         
-        // 랜덤한 오프셋 추가 (더 부드럽게)
-        if (typeof boss.randomSpeed !== 'undefined' && typeof boss.randomAngle !== 'undefined' && 
-            typeof boss.randomOffsetX !== 'undefined' && typeof boss.randomOffsetY !== 'undefined') {
-            boss.x += Math.sin(timeFactor * boss.randomSpeed * 0.5 + boss.randomAngle) * boss.randomOffsetX * 0.005; // 랜덤 움직임 감소
-            boss.y += Math.cos(timeFactor * boss.randomSpeed * 0.5 + boss.randomAngle) * boss.randomOffsetY * 0.005;
+        // 화면 경계 체크 (부드러운 제한) - 점핑 현상 방지
+        const maxOffset = 80; // 중앙에서 최대 80px까지만 이동 (100에서 더 축소)
+        const centerX = canvas.width / 2 - boss.width / 2;
+        
+        // X축 경계 체크 (부드럽게)
+        if (Math.abs(boss.x - centerX) > maxOffset) {
+            const oldX = boss.x;
+            // 부드러운 제한: 현재 위치에서 점진적으로 조정
+            const direction = boss.x > centerX ? 1 : -1;
+            const adjustment = Math.min(Math.abs(boss.x - centerX) - maxOffset, 5); // 최대 5px씩 조정
+            boss.x -= direction * adjustment;
+            
+            console.log('🚁 보스 X축 부드러운 경계 제한:', { 
+                oldX: Math.round(oldX), 
+                newX: Math.round(boss.x),
+                adjustment: Math.round(adjustment)
+            });
         }
         
-        // 화면 경계 체크 및 반전 (더 부드럽게)
-        if (typeof boss.randomOffsetX !== 'undefined' && (boss.x < 50 || boss.x > canvas.width - boss.width - 50)) {
-            boss.randomOffsetX *= -0.8; // 경계에서 부드럽게 반전
+        // Y축 경계 체크 (부드럽게)
+        const minY = 100; // 화면 상단에서 최소 100px (80에서 증가)
+        const maxY = canvas.height - boss.height - 100; // 화면 하단에서 최소 100px (80에서 증가)
+        
+        if (boss.y < minY) {
+            const oldY = boss.y;
+            // 부드러운 제한: 최대 3px씩 조정
+            const adjustment = Math.min(minY - boss.y, 3);
+            boss.y += adjustment;
+            console.log('🚁 보스 Y축 상단 부드러운 제한:', { 
+                oldY: Math.round(oldY), 
+                newY: Math.round(boss.y),
+                adjustment: Math.round(adjustment)
+            });
+        } else if (boss.y > maxY) {
+            const oldY = boss.y;
+            // 부드러운 제한: 최대 3px씩 조정
+            const adjustment = Math.min(boss.y - maxY, 3);
+            boss.y -= adjustment;
+            console.log('🚁 보스 Y축 하단 부드러운 제한:', { 
+                oldY: Math.round(oldY), 
+                newY: Math.round(boss.y),
+                adjustment: Math.round(adjustment)
+            });
         }
-        if (typeof boss.randomOffsetY !== 'undefined' && typeof boss.hoverHeight !== 'undefined' && 
-            (boss.y < boss.hoverHeight - 30 || boss.y > boss.hoverHeight + 30)) {
-            boss.randomOffsetY *= -0.8; // 상하 경계에서 부드럽게 반전
+        
+        // 화면 밖으로 나간 경우 즉시 중앙으로 강제 복귀
+        if (boss.x < 0 || boss.x > canvas.width - boss.width || boss.y < 0 || boss.y > canvas.height - boss.height) {
+            console.warn('🚨 보스가 화면 밖으로 나감 - 즉시 중앙으로 강제 복귀', {
+                oldX: Math.round(boss.x),
+                oldY: Math.round(boss.y),
+                newX: Math.round(centerX),
+                newY: Math.round(boss.hoverHeight || 150)
+            });
+            boss.x = centerX;
+            boss.y = boss.hoverHeight || 150;
+            
+            // 추가 안전장치: 다음 프레임에서도 안전한 위치에 있는지 확인
+            boss.needsPositionCheck = true;
         }
+        
+        // 보스 위치 모니터링 및 안전장치 (5초마다)
+        if (!boss.lastPositionLog || currentTime - boss.lastPositionLog > 5000) {
+            console.log('📍 보스 위치 모니터링:', {
+                x: Math.round(boss.x),
+                y: Math.round(boss.y),
+                centerX: Math.round(boss.centerX || 0),
+                hoverHeight: Math.round(boss.hoverHeight || 0),
+                phase: boss.phase,
+                movePhase: boss.movePhase
+            });
+            boss.lastPositionLog = currentTime;
+        }
+        
+        // 추가 안전장치: 위치 점프 방지 (더 정교하게)
+        if (boss.needsPositionCheck) {
+            const distanceFromCenter = Math.abs(boss.x - (boss.centerX || centerX));
+            if (distanceFromCenter > 100) { // 80px보다 더 엄격하게
+                console.warn('🚨 보스 위치 점프 감지 - 부드럽게 중앙으로 복귀', {
+                    currentX: Math.round(boss.x),
+                    centerX: Math.round(boss.centerX || centerX),
+                    distance: Math.round(distanceFromCenter)
+                });
+                
+                // 부드러운 복귀: 점진적으로 중앙으로 이동
+                const direction = boss.x > (boss.centerX || centerX) ? -1 : 1;
+                const adjustment = Math.min(distanceFromCenter - 80, 8); // 최대 8px씩 조정
+                boss.x += direction * adjustment;
+                
+                // Y축도 부드럽게 조정
+                if (boss.hoverHeight !== undefined) {
+                    const yDistance = Math.abs(boss.y - boss.hoverHeight);
+                    if (yDistance > 30) {
+                        const yDirection = boss.y > boss.hoverHeight ? -1 : 1;
+                        const yAdjustment = Math.min(yDistance - 20, 5); // 최대 5px씩 조정
+                        boss.y += yDirection * yAdjustment;
+                    }
+                }
+            }
+            boss.needsPositionCheck = false;
+        }
+        
+        // 연속 프레임 점프 감지 (매 프레임 체크)
+        if (boss.lastX !== undefined && boss.lastY !== undefined) {
+            const xJump = Math.abs(boss.x - boss.lastX);
+            const yJump = Math.abs(boss.y - boss.lastY);
+            
+            // 한 프레임에 10px 이상 점프하면 경고
+            if (xJump > 10 || yJump > 10) {
+                console.warn('🚨 보스 프레임 점프 감지:', {
+                    xJump: Math.round(xJump),
+                    yJump: Math.round(yJump),
+                    lastX: Math.round(boss.lastX),
+                    lastY: Math.round(boss.lastY),
+                    currentX: Math.round(boss.x),
+                    currentY: Math.round(boss.y)
+                });
+                
+                // 점프가 너무 크면 이전 위치로 복원
+                if (xJump > 20 || yJump > 20) {
+                    boss.x = boss.lastX;
+                    boss.y = boss.lastY;
+                    console.log('🔄 보스 위치 복원됨');
+                }
+            }
+        }
+        
+        // 현재 위치를 다음 프레임 비교용으로 저장
+        boss.lastX = boss.x;
+        boss.lastY = boss.y;
         
         // 폭탄 투하
         if (typeof boss.canDropBomb !== 'undefined' && typeof boss.lastBombDrop !== 'undefined' && 
@@ -5076,23 +5301,27 @@ function handleBossPattern(boss) {
             createBomb(boss);
         }
         
-        // 공격 패턴 - 레벨에 따라 다양한 패턴 사용
-        if (currentTime - boss.patternTimer >= BOSS_SETTINGS.PATTERN_INTERVAL) {
+        // 공격 패턴 - 레벨에 따라 다양한 패턴 사용 (더 자주 발사)
+        const patternInterval = BOSS_SETTINGS.PATTERN_INTERVAL;
+        const phaseBonus = Math.max(0, (4 - boss.phase) * 200); // 페이즈가 낮을수록 더 자주 발사
+        const adjustedInterval = patternInterval - phaseBonus;
+        
+        if (currentTime - boss.patternTimer >= adjustedInterval) {
             boss.patternTimer = currentTime;
             
-            // 보스 체력에 따른 페이즈별 패턴 선택 (전역 변수 사용)
+            // 보스 체력에 따른 페이즈별 패턴 선택 (체력 5000 기준으로 원상복구)
             let bossPhase = 1;
             if (bossHealth >= 3750) {
-                bossPhase = 1; // 1페이즈 (체력 3750 이상)
+                bossPhase = 1; // 1페이즈 (체력 3750 이상 - 75%)
             } else if (bossHealth >= 2500) {
-                bossPhase = 2; // 2페이즈 (체력 2500 이상)
+                bossPhase = 2; // 2페이즈 (체력 2500 이상 - 50%)
             } else if (bossHealth >= 1250) {
-                bossPhase = 3; // 3페이즈 (체력 1250 이상)
+                bossPhase = 3; // 3페이즈 (체력 1250 이상 - 25%)
             } else {
-                bossPhase = 4; // 4페이즈 (체력 1250 미만)
+                bossPhase = 4; // 4페이즈 (체력 1250 미만 - 25% 미만)
             }
             
-            // 개선된 보스 패턴 실행 시스템
+            // 역동적인 보스 패턴 실행 시스템 (연속 패턴 발사)
             console.log('🎮 보스 패턴 선택 시작', {
                 bossPhase: bossPhase,
                 bossHealth: bossHealth,
@@ -5101,91 +5330,109 @@ function handleBossPattern(boss) {
                 currentTime: currentTime
             });
             
-            // 페이즈별 패턴 선택 (간단하고 확실한 방식)
-            let selectedPatternName = '';
+            // 페이즈별 패턴 선택 및 연속 발사
+            let selectedPatterns = [];
             
             if (bossPhase === 1) {
-                // 1페이즈: 기본 패턴들
+                // 1페이즈: 기본 패턴들 (1-2개 연속 발사)
                 const patterns = ['cross', 'spread', 'circle'];
-                selectedPatternName = patterns[Math.floor(Math.random() * patterns.length)];
+                const patternCount = Math.random() < 0.3 ? 2 : 1; // 30% 확률로 2개 연속
+                for (let i = 0; i < patternCount; i++) {
+                    selectedPatterns.push(patterns[Math.floor(Math.random() * patterns.length)]);
+                }
             } else if (bossPhase === 2) {
-                // 2페이즈: 중급 패턴들 추가
+                // 2페이즈: 중급 패턴들 (1-3개 연속 발사)
                 const patterns = ['cross', 'spread', 'spiral', 'random', 'burst', 'circle'];
-                selectedPatternName = patterns[Math.floor(Math.random() * patterns.length)];
+                const patternCount = Math.random() < 0.4 ? 3 : (Math.random() < 0.6 ? 2 : 1);
+                for (let i = 0; i < patternCount; i++) {
+                    selectedPatterns.push(patterns[Math.floor(Math.random() * patterns.length)]);
+                }
             } else if (bossPhase === 3) {
-                // 3페이즈: 고급 패턴들 추가
+                // 3페이즈: 고급 패턴들 (2-4개 연속 발사)
                 const patterns = ['cross', 'spread', 'spiral', 'random', 'burst', 'wave', 'tracking', 'vortex', 'circle'];
-                selectedPatternName = patterns[Math.floor(Math.random() * patterns.length)];
+                const patternCount = Math.random() < 0.5 ? 4 : (Math.random() < 0.7 ? 3 : 2);
+                for (let i = 0; i < patternCount; i++) {
+                    selectedPatterns.push(patterns[Math.floor(Math.random() * patterns.length)]);
+                }
             } else {
-                // 4페이즈 (최종): 모든 패턴 사용
+                // 4페이즈 (최종): 모든 패턴 사용 (3-5개 연속 발사)
                 const patterns = ['cross', 'spread', 'spiral', 'random', 'burst', 'wave', 'tracking', 'vortex', 'pulse', 'enhanced_spiral', 'enhanced_wave', 'rapid_fire', 'circle'];
-                selectedPatternName = patterns[Math.floor(Math.random() * patterns.length)];
+                const patternCount = Math.random() < 0.6 ? 5 : (Math.random() < 0.8 ? 4 : 3);
+                for (let i = 0; i < patternCount; i++) {
+                    selectedPatterns.push(patterns[Math.floor(Math.random() * patterns.length)]);
+                }
             }
             
-            console.log(`🎯 보스 패턴 선택됨: ${selectedPatternName}`, {
+            console.log(`🎯 보스 패턴 선택됨: ${selectedPatterns.length}개 연속 발사`, {
                 bossPhase: bossPhase,
                 bossHealth: bossHealth,
-                availablePatterns: selectedPatternName,
+                selectedPatterns: selectedPatterns,
                 timestamp: new Date().toLocaleTimeString()
             });
             
-            // 선택된 패턴 실행 (직접 함수 호출)
-            try {
-                console.log(`🚀 패턴 실행 시작: ${selectedPatternName}`);
-                
-                switch(selectedPatternName) {
-                    case 'cross':
+            // 연속 패턴 실행 (지연 시간을 두고 순차적으로 발사)
+            selectedPatterns.forEach((patternName, index) => {
+                setTimeout(() => {
+                    try {
+                        console.log(`🚀 패턴 ${index + 1}/${selectedPatterns.length} 실행: ${patternName}`);
+                        
+                        switch(patternName) {
+                            case 'cross':
+                                bossFireCrossShot(boss);
+                                break;
+                            case 'spread':
+                                bossFireSpreadShot(boss);
+                                break;
+                            case 'circle':
+                                bossFireCircleShot(boss);
+                                break;
+                            case 'spiral':
+                                bossFireSpiralShot(boss);
+                                break;
+                            case 'random':
+                                bossFireRandomShot(boss);
+                                break;
+                            case 'burst':
+                                bossFireBurstShot(boss);
+                                break;
+                            case 'wave':
+                                bossFireWaveShot(boss);
+                                break;
+                            case 'tracking':
+                                bossFireTrackingShot(boss);
+                                break;
+                            case 'vortex':
+                                bossFireVortexShot(boss);
+                                break;
+                            case 'pulse':
+                                bossFirePulseShot(boss);
+                                break;
+                            case 'enhanced_spiral':
+                                bossFireEnhancedSpiralShot(boss);
+                                break;
+                            case 'enhanced_wave':
+                                bossFireEnhancedWaveShot(boss);
+                                break;
+                            case 'rapid_fire':
+                                bossFireRapidShot(boss);
+                                break;
+                            default:
+                                bossFireCrossShot(boss); // 기본값
+                                break;
+                        }
+                        
+                        console.log(`✅ 패턴 ${index + 1}/${selectedPatterns.length} 실행 완료: ${patternName}`);
+                        
+                    } catch (error) {
+                        console.error(`❌ 패턴 ${index + 1}/${selectedPatterns.length} 실행 실패: ${patternName}`, error);
+                        // 에러 발생 시 기본 패턴으로 폴백
+                        console.log(`🔄 기본 패턴으로 폴백: cross`);
                         bossFireCrossShot(boss);
-                        break;
-                    case 'spread':
-                        bossFireSpreadShot(boss);
-                        break;
-                    case 'circle':
-                        bossFireCircleShot(boss);
-                        break;
-                    case 'spiral':
-                        bossFireSpiralShot(boss);
-                        break;
-                    case 'random':
-                        bossFireRandomShot(boss);
-                        break;
-                    case 'burst':
-                        bossFireBurstShot(boss);
-                        break;
-                    case 'wave':
-                        bossFireWaveShot(boss);
-                        break;
-                    case 'tracking':
-                        bossFireTrackingShot(boss);
-                        break;
-                    case 'vortex':
-                        bossFireVortexShot(boss);
-                        break;
-                    case 'pulse':
-                        bossFirePulseShot(boss);
-                        break;
-                    case 'enhanced_spiral':
-                        bossFireEnhancedSpiralShot(boss);
-                        break;
-                    case 'enhanced_wave':
-                        bossFireEnhancedWaveShot(boss);
-                        break;
-                    case 'rapid_fire':
-                        bossFireRapidShot(boss);
-                        break;
-                    default:
-                        bossFireCrossShot(boss); // 기본값
-                        break;
-                }
-                
-                console.log(`✅ 보스 패턴 실행 완료: ${selectedPatternName}`);
-                
-            } catch (error) {
-                console.error(`❌ 보스 패턴 실행 실패: ${selectedPatternName}`, error);
-                // 에러 발생 시 기본 패턴으로 폴백
-                console.log(`🔄 기본 패턴으로 폴백: cross`);
-                bossFireCrossShot(boss);
-            }
+                    }
+                }, index * 600); // 각 패턴을 600ms 간격으로 연속 발사 (기존 300ms의 2배)
+            });
+            
+            console.log(`🎬 연속 패턴 발사 시작: ${selectedPatterns.length}개 패턴, 총 ${selectedPatterns.length * 600}ms 소요`);
         }
     }
 }
@@ -5331,9 +5578,14 @@ function getPatternProperties(patternType) {
 
 // 보스 총알 생성 함수 수정 - 패턴별 색상 구분
 function createBossBullet(boss, angle, patternType = 'spread', customSpeed = null, customColor = null) {
-    // 보스 객체 유효성 검증
-    if (!boss || typeof boss !== 'object') {
-        console.warn('createBossBullet: 유효하지 않은 보스 객체', boss);
+    // 보스 객체 유효성 검증 (더 엄격하게)
+    if (!boss || typeof boss !== 'object' || boss.health <= 0 || bossDestroyed || !bossActive) {
+        console.warn('createBossBullet: 유효하지 않은 보스 상태', {
+            boss: boss,
+            bossDestroyed: bossDestroyed,
+            bossActive: bossActive,
+            health: boss ? boss.health : 'N/A'
+        });
         return null;
     }
     
@@ -5349,7 +5601,7 @@ function createBossBullet(boss, angle, patternType = 'spread', customSpeed = nul
     
     switch(patternType) {
         case 'spread':
-            bulletColor = '#FF0000'; // 빨간색 - 확산탄
+            bulletColor = '#00FFFF'; // 시안색(밝은 청록색) - 확산탄 (검은 배경과 구분 잘됨)
             bulletSize = 12;
             break;
         case 'cross':
@@ -5357,7 +5609,7 @@ function createBossBullet(boss, angle, patternType = 'spread', customSpeed = nul
             bulletSize = 14;
             break;
         case 'spiral':
-            bulletColor = '#0000FF'; // 파란색 - 나선형
+            bulletColor = '#00BFFF'; // 밝은 파란색(하늘색) - 나선형 (검은 배경과 구분 잘됨)
             bulletSize = 10;
             break;
         case 'wave':
@@ -5373,11 +5625,11 @@ function createBossBullet(boss, angle, patternType = 'spread', customSpeed = nul
             bulletSize = 11;
             break;
         case 'rapid':
-            bulletColor = '#FF8800'; // 주황색 - 연발형
+            bulletColor = '#FFB347'; // 밝은 주황색(골든로드) - 연발형 (검은 배경과 구분 잘됨)
             bulletSize = 9;
             break;
         case 'vortex':
-            bulletColor = '#8800FF'; // 보라색 - 소용돌이형
+            bulletColor = '#DDA0DD'; // 밝은 보라색(연보라색) - 소용돌이형 (검은 배경과 구분 잘됨)
             bulletSize = 13;
             break;
         case 'pulse':
@@ -5389,7 +5641,7 @@ function createBossBullet(boss, angle, patternType = 'spread', customSpeed = nul
             bulletSize = 12;
             break;
         case 'burst':
-            bulletColor = '#FF6600'; // 주황색 - 연발형
+            bulletColor = '#FFA500'; // 밝은 주황색(오렌지) - 연발형 (검은 배경과 구분 잘됨)
             bulletSize = 10;
             break;
         case 'homing':
@@ -5397,19 +5649,19 @@ function createBossBullet(boss, angle, patternType = 'spread', customSpeed = nul
             bulletSize = 13;
             break;
         case 'chaotic':
-            bulletColor = '#FF0080'; // 핑크 - 혼돈형
+            bulletColor = '#FF69B4'; // 밝은 핑크(핫핑크) - 혼돈형 (검은 배경과 구분 잘됨)
             bulletSize = 9;
             break;
         case 'rainbow':
-            bulletColor = customColor || '#FF0000'; // 커스텀 색상 또는 기본 빨간색
+            bulletColor = customColor || '#FF6B6B'; // 밝은 빨간색(라이트코랄) - 커스텀 색상 또는 기본 (검은 배경과 구분 잘됨)
             bulletSize = 11;
             break;
         case 'meteor':
-            bulletColor = '#FF4400'; // 주황색 - 유성형
+            bulletColor = '#FF8C00'; // 밝은 주황색(다크오렌지) - 유성형 (검은 배경과 구분 잘됨)
             bulletSize = 16;
             break;
         default:
-            bulletColor = '#FF0000';
+            bulletColor = '#FF6B6B'; // 밝은 빨간색(라이트코랄) - 기본 (검은 배경과 구분 잘됨)
             bulletSize = 12;
     }
     
@@ -6019,42 +6271,80 @@ function drawHelicopter(x, y, width, height, rotorAngle) {
     // 1. 메인 로터 (4개 블레이드, 세로로 길게, 끝에 흰색 포인트, 투명도 효과)
     ctx.save();
     
-    // 보스인 경우 잔상효과 추가 (부드러운 회전을 위한 강화된 잔상)
+    // 보스인 경우 잔상효과 추가 (회전속도 50% 감소로 인한 부드러운 회전 + 강화된 그림자/잔상)
     if (isBoss) {
-        // 잔상 로터들 (이전 각도들) - 부드러운 회전을 위해 더 많은 잔상과 강화된 효과
-        for (let trail = 1; trail <= 4; trail++) { // 2개에서 4개로 증가
-            const trailAngle = rotorAngle - (trail * 0.08); // 각도 간격을 0.15에서 0.08로 줄여서 더 부드럽게
+        // 그림자 효과 (정적 그림자)
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.6)';
+        ctx.shadowBlur = 15;
+        ctx.shadowOffsetX = 3;
+        ctx.shadowOffsetY = 3;
+        
+        // 그림자 로터 (고정된 위치)
+        for (let i = 0; i < 4; i++) {
+            ctx.save();
+            ctx.rotate(i * Math.PI/2);
+            ctx.beginPath();
+            ctx.moveTo(0, -height*0.55);
+            ctx.lineTo(0, height*0.55);
+            ctx.lineWidth = width*0.12;
+            ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+            ctx.stroke();
+            ctx.restore();
+        }
+        ctx.restore();
+        
+        // 잔상 로터들 (이전 각도들) - 회전속도 50% 감소로 더 부드러운 잔상
+        for (let trail = 1; trail <= 6; trail++) { // 4개에서 6개로 증가하여 더 부드러운 효과
+            const trailAngle = rotorAngle - (trail * 0.05); // 각도 간격을 0.08에서 0.05로 줄여서 더 부드럽게
             ctx.save();
             ctx.rotate(trailAngle);
+            
+            // 잔상 블레이드들
             for (let i = 0; i < 4; i++) {
                 ctx.save();
                 ctx.rotate(i * Math.PI/2);
-                // 잔상 블레이드 (투명도 점진적 감소) - 부드러운 회전을 위해 투명도 조정
+                
+                // 잔상 블레이드 본체 (투명도 점진적 감소)
                 ctx.beginPath();
                 ctx.moveTo(0, -height*0.55);
                 ctx.lineTo(0, height*0.55);
                 ctx.lineWidth = width*0.10;
-                ctx.strokeStyle = `rgba(255,69,0,${0.25 - trail * 0.05})`; // 투명도를 높여서 더 선명하게
-                ctx.shadowColor = `rgba(255,140,0,${0.2 - trail * 0.04})`; // 그림자 색상 투명도 증가
-                ctx.shadowBlur = 8 + trail * 2; // 그림자 블러를 점진적으로 증가시켜 부드러운 효과
+                
+                // 잔상별로 다른 색상과 투명도 (오렌지 계열)
+                const alpha = 0.4 - (trail * 0.06);
+                const colorIndex = trail % 3;
+                let trailColor;
+                switch(colorIndex) {
+                    case 0: trailColor = `rgba(255,69,0,${alpha})`; break; // 빨간 오렌지
+                    case 1: trailColor = `rgba(255,140,0,${alpha})`; break; // 다크 오렌지
+                    case 2: trailColor = `rgba(255,165,0,${alpha})`; break; // 오렌지
+                }
+                
+                ctx.strokeStyle = trailColor;
+                ctx.shadowColor = `rgba(255,140,0,${alpha * 0.8})`;
+                ctx.shadowBlur = 10 + trail * 3; // 그림자 블러를 점진적으로 증가
                 ctx.stroke();
                 ctx.shadowBlur = 0;
-                // 잔상 블레이드 끝 강조 - 투명도 증가
+                
+                // 잔상 블레이드 끝 강조 (원형)
                 ctx.beginPath();
-                ctx.arc(0, height*0.55, width*0.05, 0, Math.PI*2);
-                ctx.arc(0, -height*0.55, width*0.05, 0, Math.PI*2);
-                ctx.fillStyle = `rgba(255,140,0,${0.4 - trail * 0.08})`;
-                ctx.globalAlpha = 0.5 - trail * 0.08;
+                ctx.arc(0, height*0.55, width*0.06, 0, Math.PI*2);
+                ctx.arc(0, -height*0.55, width*0.06, 0, Math.PI*2);
+                ctx.fillStyle = `rgba(255,140,0,${alpha * 1.2})`;
+                ctx.globalAlpha = alpha * 1.5;
                 ctx.fill();
                 ctx.globalAlpha = 1.0;
-                // 잔상 블레이드 끝 포인트 - 투명도 증가
+                
+                // 잔상 블레이드 끝 포인트 (더 작은 원)
                 ctx.beginPath();
-                ctx.arc(0, height*0.55, width*0.022, 0, Math.PI*2);
-                ctx.arc(0, -height*0.55, width*0.022, 0, Math.PI*2);
-                ctx.fillStyle = `rgba(255,215,0,${0.5 - trail * 0.08})`;
-                ctx.globalAlpha = 0.6 - trail * 0.08;
+                ctx.arc(0, height*0.55, width*0.025, 0, Math.PI*2);
+                ctx.arc(0, -height*0.55, width*0.025, 0, Math.PI*2);
+                ctx.fillStyle = `rgba(255,215,0,${alpha * 1.3})`;
+                ctx.globalAlpha = alpha * 1.6;
                 ctx.fill();
                 ctx.globalAlpha = 1.0;
+                
                 ctx.restore();
             }
             ctx.restore();
@@ -6558,15 +6848,18 @@ function hexToRgb(hex) {
 
 // 보스 발사 패턴 함수들
 function bossFireSpreadShot(boss) {
-    // 확산탄 패턴: 플레이어 방향 기준으로 확산 (PC 버전용 개선)
+    // 확산탄 패턴: 플레이어 방향 기준으로 확산 (속도 조정)
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     const playerAngle = Math.atan2(player.y - bossY, player.x - bossX);
     
-    // 플레이어 방향을 기준으로 7발 확산 발사
+    // 플레이어 방향을 기준으로 7발 확산 발사 (속도 60%로 감소)
     for (let i = -3; i <= 3; i++) {
         const angle = playerAngle + (i * 0.3);
-        createBossBullet(boss, angle, 'spread');
+        const bullet = createBossBullet(boss, angle, 'spread');
+        if (bullet && bullet.speed) {
+            bullet.speed = bullet.speed * 0.6; // 총알 속도를 60%로 감소
+        }
     }
 }
 
