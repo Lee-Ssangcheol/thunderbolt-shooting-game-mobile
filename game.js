@@ -13,7 +13,7 @@ const DEBUG_MODE = false;
 const mobileSpeedMultiplier = isMobile ? 1.0 : 1.0;
 
 // 모바일 프레임 제한 (60fps로 최적화)
-const MOBILE_FPS_LIMIT = isMobile ? 60 : 60;
+const MOBILE_FPS_LIMIT = isMobile ? 100 : 100;
 const MOBILE_FRAME_INTERVAL = 1000 / MOBILE_FPS_LIMIT;
 
 // 전체화면 상태 추적 변수
