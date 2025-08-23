@@ -3699,10 +3699,10 @@ function handleBulletFiring() {
 // 특수 무기 처리 함수 수정
 function handleSpecialWeapon() {
     if (specialWeaponCharged && keys.KeyB) {  // KeyN을 KeyB로 변경
-        // 특수 무기 발사 (45도 범위 내에서 24개 발사, 완전히 상단 방향)
-        // 상단 방향은 -90도(왼쪽 위)에서 -90도(오른쪽 위)까지
-        const startAngle = -90 * (Math.PI / 180) - (22.5 * Math.PI / 180); // -112.5도 시작
-        const endAngle = -90 * (Math.PI / 180) + (22.5 * Math.PI / 180);   // -67.5도 끝 (총 45도 범위)
+        // 특수 무기 발사 (90도 범위 내에서 24개 발사, 상단 전체 커버)
+        // 상단 방향은 -135도(왼쪽 위)에서 -45도(오른쪽 위)까지
+        const startAngle = -135 * (Math.PI / 180); // -135도 시작
+        const endAngle = -45 * (Math.PI / 180);    // -45도 끝 (총 90도 범위)
         const angleStep = (endAngle - startAngle) / 23; // 24개 총알을 위한 각도 간격
         
         for (let i = 0; i < 24; i++) { // 24발 발사
@@ -3721,10 +3721,10 @@ function handleSpecialWeapon() {
             bullets.push(bullet);
         }
         
-        // 두 번째 비행기가 있을 경우 추가 발사 (45도 범위 내에서 24개 발사, 완전히 상단 방향)
+        // 두 번째 비행기가 있을 경우 추가 발사 (90도 범위 내에서 24개 발사, 상단 전체 커버)
         if (hasSecondPlane) {
-            const startAngle = -90 * (Math.PI / 180) - (22.5 * Math.PI / 180); // -112.5도 시작
-            const endAngle = -90 * (Math.PI / 180) + (22.5 * Math.PI / 180);   // -67.5도 끝 (총 45도 범위)
+            const startAngle = -135 * (Math.PI / 180); // -135도 시작
+            const endAngle = -45 * (Math.PI / 180);    // -45도 끝 (총 90도 범위)
             const angleStep = (endAngle - startAngle) / 23; // 24개 총알을 위한 각도 간격
             
             for (let i = 0; i < 24; i++) { // 24발 발사
@@ -4611,10 +4611,10 @@ function handleSpreadShot() {
             }
         }, 20000);
         
-        // 24발의 확산탄을 45도 범위 내에서 부채꼴 모양으로 발사 (상단 방향)
-        // 상단 방향은 -90도(왼쪽 위)에서 -90도(오른쪽 위)까지
-        const startAngle = -90 * (Math.PI / 180) - (22.5 * Math.PI / 180); // -112.5도 시작
-        const endAngle = -90 * (Math.PI / 180) + (22.5 * Math.PI / 180);   // -67.5도 끝 (총 45도 범위)
+        // 24발의 확산탄을 90도 범위 내에서 부채꼴 모양으로 발사 (상단 전체 커버)
+        // 상단 방향은 -135도(왼쪽 위)에서 -45도(오른쪽 위)까지
+        const startAngle = -135 * (Math.PI / 180); // -135도 시작
+        const endAngle = -45 * (Math.PI / 180);    // -45도 끝 (총 90도 범위)
         const angleStep = (endAngle - startAngle) / 23; // 24개 총알을 위한 각도 간격
         
         for (let i = 0; i < 24; i++) { // 24발 발사
@@ -4836,31 +4836,32 @@ function handleBullets() {
             // 총알 그리기 (청록색 원형, 더 큰 크기로 시각적 효과 향상)
             ctx.fillStyle = '#00ffff';
             
-            // 원형 특수무기 총알 그리기
+            // 원형 특수무기 총알 그리기 (1.5배 크기)
+            const bulletRadius = bullet.width/2 * 1.5; // 1.5배 크기
             ctx.beginPath();
-            ctx.arc(bullet.x, bullet.y, bullet.width/2, 0, Math.PI * 2);
+            ctx.arc(bullet.x, bullet.y, bulletRadius, 0, Math.PI * 2);
             ctx.fill();
             
-            // 꼬리 그리기 (원형)
+            // 꼬리 그리기 (원형, 1.5배 크기)
             bullet.trail.forEach((pos, index) => {
                 const alpha = 1 - (index / bullet.trail.length);
-                const trailSize = bullet.width/2 * (1 - index/bullet.trail.length);
+                const trailSize = bullet.width/2 * 1.5 * (1 - index/bullet.trail.length);
                 ctx.fillStyle = `rgba(0, 255, 255, ${alpha * 0.5})`;
                 ctx.beginPath();
                 ctx.arc(pos.x, pos.y, trailSize, 0, Math.PI * 2);
                 ctx.fill();
             });
             
-            // 총알 주변에 빛나는 효과 (원형)
+            // 총알 주변에 빛나는 효과 (원형, 1.5배 크기)
             const gradient = ctx.createRadialGradient(
                 bullet.x, bullet.y, 0,
-                bullet.x, bullet.y, bullet.width
+                bullet.x, bullet.y, bullet.width * 1.5
             );
             gradient.addColorStop(0, 'rgba(0, 255, 255, 0.3)');
             gradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
             ctx.fillStyle = gradient;
             ctx.beginPath();
-            ctx.arc(bullet.x, bullet.y, bullet.width, 0, Math.PI * 2);
+            ctx.arc(bullet.x, bullet.y, bullet.width * 1.5, 0, Math.PI * 2);
             ctx.fill();
             
             // 총알 지속 시간 감소
@@ -4901,9 +4902,10 @@ function handleBullets() {
             bullet.y -= bullet.speed;
             ctx.fillStyle = 'yellow';
             
-            // 원형 일반 총알 그리기
+            // 원형 일반 총알 그리기 (1.5배 크기)
+            const bulletRadius = bullet.width/2 * 1.5; // 1.5배 크기
             ctx.beginPath();
-            ctx.arc(bullet.x, bullet.y, bullet.width/2, 0, Math.PI * 2);
+            ctx.arc(bullet.x, bullet.y, bulletRadius, 0, Math.PI * 2);
             ctx.fill();
         }
         
@@ -4963,7 +4965,7 @@ const BOSS_SETTINGS = {
     DAMAGE: 50,          // 보스 총알 데미지
     SPEED: 2.0,         // 보스 이동 속도를 2.0으로 조정 (적당한 속도)
     BULLET_SPEED: 4,    // 보스 총알 속도를 3에서 4로 증가
-    PATTERN_INTERVAL: 6000, // 6초(6000ms)로 증가 (기존 3초의 2배)
+    PATTERN_INTERVAL: 12000, // 12초(12000ms)로 증가 (기존 6초의 2배)
     SPAWN_INTERVAL: 8000,   // 보스 출현 간격을 8초로 단축 (더 자주 등장)
     MIN_STAY_TIME: 10000,   // 보스 최소 체류 시간 10초로 단축
     PHASE_THRESHOLDS: [  // 페이즈 전환 체력 임계값 (체력 5000 기준으로 원상복구)
@@ -7588,10 +7590,10 @@ let gameLoopRunning = false;
 
 // 통합된 총알 생성 함수 (PC/모바일 공통)
 function createUnifiedBullet() {
-    // 확산탄 발사 (45도 범위 내에서 24개 발사, 상단 방향)
+    // 확산탄 발사 (90도 범위 내에서 24개 발사, 상단 전체 커버)
     if (hasSpreadShot) {
-        const startAngle = -90 * (Math.PI / 180) - (22.5 * Math.PI / 180); // -112.5도 시작
-        const endAngle = -90 * (Math.PI / 180) + (22.5 * Math.PI / 180);   // -67.5도 끝 (총 45도 범위)
+        const startAngle = -135 * (Math.PI / 180); // -135도 시작
+        const endAngle = -45 * (Math.PI / 180);    // -45도 끝 (총 90도 범위)
         const angleStep = (endAngle - startAngle) / 23; // 24개 총알을 위한 각도 간격
         
         for (let i = 0; i < 24; i++) { // 24발 발사
@@ -7627,9 +7629,9 @@ function createUnifiedBullet() {
             // 두 번째 비행기 발사 (레벨 1 수준으로 제한)
         if (hasSecondPlane) {
             if (hasSpreadShot) {
-                // 두 번째 비행기 확산탄 발사 (45도 범위 내에서 24개 발사, 상단 방향)
-                const startAngle = -90 * (Math.PI / 180) - (22.5 * Math.PI / 180); // -112.5도 시작
-                const endAngle = -90 * (Math.PI / 180) + (22.5 * Math.PI / 180);   // -67.5도 끝 (총 45도 범위)
+                // 두 번째 비행기 확산탄 발사 (90도 범위 내에서 24개 발사, 상단 전체 커버)
+                const startAngle = -135 * (Math.PI / 180); // -135도 시작
+                const endAngle = -45 * (Math.PI / 180);    // -45도 끝 (총 90도 범위)
                 const angleStep = (endAngle - startAngle) / 23; // 24개 총알을 위한 각도 간격
                 
                 for (let i = 0; i < 24; i++) { // 24발 발사
