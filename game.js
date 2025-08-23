@@ -4818,7 +4818,7 @@ const BOSS_SETTINGS = {
     DAMAGE: 50,          // 보스 총알 데미지
     SPEED: 2.0,         // 보스 이동 속도를 2.0으로 조정 (적당한 속도)
     BULLET_SPEED: 4,    // 보스 총알 속도를 3에서 4로 증가
-    PATTERN_INTERVAL: 3000, // 3초(3000ms)로 증가 (기존 1.5초의 2배)
+    PATTERN_INTERVAL: 6000, // 6초(6000ms)로 증가 (기존 3초의 2배)
     SPAWN_INTERVAL: 8000,   // 보스 출현 간격을 8초로 단축 (더 자주 등장)
     MIN_STAY_TIME: 10000,   // 보스 최소 체류 시간 10초로 단축
     PHASE_THRESHOLDS: [  // 페이즈 전환 체력 임계값 (체력 5000 기준으로 원상복구)
