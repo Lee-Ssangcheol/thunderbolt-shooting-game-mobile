@@ -6,15 +6,15 @@ const TOP_EFFECT_ZONE = 20;  // 상단 효과 무시 영역 (픽셀)
 // 모바일 디바이스 감지
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-// 디버그 모드 (개발 시에만 true로 설정)
+// 디버그 모드 (성능 최적화를 위해 false로 설정)
 const DEBUG_MODE = false;
 
 // 모바일 속도 조절 (더 느리게 조정)
 const mobileSpeedMultiplier = isMobile ? 1.0 : 1.0;
 
-// 모바일 프레임 제한 (60fps로 고정하여 성능 향상)
-const MOBILE_FPS_LIMIT = isMobile ? 60 : 60;
-const MOBILE_FRAME_INTERVAL = 1000 / MOBILE_FPS_LIMIT;
+// 모바일 프레임 제한 (원래대로 복원)
+const MOBILE_FPS_LIMIT = isMobile ? 100 : 100;
+const MOBILE_FRAME_INTERVAL = 800 / MOBILE_FPS_LIMIT;
 
 // 전체화면 상태 추적 변수
 let isFullscreenActive = false;
@@ -26,52 +26,7 @@ const FULLSCREEN_COOLDOWN = 1000; // 1초 쿨다운
 // 게임 상태 변수
 let gameStarted = false;
 
-// 객체 풀링 시스템 (성능 최적화)
-const ObjectPool = {
-    bullets: [],
-    explosions: [],
-    damageTexts: [],
-    
-    // 총알 풀에서 가져오기
-    getBullet() {
-        if (this.bullets.length > 0) {
-            return this.bullets.pop();
-        }
-        return null;
-    },
-    
-    // 총알 풀에 반환
-    returnBullet(bullet) {
-        if (this.bullets.length < 100) { // 최대 100개까지만 유지
-            // 객체 초기화
-            bullet.x = 0;
-            bullet.y = 0;
-            bullet.speed = 0;
-            bullet.angle = 0;
-            bullet.isSpecial = false;
-            bullet.isSpread = false;
-            bullet.isBossBullet = false;
-            bullet.trail = [];
-            bullet.life = 0;
-            this.bullets.push(bullet);
-        }
-    },
-    
-    // 폭발 효과 풀에서 가져오기
-    getExplosion() {
-        if (this.explosions.length > 0) {
-            return this.explosions.pop();
-        }
-        return null;
-    },
-    
-    // 폭발 효과 풀에 반환
-    returnExplosion(explosion) {
-        if (this.explosions.length < 50) { // 최대 50개까지만 유지
-            this.explosions.push(explosion);
-        }
-    }
-};
+
 
 // 디버그 로그 함수 (성능 최적화)
 function debugLog(...args) {
@@ -94,7 +49,6 @@ function updateFullscreenState() {
     isFullscreenActive = checkFullscreenState();
     
     if (wasFullscreen && !isFullscreenActive) {
-        console.log('전체화면 모드가 종료되었습니다.');
         fullscreenActivationInProgress = false;
         // 전체화면 종료 시 쿨다운도 초기화
         lastFullscreenAttempt = 0;
@@ -111,24 +65,20 @@ function enableFullscreen() {
     
     // 쿨다운 체크
     if (currentTime - lastFullscreenAttempt < FULLSCREEN_COOLDOWN) {
-        console.log('전체화면 활성화 쿨다운 중...');
         return;
     }
     
     // 이미 활성화 중이면 중복 실행 방지
     if (fullscreenActivationInProgress) {
-        console.log('전체화면 활성화가 이미 진행 중입니다.');
         return;
     }
     
     // 이미 전체화면 상태인지 확인
     if (checkFullscreenState()) {
-        console.log('이미 전체화면 모드입니다.');
         isFullscreenActive = true;
         return;
     }
     
-    console.log('모바일 전체화면 모드 활성화 시도');
     fullscreenActivationInProgress = true;
     lastFullscreenAttempt = currentTime;
     
@@ -140,12 +90,10 @@ function enableFullscreen() {
     if (document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen()
             .then(() => {
-                console.log('전체화면 모드 활성화 성공');
                 isFullscreenActive = true;
                 fullscreenActivationInProgress = false;
             })
             .catch(err => {
-                console.log('전체화면 모드 실패:', err);
                 fullscreenActivationInProgress = false;
             });
     }
@@ -395,13 +343,11 @@ function setupMobileControls() {
     mobileControls.btnFire.addEventListener('touchstart', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('시작/재시작 버튼 터치');
         
         // 시작 화면에서 버튼을 누르면 바로 게임 화면으로 전환
         if (isStartScreen) {
             isStartScreen = false;
             gameStarted = false; // 화면 터치 대기 상태
-            console.log('모바일에서 게임 화면으로 전환 (터치 대기)');            
             // 모바일에서 게임 시작 시 전체화면 모드 활성화
             if (isMobile) {
                 setTimeout(() => {
@@ -413,8 +359,7 @@ function setupMobileControls() {
         // 게임 오버 상태에서 재시작
         if (isGameOver) {
             restartGame();
-            gameStarted = false; // 화면 터치 대기 상태            
-            console.log('게임 오버 후 게임 화면으로 전환 (터치 대기)');            
+            gameStarted = false; // 화면 터치 대기 상태
             // 모바일에서 게임 재시작 시 전체화면 모드 활성화
             if (isMobile) {
                 setTimeout(() => {
@@ -428,19 +373,16 @@ function setupMobileControls() {
     mobileControls.btnFire.addEventListener('touchend', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('시작/재시작 버튼 터치 종료');
     }, { passive: false });
     
     // 클릭 이벤트도 추가 (데스크탑용, 개선된 버전)
     mobileControls.btnFire.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('시작/재시작 버튼 클릭');
         
         if (isStartScreen) {
             isStartScreen = false;
             gameStarted = false; // 화면 터치 대기 상태
-            console.log('모바일에서 게임 화면으로 전환 (터치 대기)');            
             // 모바일에서 게임 시작 시 전체화면 모드 활성화
             if (isMobile) {
                 setTimeout(() => {
@@ -453,7 +395,6 @@ function setupMobileControls() {
         if (isGameOver) {
             restartGame();
             gameStarted = false; // 화면 터치 대기 상태
-            console.log('게임 오버 후 게임 화면으로 전환 (터치 대기)');            
             if (isMobile) {
                 setTimeout(() => {
                     reactivateFullscreen();
@@ -475,7 +416,6 @@ function setupMobileControls() {
     mobileControls.btnPause.addEventListener('touchstart', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('일시정지 버튼 터치');
         
         // 직접 일시정지 상태 토글
         isPaused = !isPaused;
@@ -484,9 +424,6 @@ function setupMobileControls() {
         if (isPaused) {
             isMobileFirePressed = false;
             isContinuousFire = false;
-            console.log('게임 일시정지됨');
-        } else {
-            console.log('게임 재개됨');
         }
     }, { passive: false });
     
@@ -512,7 +449,6 @@ function setupMobileControls() {
     mobileControls.btnReset.addEventListener('touchstart', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('재시작 버튼 터치');
         if (isGameOver) {
             restartGame();
         } else {
@@ -526,7 +462,6 @@ function setupMobileControls() {
     mobileControls.btnReset.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('재시작 버튼 클릭');
         if (isGameOver) {
             restartGame();
         } else {
@@ -548,13 +483,11 @@ function setupMobileControls() {
     mobileControls.btnFire.addEventListener('mousedown', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('시작/재시작 버튼 마우스 다운');
         
         // 시작 화면에서 버튼을 누르면 게임 시작
         if (isStartScreen) {
             isStartScreen = false;
             gameStarted = true;
-            console.log('모바일에서 게임 시작');
             // 모바일에서 게임 시작 시 전체화면 모드 활성화
             if (isMobile) {
                 setTimeout(() => {
@@ -579,12 +512,10 @@ function setupMobileControls() {
     mobileControls.btnFire.addEventListener('mouseup', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('시작/재시작 버튼 마우스 업');
     });
     mobileControls.btnSpecial.addEventListener('mousedown', () => keys.KeyB = true);
     mobileControls.btnSpecial.addEventListener('mouseup', () => keys.KeyB = false);
     mobileControls.btnPause.addEventListener('mousedown', () => {
-        console.log('일시정지 버튼 마우스 다운');
         
         // 직접 일시정지 상태 토글
         isPaused = !isPaused;
@@ -593,9 +524,6 @@ function setupMobileControls() {
         if (isPaused) {
             isMobileFirePressed = false;
             isContinuousFire = false;
-            console.log('게임 일시정지됨');
-        } else {
-            console.log('게임 재개됨');
         }
     });
 }
@@ -3336,9 +3264,6 @@ function checkEnemyCollisions(enemy) {
                 isBoss: enemy.isBoss
             });
             
-            // 충돌한 총알을 객체 풀에 반환
-            ObjectPool.returnBullet(bullet);
-            
             // 보스인 경우 체력 감소
             if (enemy.isBoss) {
                 const currentTime = Date.now();
@@ -4315,7 +4240,6 @@ document.addEventListener('keydown', (e) => {
         if (isStartScreen && e.code === 'Space') {
             isStartScreen = false;
             gameStarted = false; // 화면 터치 대기 상태
-            console.log('모바일에서 게임 시작 준비 - 화면 터치 대기');
             // 모바일에서 게임 시작 시 전체화면 모드 활성화
             if (isMobile) {
                 setTimeout(() => {
@@ -4325,7 +4249,6 @@ document.addEventListener('keydown', (e) => {
             // 데스크탑에서는 바로 gameStarted 해제
             if (!isMobile && !gameStarted) {
                 gameStarted = true;
-                console.log('데스크탑에서 게임 시작됨');
             }
             return;
         }
@@ -4334,7 +4257,6 @@ document.addEventListener('keydown', (e) => {
         if (isGameOver && e.code === 'Space') {
             restartGame();
             gameStarted = false; // 화면 터치 대기 상태
-            console.log('게임 오버 후 게임 시작 준비 - 화면 터치 대기');
             // 모바일에서 게임 재시작 시 전체화면 모드 활성화
             if (isMobile) {
                 setTimeout(() => {
@@ -4344,7 +4266,6 @@ document.addEventListener('keydown', (e) => {
             // 데스크탑에서는 바로 gameStarted 해제
             if (!isMobile && !gameStarted) {
                 gameStarted = true;
-                console.log('데스크탑에서 게임 재시작됨');
             }
             return;
         }
@@ -4370,7 +4291,6 @@ document.addEventListener('keydown', (e) => {
             if (result) {
                 resetAllHighScores();
                 alert('최고 점수가 리셋되었습니다.');
-                console.log('최고 점수 리셋');
             }
         });
     }
@@ -4378,7 +4298,6 @@ document.addEventListener('keydown', (e) => {
     // P 키를 눌렀을 때 게임 일시정지/재개 (keys 객체와 독립적으로 처리)
     if (e.code === 'KeyP') {
         isPaused = !isPaused;
-        console.log('P키 눌림 - 일시정지 상태:', isPaused);
         
         // 일시정지 시 모바일 연속 발사 중지
         if (isPaused) {
@@ -4817,8 +4736,6 @@ function handleBullets() {
         // 화면 밖 총알 제거 (성능 최적화)
         if (bullet.y < -50 || bullet.y > canvas.height + 50 || 
             bullet.x < -50 || bullet.x > canvas.width + 50) {
-            // 객체 풀에 반환
-            ObjectPool.returnBullet(bullet);
             return false;
         }
         
@@ -7763,53 +7680,32 @@ function createUnifiedBullet() {
         
         for (let i = 0; i < 24; i++) { // 24발 발사
             const angle = startAngle + (i * angleStep);
-            
-            // 객체 풀에서 총알 가져오기 (성능 최적화)
-            let bullet = ObjectPool.getBullet();
-            if (!bullet) {
-                bullet = {
-                    x: 0, y: 0, width: 8, height: 16, speed: 6,
-                    angle: 0, damage: 200, isBossBullet: false,
-                    isSpecial: false, isSpread: true, trail: [], life: 0
-                };
-            }
-            
-            // 총알 속성 설정
-            bullet.x = player.x + player.width / 2;
-            bullet.y = player.y;
-            bullet.width = 8;   // 크기 2배 증가 (4에서 8로)
-            bullet.height = 16; // 크기 2배 증가 (8에서 16으로)
-            bullet.speed = 6;   // 통일된 속도
-            bullet.angle = angle;
-            bullet.damage = 200; // 확산탄 데미지 (일반 총알의 2배)
-            bullet.isBossBullet = false;
-            bullet.isSpecial = false;
-            bullet.isSpread = true;
-            
+            const bullet = {
+                x: player.x + player.width / 2,
+                y: player.y,
+                width: 8,   // 크기 2배 증가 (4에서 8로)
+                height: 16, // 크기 2배 증가 (8에서 16으로)
+                speed: 6,   // 통일된 속도
+                angle: angle,
+                damage: 200, // 확산탄 데미지 (일반 총알의 2배)
+                isBossBullet: false,
+                isSpecial: false,
+                isSpread: true
+            };
             bullets.push(bullet);
         }
     } else {
         // 일반 총알 발사 (레벨 1 수준으로 제한)
-        let bullet = ObjectPool.getBullet();
-        if (!bullet) {
-            bullet = {
-                x: 0, y: 0, width: 4, height: 8, speed: 6,
-                damage: 100, isBossBullet: false, isSpecial: false,
-                isSpread: false, trail: [], life: 0
-            };
-        }
-        
-        // 총알 속성 설정
-        bullet.x = player.x + player.width / 2;
-        bullet.y = player.y;
-        bullet.width = 4;   // 통일된 크기
-        bullet.height = 8;  // 통일된 크기
-        bullet.speed = 6;   // 통일된 속도
-        bullet.damage = 100;
-        bullet.isBossBullet = false;
-        bullet.isSpecial = false;
-        bullet.isSpread = false;
-        
+        const bullet = {
+            x: player.x + player.width / 2,
+            y: player.y,
+            width: 4,   // 통일된 크기
+            height: 8,  // 통일된 크기
+            speed: 6,   // 통일된 속도
+            damage: 100,
+            isBossBullet: false,
+            isSpecial: false
+        };
         bullets.push(bullet);
     }
     
@@ -7823,52 +7719,31 @@ function createUnifiedBullet() {
                 
                 for (let i = 0; i < 24; i++) { // 24발 발사
                     const angle = startAngle + (i * angleStep);
-                    
-                    // 객체 풀에서 총알 가져오기 (성능 최적화)
-                    let bullet = ObjectPool.getBullet();
-                    if (!bullet) {
-                        bullet = {
-                            x: 0, y: 0, width: 8, height: 16, speed: 6,
-                            angle: 0, damage: 200, isBossBullet: false,
-                            isSpecial: false, isSpread: true, trail: [], life: 0
-                        };
-                    }
-                    
-                    // 총알 속성 설정
-                    bullet.x = secondPlane.x + secondPlane.width / 2;
-                    bullet.y = secondPlane.y;
-                    bullet.width = 8;   // 크기 2배 증가 (4에서 8로)
-                    bullet.height = 16; // 크기 2배 증가 (8에서 16으로)
-                    bullet.speed = 6;   // 통일된 속도
-                    bullet.angle = angle;
-                    bullet.damage = 200; // 확산탄 데미지 (일반 총알의 2배)
-                    bullet.isBossBullet = false;
-                    bullet.isSpecial = false;
-                    bullet.isSpread = true;
-                    
+                    const bullet = {
+                        x: secondPlane.x + secondPlane.width / 2,
+                        y: secondPlane.y,
+                        width: 8,   // 크기 2배 증가 (4에서 8로)
+                        height: 16, // 크기 2배 증가 (8에서 16으로)
+                        speed: 6,   // 통일된 속도
+                        angle: angle,
+                        damage: 200, // 확산탄 데미지 (일반 총알의 2배)
+                        isBossBullet: false,
+                        isSpecial: false,
+                        isSpread: true
+                    };
                     bullets.push(bullet);
                 }
             } else {
-            let bullet = ObjectPool.getBullet();
-            if (!bullet) {
-                bullet = {
-                    x: 0, y: 0, width: 4, height: 8, speed: 6,
-                    damage: 100, isBossBullet: false, isSpecial: false,
-                    isSpread: false, trail: [], life: 0
-                };
-            }
-            
-            // 총알 속성 설정
-            bullet.x = secondPlane.x + secondPlane.width / 2;
-            bullet.y = secondPlane.y;
-            bullet.width = 4;   // 통일된 크기
-            bullet.height = 8;  // 통일된 크기
-            bullet.speed = 6;   // 통일된 속도
-            bullet.damage = 100;
-            bullet.isBossBullet = false;
-            bullet.isSpecial = false;
-            bullet.isSpread = false;
-            
+            const bullet = {
+                x: secondPlane.x + secondPlane.width / 2,
+                y: secondPlane.y,
+                width: 4,   // 통일된 크기
+                height: 8,  // 통일된 크기
+                speed: 6,   // 통일된 속도
+                damage: 100,
+                isBossBullet: false,
+                isSpecial: false
+            };
             bullets.push(bullet);
         }
     }
@@ -7911,7 +7786,6 @@ function stopMobileContinuousFire() {
 
 // 터치 위치 이동 컨트롤 설정
 function setupTouchPositionControls() {
-    console.log('터치 위치 이동 컨트롤 설정');
     
     // 터치 시작
     canvas.addEventListener('touchstart', (e) => {
@@ -7924,7 +7798,6 @@ function setupTouchPositionControls() {
         // 터치 대기 상태에서 첫 터치 시 게임 시작
         if (!gameStarted && !isStartScreen && !isGameOver) {
             gameStarted = true;
-            console.log('터치로 게임 시작됨');
         }
         
         // 게임 진행 중일 때만 플레이어 이동
@@ -7956,9 +7829,6 @@ function setupTouchPositionControls() {
             isSpacePressed = true;
             spacePressTime = Date.now();
             isContinuousFire = true;
-            console.log('터치 연속발사 시작');
-            
-            console.log('터치 위치 이동:', newX, newY);
         }
     }, { passive: false });
     
@@ -8005,10 +7875,7 @@ function setupTouchPositionControls() {
             isSpacePressed = false;
             lastReleaseTime = Date.now();
             isContinuousFire = false;
-            console.log('터치 연속발사 중지');
         }
-        
-        console.log('터치 종료');
     }, { passive: false });
 }
 
