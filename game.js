@@ -2421,6 +2421,25 @@ function checkCollision(rect1, rect2) {
            rect1.y + rect1.height > rect2.y;
 }
 
+// 데미지 텍스트 표시 함수
+function drawDamageText(x, y, damage, isSpread = false) {
+    const damageText = {
+        x: x,
+        y: y,
+        damage: damage,
+        isSpread: isSpread,
+        life: 60, // 60프레임 동안 표시
+        alpha: 1.0,
+        offsetY: 0
+    };
+    
+    // 데미지 텍스트 배열에 추가
+    if (!window.damageTexts) {
+        window.damageTexts = [];
+    }
+    window.damageTexts.push(damageText);
+}
+
 // 충돌 처리 함수 수정
 function handleCollision() {
     // 상단 효과 무시 영역 체크
@@ -3286,8 +3305,14 @@ function checkEnemyCollisions(enemy) {
                     return false;
                 }
                 
-                // 일반 총알인 경우
-                enemy.hitCount++;
+                // 확산탄인 경우 특별 처리
+                if (bullet.isSpread) {
+                    console.log('보스가 확산탄에 맞음 - 데미지:', bullet.damage);
+                    enemy.hitCount += 2; // 확산탄은 2배의 피격 횟수로 계산
+                } else {
+                    // 일반 총알인 경우
+                    enemy.hitCount++;
+                }
                 console.log('보스 총알 맞은 횟수:', enemy.hitCount);
                 
                 // 피격 상태 설정 (시간 기반 관리)
@@ -3302,10 +3327,16 @@ function checkEnemyCollisions(enemy) {
                     false
                 ));
                 
-                // 체력 감소 (각 총알당 100의 데미지) - 동기화 보장
-                const newHealth = Math.max(0, enemy.health - 100);
+                // 체력 감소 (확산탄은 200, 일반 총알은 100의 데미지) - 동기화 보장
+                const damage = bullet.isSpread ? bullet.damage : 100;
+                const newHealth = Math.max(0, enemy.health - damage);
                 enemy.health = newHealth;
                 bossHealth = newHealth;
+                
+                // 보스 데미지 텍스트 표시 (확산탄만 표시)
+                if (bullet.isSpread) {
+                    drawDamageText(enemy.x + enemy.width/2, enemy.y + enemy.height/2, damage, true);
+                }
                 
                 // 보스 피격음 재생
                 safePlay(collisionSound);
@@ -3487,6 +3518,10 @@ function checkEnemyCollisions(enemy) {
                 if (bullet.isSpecial || bullet.isSpread) {
                     console.log(`${bullet.isSpecial ? '특수무기' : '확산탄'}로 적 즉시 파괴!`);
                     
+                    // 데미지 텍스트 표시
+                    const damage = bullet.isSpread ? bullet.damage : 500; // 확산탄 200, 특수무기 500
+                    drawDamageText(enemy.x + enemy.width/2, enemy.y + enemy.height/2, damage, bullet.isSpread);
+                    
                     // 적 즉시 파괴
                     enemy.health = 0;
                     
@@ -3516,6 +3551,8 @@ function checkEnemyCollisions(enemy) {
                         enemy.x + enemy.width/2,
                         enemy.y + enemy.height/2
                     ));
+                    
+                    // 일반 총알은 데미지 텍스트 표시하지 않음 (시각적 방해 방지)
                 }
                 
                 updateScore(enemy.score);
@@ -3710,8 +3747,8 @@ function handleSpecialWeapon() {
             const bullet = {
                 x: player.x + player.width/2,
                 y: player.y,
-                width: 12,  // 총알 크기 2배 증가 (6에서 12로)
-                height: 12, // 총알 크기 2배 증가 (6에서 12로)
+                width: 12,  // 확산탄과 동일한 크기
+                height: 32, // 확산탄과 동일한 크기
                 speed: 12,  // 속도 최적화
                 angle: angle,
                 isSpecial: true,
@@ -3732,8 +3769,8 @@ function handleSpecialWeapon() {
                 const bullet = {
                     x: secondPlane.x + secondPlane.width/2,
                     y: secondPlane.y,
-                    width: 12,  // 총알 크기 2배 증가 (6에서 12로)
-                    height: 12, // 총알 크기 2배 증가 (6에서 12로)
+                    width: 12,  // 확산탄과 동일한 크기
+                    height: 32, // 확산탄과 동일한 크기
                     speed: 12,  // 속도 최적화
                     angle: angle,
                     isSpecial: true,
@@ -4089,6 +4126,36 @@ function drawUI() {
         if (currentPhase >= 0) {
             ctx.fillText(`페이즈 ${currentPhase + 1}`, canvas.width/2, 60);
         }
+    }
+    
+    // 데미지 텍스트 그리기
+    if (window.damageTexts && window.damageTexts.length > 0) {
+        window.damageTexts = window.damageTexts.filter(damageText => {
+            if (damageText.life <= 0) return false;
+            
+            // 데미지 텍스트 스타일 설정
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'center';
+            
+            if (damageText.isSpread) {
+                // 확산탄 데미지: 노란색, 더 크게
+                ctx.fillStyle = `rgba(255, 215, 0, ${damageText.alpha})`;
+                ctx.font = 'bold 24px Arial';
+            } else {
+                // 일반 총알 데미지: 흰색
+                ctx.fillStyle = `rgba(255, 255, 255, ${damageText.alpha})`;
+            }
+            
+            // 데미지 텍스트 그리기
+            ctx.fillText(`${damageText.damage}`, damageText.x, damageText.y - damageText.offsetY);
+            
+            // 애니메이션 업데이트
+            damageText.life--;
+            damageText.alpha = Math.max(0, damageText.life / 60);
+            damageText.offsetY += 0.5; // 위로 올라가는 효과
+            
+            return true;
+        });
     }
     
 
@@ -4626,7 +4693,10 @@ function handleSpreadShot() {
                 height: 32, // 크기 2배 증가 (16에서 32로)
                 speed: 8,   // 속도 최적화
                 angle: angle,
-                isSpread: true
+                isSpread: true,
+                damage: 200, // 확산탄 데미지 (일반 총알의 2배)
+                isBossBullet: false,
+                isSpecial: false
             };
             bullets.push(missile);
 
@@ -4639,7 +4709,10 @@ function handleSpreadShot() {
                     height: 32, // 크기 2배 증가 (16에서 32로)
                     speed: 8,   // 속도 최적화
                     angle: angle,
-                    isSpread: true
+                    isSpread: true,
+                    damage: 200, // 확산탄 데미지 (일반 총알의 2배)
+                    isBossBullet: false,
+                    isSpecial: false
                 };
                 bullets.push(secondMissile);
             }
@@ -4836,32 +4909,32 @@ function handleBullets() {
             // 총알 그리기 (청록색 원형, 더 큰 크기로 시각적 효과 향상)
             ctx.fillStyle = '#00ffff';
             
-            // 원형 특수무기 총알 그리기 (1.5배 크기)
-            const bulletRadius = bullet.width/2 * 1.5; // 1.5배 크기
+            // 원형 특수무기 총알 그리기 (확산탄과 동일한 크기)
+            const bulletRadius = bullet.width/2; // 원본 크기 (확산탄과 동일)
             ctx.beginPath();
             ctx.arc(bullet.x, bullet.y, bulletRadius, 0, Math.PI * 2);
             ctx.fill();
             
-            // 꼬리 그리기 (원형, 1.5배 크기)
+            // 꼬리 그리기 (원형, 원본 크기)
             bullet.trail.forEach((pos, index) => {
                 const alpha = 1 - (index / bullet.trail.length);
-                const trailSize = bullet.width/2 * 1.5 * (1 - index/bullet.trail.length);
+                const trailSize = bullet.width/2 * (1 - index/bullet.trail.length);
                 ctx.fillStyle = `rgba(0, 255, 255, ${alpha * 0.5})`;
                 ctx.beginPath();
                 ctx.arc(pos.x, pos.y, trailSize, 0, Math.PI * 2);
                 ctx.fill();
             });
             
-            // 총알 주변에 빛나는 효과 (원형, 1.5배 크기)
+            // 총알 주변에 빛나는 효과 (원형, 원본 크기)
             const gradient = ctx.createRadialGradient(
                 bullet.x, bullet.y, 0,
-                bullet.x, bullet.y, bullet.width * 1.5
+                bullet.x, bullet.y, bullet.width
             );
             gradient.addColorStop(0, 'rgba(0, 255, 255, 0.3)');
             gradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
             ctx.fillStyle = gradient;
             ctx.beginPath();
-            ctx.arc(bullet.x, bullet.y, bullet.width * 1.5, 0, Math.PI * 2);
+            ctx.arc(bullet.x, bullet.y, bullet.width, 0, Math.PI * 2);
             ctx.fill();
             
             // 총알 지속 시간 감소
@@ -7605,9 +7678,10 @@ function createUnifiedBullet() {
                 height: 16, // 크기 2배 증가 (8에서 16으로)
                 speed: 6,   // 통일된 속도
                 angle: angle,
-                damage: 100,
+                damage: 200, // 확산탄 데미지 (일반 총알의 2배)
                 isBossBullet: false,
-                isSpecial: false
+                isSpecial: false,
+                isSpread: true
             };
             bullets.push(bullet);
         }
@@ -7643,9 +7717,10 @@ function createUnifiedBullet() {
                         height: 16, // 크기 2배 증가 (8에서 16으로)
                         speed: 6,   // 통일된 속도
                         angle: angle,
-                        damage: 100,
+                        damage: 200, // 확산탄 데미지 (일반 총알의 2배)
                         isBossBullet: false,
-                        isSpecial: false
+                        isSpecial: false,
+                        isSpread: true
                     };
                     bullets.push(bullet);
                 }
