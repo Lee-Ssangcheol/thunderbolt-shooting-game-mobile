@@ -5174,7 +5174,7 @@ function createBoss() {
         hitDuration: null, // 피격 상태 지속 시간
         type: ENEMY_TYPES.HELICOPTER,
         rotorAngle: 0,
-        rotorSpeed: 0.1, // 보스 로터 속도를 50%로 감소 (0.2 * 0.5 = 0.1)
+        rotorSpeed: 0.12, // 보스 로터 속도를 20% 증가 (0.1 * 1.2 = 0.12)
         hoverHeight: 150,
         hoverTimer: 0,
         hoverDirection: 1,
