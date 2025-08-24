@@ -6,15 +6,12 @@ const TOP_EFFECT_ZONE = 20;  // 상단 효과 무시 영역 (픽셀)
 // 모바일 디바이스 감지
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-// 디버그 모드 (성능 최적화를 위해 false로 설정)
-const DEBUG_MODE = false;
-
 // 모바일 속도 조절 (더 느리게 조정)
 const mobileSpeedMultiplier = isMobile ? 1.0 : 1.0;
 
-// 모바일 프레임 제한 (60fps로 최적화)
+// 모바일 프레임 제한 (60fps 대신 55fps로 완화)
 const MOBILE_FPS_LIMIT = isMobile ? 100 : 100;
-const MOBILE_FRAME_INTERVAL = 1000 / MOBILE_FPS_LIMIT;
+const MOBILE_FRAME_INTERVAL = 800 / MOBILE_FPS_LIMIT;
 
 // 전체화면 상태 추적 변수
 let isFullscreenActive = false;
@@ -25,15 +22,6 @@ const FULLSCREEN_COOLDOWN = 1000; // 1초 쿨다운
 
 // 게임 상태 변수
 let gameStarted = false;
-
-
-
-// 디버그 로그 함수 (성능 최적화)
-function debugLog(...args) {
-    if (DEBUG_MODE) {
-        console.log(...args);
-    }
-}
 
 // 전체화면 상태 확인 함수
 function checkFullscreenState() {
@@ -49,6 +37,7 @@ function updateFullscreenState() {
     isFullscreenActive = checkFullscreenState();
     
     if (wasFullscreen && !isFullscreenActive) {
+        console.log('전체화면 모드가 종료되었습니다.');
         fullscreenActivationInProgress = false;
         // 전체화면 종료 시 쿨다운도 초기화
         lastFullscreenAttempt = 0;
@@ -65,20 +54,24 @@ function enableFullscreen() {
     
     // 쿨다운 체크
     if (currentTime - lastFullscreenAttempt < FULLSCREEN_COOLDOWN) {
+        console.log('전체화면 활성화 쿨다운 중...');
         return;
     }
     
     // 이미 활성화 중이면 중복 실행 방지
     if (fullscreenActivationInProgress) {
+        console.log('전체화면 활성화가 이미 진행 중입니다.');
         return;
     }
     
     // 이미 전체화면 상태인지 확인
     if (checkFullscreenState()) {
+        console.log('이미 전체화면 모드입니다.');
         isFullscreenActive = true;
         return;
     }
     
+    console.log('모바일 전체화면 모드 활성화 시도');
     fullscreenActivationInProgress = true;
     lastFullscreenAttempt = currentTime;
     
@@ -90,10 +83,12 @@ function enableFullscreen() {
     if (document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen()
             .then(() => {
+                console.log('전체화면 모드 활성화 성공');
                 isFullscreenActive = true;
                 fullscreenActivationInProgress = false;
             })
             .catch(err => {
+                console.log('전체화면 모드 실패:', err);
                 fullscreenActivationInProgress = false;
             });
     }
@@ -343,11 +338,13 @@ function setupMobileControls() {
     mobileControls.btnFire.addEventListener('touchstart', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        console.log('시작/재시작 버튼 터치');
         
         // 시작 화면에서 버튼을 누르면 바로 게임 화면으로 전환
         if (isStartScreen) {
             isStartScreen = false;
             gameStarted = false; // 화면 터치 대기 상태
+            console.log('모바일에서 게임 화면으로 전환 (터치 대기)');            
             // 모바일에서 게임 시작 시 전체화면 모드 활성화
             if (isMobile) {
                 setTimeout(() => {
@@ -359,7 +356,8 @@ function setupMobileControls() {
         // 게임 오버 상태에서 재시작
         if (isGameOver) {
             restartGame();
-            gameStarted = false; // 화면 터치 대기 상태
+            gameStarted = false; // 화면 터치 대기 상태            
+            console.log('게임 오버 후 게임 화면으로 전환 (터치 대기)');            
             // 모바일에서 게임 재시작 시 전체화면 모드 활성화
             if (isMobile) {
                 setTimeout(() => {
@@ -373,16 +371,19 @@ function setupMobileControls() {
     mobileControls.btnFire.addEventListener('touchend', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        console.log('시작/재시작 버튼 터치 종료');
     }, { passive: false });
     
     // 클릭 이벤트도 추가 (데스크탑용, 개선된 버전)
     mobileControls.btnFire.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        console.log('시작/재시작 버튼 클릭');
         
         if (isStartScreen) {
             isStartScreen = false;
             gameStarted = false; // 화면 터치 대기 상태
+            console.log('모바일에서 게임 화면으로 전환 (터치 대기)');            
             // 모바일에서 게임 시작 시 전체화면 모드 활성화
             if (isMobile) {
                 setTimeout(() => {
@@ -395,6 +396,7 @@ function setupMobileControls() {
         if (isGameOver) {
             restartGame();
             gameStarted = false; // 화면 터치 대기 상태
+            console.log('게임 오버 후 게임 화면으로 전환 (터치 대기)');            
             if (isMobile) {
                 setTimeout(() => {
                     reactivateFullscreen();
@@ -416,6 +418,7 @@ function setupMobileControls() {
     mobileControls.btnPause.addEventListener('touchstart', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        console.log('일시정지 버튼 터치');
         
         // 직접 일시정지 상태 토글
         isPaused = !isPaused;
@@ -424,6 +427,9 @@ function setupMobileControls() {
         if (isPaused) {
             isMobileFirePressed = false;
             isContinuousFire = false;
+            console.log('게임 일시정지됨');
+        } else {
+            console.log('게임 재개됨');
         }
     }, { passive: false });
     
@@ -449,6 +455,7 @@ function setupMobileControls() {
     mobileControls.btnReset.addEventListener('touchstart', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        console.log('재시작 버튼 터치');
         if (isGameOver) {
             restartGame();
         } else {
@@ -462,6 +469,7 @@ function setupMobileControls() {
     mobileControls.btnReset.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        console.log('재시작 버튼 클릭');
         if (isGameOver) {
             restartGame();
         } else {
@@ -483,11 +491,13 @@ function setupMobileControls() {
     mobileControls.btnFire.addEventListener('mousedown', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        console.log('시작/재시작 버튼 마우스 다운');
         
         // 시작 화면에서 버튼을 누르면 게임 시작
         if (isStartScreen) {
             isStartScreen = false;
             gameStarted = true;
+            console.log('모바일에서 게임 시작');
             // 모바일에서 게임 시작 시 전체화면 모드 활성화
             if (isMobile) {
                 setTimeout(() => {
@@ -512,10 +522,12 @@ function setupMobileControls() {
     mobileControls.btnFire.addEventListener('mouseup', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        console.log('시작/재시작 버튼 마우스 업');
     });
     mobileControls.btnSpecial.addEventListener('mousedown', () => keys.KeyB = true);
     mobileControls.btnSpecial.addEventListener('mouseup', () => keys.KeyB = false);
     mobileControls.btnPause.addEventListener('mousedown', () => {
+        console.log('일시정지 버튼 마우스 다운');
         
         // 직접 일시정지 상태 토글
         isPaused = !isPaused;
@@ -524,6 +536,9 @@ function setupMobileControls() {
         if (isPaused) {
             isMobileFirePressed = false;
             isContinuousFire = false;
+            console.log('게임 일시정지됨');
+        } else {
+            console.log('게임 재개됨');
         }
     });
 }
@@ -2604,7 +2619,7 @@ function drawAirplane(x, y, width, height, color, isEnemy = false) {
 // 게임 루프 수정
 function gameLoop() {
     if (!gameLoopRunning) {
-        debugLog('게임 루프가 실행되지 않음: gameLoopRunning =', gameLoopRunning);
+        console.log('게임 루프가 실행되지 않음: gameLoopRunning =', gameLoopRunning);
         return;
     }
     
@@ -2623,12 +2638,12 @@ function gameLoop() {
     }
 
     if (isStartScreen) {
-        debugLog('시작 화면 렌더링 중...');
+        console.log('시작 화면 렌더링 중...');
         try {
             // 시작 화면에서는 검정색 배경을 그리지 않고 drawStartScreen에서 처리
             drawStartScreen();
         } catch (error) {
-            debugLog('시작 화면 그리기 중 오류:', error);
+            console.error('시작 화면 그리기 중 오류:', error);
             // 오류 발생 시 기본 시작 화면 표시
             ctx.fillStyle = '#000033';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -2762,7 +2777,7 @@ function gameLoop() {
                 try {
                     handleBossPattern(boss);
                 } catch (error) {
-                    debugLog('보스 패턴 처리 중 오류:', error, boss);
+                    console.error('보스 패턴 처리 중 오류:', error, boss);
                     // 오류 발생 시 보스 상태 초기화
                     bossActive = false;
                     bossHealth = 0;
@@ -2770,7 +2785,7 @@ function gameLoop() {
                 }
             } else {
                 // 보스가 enemies 배열에서 제거되었거나 유효하지 않은 경우 상태 초기화
-                debugLog('보스가 제거되었거나 유효하지 않음 - 상태 초기화 및 적 생성 제한');
+                console.log('보스가 제거되었거나 유효하지 않음 - 상태 초기화 및 적 생성 제한');
                 bossActive = false;
                 bossHealth = 0;
                 bossDestroyed = false;
@@ -2781,7 +2796,7 @@ function gameLoop() {
                 
                 // 보스 상태 완전 초기화 강제 실행
                 if (bossDestroyed) {
-                    debugLog('보스 파괴 상태 감지 - 강제 초기화 실행');
+                    console.log('보스 파괴 상태 감지 - 강제 초기화 실행');
                     resetBossState();
                 }
             }
@@ -2822,17 +2837,17 @@ function gameLoop() {
                     }
                     
                     lastHelicopterSpawnTime = currentTime;
-                    debugLog(`${helicopterCount}대의 헬리콥터 생성됨 (레벨 ${gameLevel}, 확률: ${Math.round(spawnChance * 100)}%) - 현재 총 적 수: ${totalEnemies + helicopterCount}/6 - 시간:`, new Date(currentTime).toLocaleTimeString());
+                    console.log(`${helicopterCount}대의 헬리콥터 생성됨 (레벨 ${gameLevel}, 확률: ${Math.round(spawnChance * 100)}%) - 현재 총 적 수: ${totalEnemies + helicopterCount}/6 - 시간:`, new Date(currentTime).toLocaleTimeString());
                 }
             } else {
-                debugLog(`헬리콥터 생성 제한: 현재 총 적 수 ${totalEnemies}/6으로 인해 생성 불가`);
+                console.log(`헬리콥터 생성 제한: 현재 총 적 수 ${totalEnemies}/6으로 인해 생성 불가`);
             }
         }
 
         // 보스 총알 정리 (보스가 파괴된 후 남은 총알 제거)
         if (bossDestroyed || !bossActive) {
             bullets = bullets.filter(bullet => !bullet.isBossBullet);
-            debugLog('보스 파괴 후 남은 보스 총알 정리 완료');
+            console.log('보스 파괴 후 남은 보스 총알 정리 완료');
         }
         
         // 총알 이동 및 충돌 체크
@@ -2857,7 +2872,7 @@ function gameLoop() {
             // 타이머가 정상 작동 중
             const remainingTime = Math.max(0, Math.ceil((10000 - elapsedTime) / 1000));
             if (remainingTime <= 3) { // 3초 이하일 때만 로그
-                debugLog(`프레임별 타이머 확인: ${remainingTime}초 남음 (경과: ${elapsedTime}ms)`);
+                console.log(`프레임별 타이머 확인: ${remainingTime}초 남음 (경과: ${elapsedTime}ms)`);
             }
         }
         }
@@ -2869,19 +2884,19 @@ function gameLoop() {
             
             // 10초 정확히 경과했을 때만 강제 처리 (타이머가 멈춰있는 경우)
             if (elapsedTime >= 10000) {
-                debugLog(`레벨 ${gameLevel}에서 타이머 강제 업데이트: 10초 경과하여 즉시 처리`);
+                console.warn(`레벨 ${gameLevel}에서 타이머 강제 업데이트: 10초 경과하여 즉시 처리`);
                 hasSecondPlane = false;
                 secondPlaneTimer = 0;
                 // 20초 쿨다운 시작
                 isSecondPlaneOnCooldown = true;
                 secondPlaneCooldownTimer = currentTime;
                 showSecondPlaneMessage('추가 비행기 소멸!', 'red');
-                debugLog('두 번째 비행기 강제 소멸 - 20초 쿨다운 시작');
+                console.log('두 번째 비행기 강제 소멸 - 20초 쿨다운 시작');
             }
             
             // 타이머가 8초 이상에서 멈춰있는 경우 경고
             if (elapsedTime >= 8000 && elapsedTime < 10000) {
-                debugLog(`타이머 경고: ${elapsedTime}ms 경과했지만 아직 10초에 도달하지 않음`);
+                console.warn(`타이머 경고: ${elapsedTime}ms 경과했지만 아직 10초에 도달하지 않음`);
             }
         }
 
@@ -2915,9 +2930,9 @@ function gameLoop() {
             requestAnimationFrame(gameLoop);
         }
     } catch (error) {
-        debugLog('게임 루프 실행 중 오류:', error);
-        debugLog('오류 스택:', error.stack);
-        debugLog('오류 발생 위치:', error.fileName, error.lineNumber);
+        console.error('게임 루프 실행 중 오류:', error);
+        console.error('오류 스택:', error.stack);
+        console.error('오류 발생 위치:', error.fileName, error.lineNumber);
         
         // 오류 발생 시 게임 오버 처리
         handleGameOver();
@@ -3052,13 +3067,7 @@ function handleEnemies() {
     enemies = enemies.filter(enemy => {
         // 보스가 파괴된 경우 즉시 제거
         if (enemy.isBoss && (bossDestroyed || enemy.health <= 0)) {
-            debugLog('handleEnemies: 보스 파괴됨 - 즉시 제거');
-            return false;
-        }
-        
-        // 화면 밖 적 제거 (성능 최적화)
-        if (enemy.y > canvas.height + 100 || enemy.y < -100 || 
-            enemy.x > canvas.width + 100 || enemy.x < -100) {
+            console.log('handleEnemies: 보스 파괴됨 - 즉시 제거');
             return false;
         }
         
@@ -3236,12 +3245,6 @@ function checkEnemyCollisions(enemy) {
         return false;
     }
 
-    // 화면 밖 적은 충돌 체크 생략 (성능 최적화)
-    if (enemy.y < -100 || enemy.y > canvas.height + 100 || 
-        enemy.x < -100 || enemy.x > canvas.width + 100) {
-        return true;
-    }
-
     // 총알과 충돌 체크
     let isHit = false;
     bullets = bullets.filter(bullet => {
@@ -3250,14 +3253,8 @@ function checkEnemyCollisions(enemy) {
             return true;
         }
 
-        // 화면 밖 총알은 충돌 체크 생략 (성능 최적화)
-        if (bullet.y < -50 || bullet.y > canvas.height + 50 || 
-            bullet.x < -50 || bullet.x > canvas.width + 50) {
-            return true;
-        }
-
         if (checkCollision(bullet, enemy)) {
-            debugLog('총알과 적 충돌 감지:', {
+            console.log('총알과 적 충돌 감지:', {
                 bulletType: bullet.isSpecial ? '특수무기' : (bullet.isSpread ? '확산탄' : '일반총알'),
                 enemyType: enemy.type,
                 enemyHealth: enemy.health,
@@ -3798,12 +3795,6 @@ function handleSpecialWeapon() {
 // 폭발 효과 업데이트 및 그리기
 function handleExplosions() {
     explosions = explosions.filter(explosion => {
-        // 화면 밖 폭발 효과 제거 (성능 최적화)
-        if (explosion.y < -100 || explosion.y > canvas.height + 100 || 
-            explosion.x < -100 || explosion.x > canvas.width + 100) {
-            return false;
-        }
-        
         // 상단 효과 무시 영역 체크
         if (explosion.y < TOP_EFFECT_ZONE) {
             return false; // 폭발 효과 제거
@@ -4240,6 +4231,7 @@ document.addEventListener('keydown', (e) => {
         if (isStartScreen && e.code === 'Space') {
             isStartScreen = false;
             gameStarted = false; // 화면 터치 대기 상태
+            console.log('모바일에서 게임 시작 준비 - 화면 터치 대기');
             // 모바일에서 게임 시작 시 전체화면 모드 활성화
             if (isMobile) {
                 setTimeout(() => {
@@ -4249,6 +4241,7 @@ document.addEventListener('keydown', (e) => {
             // 데스크탑에서는 바로 gameStarted 해제
             if (!isMobile && !gameStarted) {
                 gameStarted = true;
+                console.log('데스크탑에서 게임 시작됨');
             }
             return;
         }
@@ -4257,6 +4250,7 @@ document.addEventListener('keydown', (e) => {
         if (isGameOver && e.code === 'Space') {
             restartGame();
             gameStarted = false; // 화면 터치 대기 상태
+            console.log('게임 오버 후 게임 시작 준비 - 화면 터치 대기');
             // 모바일에서 게임 재시작 시 전체화면 모드 활성화
             if (isMobile) {
                 setTimeout(() => {
@@ -4266,6 +4260,7 @@ document.addEventListener('keydown', (e) => {
             // 데스크탑에서는 바로 gameStarted 해제
             if (!isMobile && !gameStarted) {
                 gameStarted = true;
+                console.log('데스크탑에서 게임 재시작됨');
             }
             return;
         }
@@ -4291,6 +4286,7 @@ document.addEventListener('keydown', (e) => {
             if (result) {
                 resetAllHighScores();
                 alert('최고 점수가 리셋되었습니다.');
+                console.log('최고 점수 리셋');
             }
         });
     }
@@ -4298,6 +4294,7 @@ document.addEventListener('keydown', (e) => {
     // P 키를 눌렀을 때 게임 일시정지/재개 (keys 객체와 독립적으로 처리)
     if (e.code === 'KeyP') {
         isPaused = !isPaused;
+        console.log('P키 눌림 - 일시정지 상태:', isPaused);
         
         // 일시정지 시 모바일 연속 발사 중지
         if (isPaused) {
@@ -4733,12 +4730,6 @@ function handleSpreadShot() {
 // 총알 이동 및 충돌 체크 함수 수정
 function handleBullets() {
     bullets = bullets.filter(bullet => {
-        // 화면 밖 총알 제거 (성능 최적화)
-        if (bullet.y < -50 || bullet.y > canvas.height + 50 || 
-            bullet.x < -50 || bullet.x > canvas.width + 50) {
-            return false;
-        }
-        
         // 상단 효과 무시 영역 체크
         if (bullet.y < TOP_EFFECT_ZONE) {
             return true; // 총알은 계속 이동하되 효과는 발생하지 않음
@@ -5257,8 +5248,8 @@ function handleBossPattern(boss) {
         }
     }
     
-    // 디버깅: 함수 호출 확인 (성능 최적화)
-    debugLog('handleBossPattern 함수 호출됨', {
+    // 디버깅: 함수 호출 확인
+    console.log('handleBossPattern 함수 호출됨', {
         boss: boss,
         currentTime: currentTime,
         patternTimer: boss.patternTimer,
@@ -5312,7 +5303,7 @@ function handleBossPattern(boss) {
             boss.movePhase = 1;
             boss.timer = currentTime;
             boss.centerX = canvas.width / 2 - boss.width / 2; // 중앙 기준점 설정
-            debugLog('🚁 보스 중앙 호버링 시작 - 역동적 패턴 준비', {
+            console.log('🚁 보스 중앙 호버링 시작 - 역동적 패턴 준비', {
                 centerX: boss.centerX,
                 hoverHeight: boss.hoverHeight,
                 currentX: boss.x,
@@ -7786,6 +7777,7 @@ function stopMobileContinuousFire() {
 
 // 터치 위치 이동 컨트롤 설정
 function setupTouchPositionControls() {
+    console.log('터치 위치 이동 컨트롤 설정');
     
     // 터치 시작
     canvas.addEventListener('touchstart', (e) => {
@@ -7798,6 +7790,7 @@ function setupTouchPositionControls() {
         // 터치 대기 상태에서 첫 터치 시 게임 시작
         if (!gameStarted && !isStartScreen && !isGameOver) {
             gameStarted = true;
+            console.log('터치로 게임 시작됨');
         }
         
         // 게임 진행 중일 때만 플레이어 이동
@@ -7829,6 +7822,9 @@ function setupTouchPositionControls() {
             isSpacePressed = true;
             spacePressTime = Date.now();
             isContinuousFire = true;
+            console.log('터치 연속발사 시작');
+            
+            console.log('터치 위치 이동:', newX, newY);
         }
     }, { passive: false });
     
@@ -7875,7 +7871,10 @@ function setupTouchPositionControls() {
             isSpacePressed = false;
             lastReleaseTime = Date.now();
             isContinuousFire = false;
+            console.log('터치 연속발사 중지');
         }
+        
+        console.log('터치 종료');
     }, { passive: false });
 }
 
