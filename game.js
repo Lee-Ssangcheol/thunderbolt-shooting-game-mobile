@@ -1537,15 +1537,15 @@ function restartGame() {
 
 // 적 생성 함수 수정 - 화면 상단에서 등장하도록 개선
 function createEnemy(forceType = null) {
-    // 레벨 7 이상일 때는 레벨 7의 난이도로 고정 (모든 속성 증가 제한)
+    // 레벨 5 이상일 때는 레벨 5의 난이도로 고정 (모든 속성 증가 제한)
     let currentDifficulty;
-    if (gameLevel <= 6) {
+    if (gameLevel <= 4) {
         currentDifficulty = difficultySettings[gameLevel] || difficultySettings[1];
     } else {
-        // 레벨 7 이상: 모든 속성을 레벨 7과 동일하게 고정 (증가 제한)
-        currentDifficulty = difficultySettings[7];
+        // 레벨 5 이상: 모든 속성을 레벨 5와 동일하게 고정 (증가 제한)
+        currentDifficulty = difficultySettings[5];
         
-        console.log(`createEnemy - 레벨 ${gameLevel}: 레벨 7 난이도로 고정 (속도: ${currentDifficulty.enemySpeed}, 적 수: ${currentDifficulty.maxEnemies}, 생성률: ${currentDifficulty.enemySpawnRate})`);
+        console.log(`createEnemy - 레벨 ${gameLevel}: 레벨 5 난이도로 고정 (속도: ${currentDifficulty.enemySpeed}, 적 수: ${currentDifficulty.maxEnemies}, 생성률: ${currentDifficulty.enemySpawnRate})`);
     }
     
     // 강제 타입이 지정된 경우 해당 타입으로 생성, 그렇지 않으면 기존 로직 사용
@@ -1560,9 +1560,9 @@ function createEnemy(forceType = null) {
                 speed: currentDifficulty.enemySpeed,
                 type: ENEMY_TYPES.PLANE,
                 health: currentDifficulty.enemyHealth,
-                score: gameLevel <= 6 ? 10 : 12, // 일반 비행기: 레벨 6 이하 10점, 레벨 7 이상 12점 (제한)
-                isElite: Math.random() < (gameLevel <= 6 ? (0.05 + (gameLevel * 0.02)) : 0.15), // 레벨 7 이상에서는 엘리트 확률 제한
-                specialAbility: Math.random() < (gameLevel <= 6 ? (0.1 + (gameLevel * 0.03)) : 0.25) ? getRandomSpecialAbility() : null, // 레벨 7 이상에서는 특수 능력 확률 제한
+                score: gameLevel <= 4 ? 10 : 12, // 일반 비행기: 레벨 4 이하 10점, 레벨 5 이상 12점 (제한)
+                isElite: Math.random() < (gameLevel <= 4 ? (0.05 + (gameLevel * 0.02)) : 0.15), // 레벨 5 이상에서는 엘리트 확률 제한
+                specialAbility: Math.random() < (gameLevel <= 4 ? (0.1 + (gameLevel * 0.03)) : 0.25) ? getRandomSpecialAbility() : null, // 레벨 5 이상에서는 특수 능력 확률 제한
                 hasShield: false, // 일반 비행기는 보호막 없음
                 canFire: false, // 초기에는 발사 불가능
                 lastFireTime: 0,
@@ -1577,14 +1577,14 @@ function createEnemy(forceType = null) {
                 bulletSpeed: currentDifficulty.bulletSpeed
             };
 
-            // 엘리트 적 보너스 (레벨 7 이상에서는 제한)
+            // 엘리트 적 보너스 (레벨 5 이상에서는 제한)
             if (enemy.isElite) {
-                // 레벨 7 이상에서는 체력 증가 제한
-                if (gameLevel <= 6) {
+                // 레벨 5 이상에서는 체력 증가 제한
+                if (gameLevel <= 4) {
                     enemy.health *= (1.5 + (gameLevel * 0.2));
                     enemy.speed *= 1.2;
                 } else {
-                    enemy.health *= 1.5; // 레벨 7 이상에서는 기본 보너스만
+                    enemy.health *= 1.5; // 레벨 5 이상에서는 기본 보너스만
                 }
                 // 엘리트 보너스 점수 비활성화
                 // enemy.score *= 2;
@@ -2977,15 +2977,15 @@ function handlePlayerMovement() {
 // 적 처리 함수 수정 - 적 생성 로직 개선
 function handleEnemies() {
     const currentTime = Date.now();
-    // 레벨 7 이상일 때는 레벨 7의 난이도로 고정 (모든 속성 증가 제한)
+    // 레벨 5 이상일 때는 레벨 5의 난이도로 고정 (모든 속성 증가 제한)
     let currentDifficulty;
-    if (gameLevel <= 6) {
+    if (gameLevel <= 4) {
         currentDifficulty = difficultySettings[gameLevel] || difficultySettings[1];
     } else {
-        // 레벨 7 이상: 모든 속성을 레벨 7과 동일하게 고정 (증가 제한)
-        currentDifficulty = difficultySettings[7];
+        // 레벨 5 이상: 모든 속성을 레벨 5와 동일하게 고정 (증가 제한)
+        currentDifficulty = difficultySettings[5];
         
-        console.log(`handleEnemies - 레벨 ${gameLevel}: 레벨 7 난이도로 고정 (속도: ${currentDifficulty.enemySpeed}, 적 수: ${currentDifficulty.maxEnemies}, 생성률: ${currentDifficulty.enemySpawnRate})`);
+        console.log(`handleEnemies - 레벨 ${gameLevel}: 레벨 5 난이도로 고정 (속도: ${currentDifficulty.enemySpeed}, 적 수: ${currentDifficulty.maxEnemies}, 생성률: ${currentDifficulty.enemySpawnRate})`);
     }
     
     // 보스 존재 여부 체크 - 더 정확한 체크
