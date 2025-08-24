@@ -7,11 +7,15 @@ const TOP_EFFECT_ZONE = 20;  // 상단 효과 무시 영역 (픽셀)
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
 // 모바일 속도 조절 (더 느리게 조정)
-const mobileSpeedMultiplier = isMobile ? 1.0 : 1.0;
+const mobileSpeedMultiplier = isMobile ? 0.8 : 1.0; // 모바일에서 20% 느리게
 
-// 모바일 프레임 제한 (60fps 대신 55fps로 완화)
-const MOBILE_FPS_LIMIT = isMobile ? 100 : 100;
-const MOBILE_FRAME_INTERVAL = 800 / MOBILE_FPS_LIMIT;
+// 모바일 프레임 제한 및 델타 타임 시스템
+const MOBILE_FPS_LIMIT = isMobile ? 60 : 60; // 모바일에서 60fps로 제한
+const MOBILE_FRAME_INTERVAL = 1000 / MOBILE_FPS_LIMIT;
+
+// 델타 타임 시스템 (프레임 독립적 움직임)
+let lastFrameTime = 0;
+let deltaTime = 16.67; // 기본 60fps 기준 (1000ms / 60fps)
 
 // 전체화면 상태 추적 변수
 let isFullscreenActive = false;
@@ -1328,6 +1332,8 @@ async function initializeGame() {
         gameStarted = false; // 화면 터치 대기 상태
         isStartScreen = true;
         frameCount = 0; // 프레임 카운터 초기화
+        lastFrameTime = performance.now(); // 델타 타임 초기화
+        deltaTime = 16.67; // 델타 타임 초기화
         
         // 모든 투사체 및 폭발물 완전 초기화
         bullets = [];
@@ -1507,8 +1513,10 @@ function restartGame() {
     levelScore = 0;
     scoreForSpread = 0;
     gameLevel = 1;
-    frameCount = 0; // 프레임 카운터 초기화
-            levelUpScore = 1500; // 레벨업 기준 점수 초기화
+            frameCount = 0; // 프레임 카운터 초기화
+        lastFrameTime = performance.now(); // 델타 타임 초기화
+        deltaTime = 16.67; // 델타 타임 초기화
+        levelUpScore = 1500; // 레벨업 기준 점수 초기화
     
     // 특수무기 관련 상태 초기화
     specialWeaponCharged = false;
@@ -2658,8 +2666,14 @@ function gameLoop() {
             ctx.font = 'bold 20px Arial';
             ctx.fillText('시작/재시작 버튼을 눌러 시작', canvas.width/2, canvas.height/2 + 50);
         }
-        // 프레임 제한 없이 requestAnimationFrame 사용 (성능 최적화)
-        requestAnimationFrame(gameLoop);
+        // 모바일에서 프레임 제한 적용 (성능 최적화)
+        if (isMobile) {
+            setTimeout(() => {
+                requestAnimationFrame(gameLoop);
+            }, MOBILE_FRAME_INTERVAL);
+        } else {
+            requestAnimationFrame(gameLoop);
+        }
         return;
     }
 
@@ -2726,8 +2740,14 @@ function gameLoop() {
             ctx.fillText(`최종 점수: ${score}`, canvas.width/2, canvas.height/2 + 60);
             ctx.fillText('스페이스바를 눌러 재시작', canvas.width/2, canvas.height/2 + 160);
         }
-        // 프레임 제한 없이 requestAnimationFrame 사용 (성능 최적화)
-        requestAnimationFrame(gameLoop);
+        // 모바일에서 프레임 제한 적용 (성능 최적화)
+        if (isMobile) {
+            setTimeout(() => {
+                requestAnimationFrame(gameLoop);
+            }, MOBILE_FRAME_INTERVAL);
+        } else {
+            requestAnimationFrame(gameLoop);
+        }
         return;
     }
 
@@ -2735,11 +2755,19 @@ function gameLoop() {
         // 프레임 카운터 증가 (성능 최적화용)
         frameCount++;
         
-        // 깜박임 효과 처리
+        // 델타 타임 계산 (프레임 독립적 움직임)
+        const currentFrameTime = performance.now();
+        deltaTime = currentFrameTime - lastFrameTime;
+        lastFrameTime = currentFrameTime;
+        
+        // 델타 타임을 16.67ms (60fps) 기준으로 정규화
+        const normalizedDeltaTime = Math.min(deltaTime / 16.67, 2.0); // 최대 2배까지만 허용
+        
+        // 깜박임 효과 처리 (델타 타임 적용)
         if (flashTimer > 0) {
             ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            flashTimer -= 16;
+            flashTimer -= normalizedDeltaTime * 16;
         }
 
         // 플레이어 이동 처리
@@ -2931,8 +2959,14 @@ function gameLoop() {
         // 모바일 컨트롤 상태 표시
         showMobileControlStatus();
 
-        // 프레임 제한 없이 requestAnimationFrame 사용 (성능 최적화)
-        requestAnimationFrame(gameLoop);
+        // 모바일에서 프레임 제한 적용 (성능 최적화)
+        if (isMobile) {
+            setTimeout(() => {
+                requestAnimationFrame(gameLoop);
+            }, MOBILE_FRAME_INTERVAL);
+        } else {
+            requestAnimationFrame(gameLoop);
+        }
     } catch (error) {
         console.error('게임 루프 실행 중 오류:', error);
         console.error('오류 스택:', error.stack);
@@ -2950,30 +2984,32 @@ function handlePlayerMovement() {
     // 모바일에서는 하단 컨트롤 영역을 고려하여 제한 (처음 위치와 동일하게 확장)
     const maxY = isMobile ? canvas.height - 100 : canvas.height - player.height - margin;
     
-    // 비행기 중심을 기준으로 좌우 이동 제한 설정
+    // 비행기 중심을 기준으로 좌우 이동 제한 설정 (델타 타임 적용)
     // 비행기 일부가 화면 밖으로 나갈 수 있도록 허용
+    const normalizedDeltaTime = Math.min(deltaTime / 16.67, 2.0);
+    
     if (keys.ArrowLeft && player.x > -player.width / 2.5) {
-        player.x -= player.speed * 1.2; // 좌우 이동 속도를 0.5에서 1.2로 증가
+        player.x -= player.speed * 1.2 * normalizedDeltaTime; // 좌우 이동 속도를 0.5에서 1.2로 증가
         if (hasSecondPlane) {
-            secondPlane.x -= player.speed * 1.2;
+            secondPlane.x -= player.speed * 1.2 * normalizedDeltaTime;
         }
     }
     if (keys.ArrowRight && player.x < canvas.width - player.width / 2) {
-        player.x += player.speed * 1.2; // 좌우 이동 속도를 0.5에서 1.2로 증가
+        player.x += player.speed * 1.2 * normalizedDeltaTime; // 좌우 이동 속도를 0.5에서 1.2로 증가
         if (hasSecondPlane) {
-            secondPlane.x += player.speed * 1.2;
+            secondPlane.x += player.speed * 1.2 * normalizedDeltaTime;
         }
     }
     if (keys.ArrowUp && player.y > margin) {
-        player.y -= player.speed;
+        player.y -= player.speed * normalizedDeltaTime;
         if (hasSecondPlane) {
-            secondPlane.y -= player.speed;
+            secondPlane.y -= player.speed * normalizedDeltaTime;
         }
     }
     if (keys.ArrowDown && player.y < maxY) {
-        player.y += player.speed;
+        player.y += player.speed * normalizedDeltaTime;
         if (hasSecondPlane) {
-            secondPlane.y += player.speed;
+            secondPlane.y += player.speed * normalizedDeltaTime;
         }
     }
 }
@@ -5261,15 +5297,15 @@ function handleBossPattern(boss) {
         }
     }
     
-    // 디버깅: 함수 호출 확인
-    console.log('handleBossPattern 함수 호출됨', {
-        boss: boss,
-        currentTime: currentTime,
-        patternTimer: boss.patternTimer,
-        patternInterval: BOSS_SETTINGS.PATTERN_INTERVAL,
-        timeDiff: currentTime - boss.patternTimer,
-        isBeingHit: boss.isBeingHit
-    });
+    // 디버깅: 함수 호출 확인 (성능 최적화를 위해 주석 처리)
+    // console.log('handleBossPattern 함수 호출됨', {
+    //     boss: boss,
+    //     currentTime: currentTime,
+    //     patternTimer: boss.patternTimer,
+    //     patternInterval: BOSS_SETTINGS.PATTERN_INTERVAL,
+    //     timeDiff: currentTime - boss.patternTimer,
+    //     isBeingHit: boss.isBeingHit
+    // });
     
     // 보스 페이즈 체크 및 업데이트
     const currentPhase = BOSS_SETTINGS.PHASE_THRESHOLDS.findIndex(
@@ -5296,32 +5332,36 @@ function handleBossPattern(boss) {
         }
     }
     
-    // 로터 회전 업데이트 (헬리콥터1과 동일하게 매 프레임마다)
+    // 로터 회전 업데이트 (델타 타임 적용으로 프레임 독립적)
     if (typeof boss.rotorAngle !== 'undefined' && typeof boss.rotorSpeed !== 'undefined') {
-        boss.rotorAngle += boss.rotorSpeed;
+        const normalizedDeltaTime = Math.min(deltaTime / 16.67, 2.0);
+        boss.rotorAngle += boss.rotorSpeed * normalizedDeltaTime;
     }
     
-    // 보스 이동 패턴 (화면 중앙 체공 및 역동적 움직임)
+    // 보스 이동 패턴 (화면 중앙 체공 및 역동적 움직임) - 델타 타임 적용
     if (boss.movePhase === 0) {
         // 초기 진입 - 화면 중앙으로 진입
         if (typeof boss.speed !== 'undefined') {
-            boss.y += boss.speed * 0.6; // 진입 속도 조정
+            const normalizedDeltaTime = Math.min(deltaTime / 16.67, 2.0);
+            boss.y += boss.speed * 0.6 * normalizedDeltaTime; // 진입 속도 조정 (델타 타임 적용)
         }
         // 화면 중앙으로 수렴하는 진입 경로
         const targetX = canvas.width / 2 - boss.width / 2;
         const dx = targetX - boss.x;
-        boss.x += dx * 0.02; // 부드럽게 중앙으로 이동
+        const normalizedDeltaTime = Math.min(deltaTime / 16.67, 2.0);
+        boss.x += dx * 0.02 * normalizedDeltaTime; // 부드럽게 중앙으로 이동 (델타 타임 적용)
         
         if (typeof boss.hoverHeight !== 'undefined' && boss.y >= boss.hoverHeight) {
             boss.movePhase = 1;
             boss.timer = currentTime;
             boss.centerX = canvas.width / 2 - boss.width / 2; // 중앙 기준점 설정
-            console.log('🚁 보스 중앙 호버링 시작 - 역동적 패턴 준비', {
-                centerX: boss.centerX,
-                hoverHeight: boss.hoverHeight,
-                currentX: boss.x,
-                currentY: boss.y
-            });
+            // 성능 최적화를 위해 로그 제거
+            // console.log('🚁 보스 중앙 호버링 시작 - 역동적 패턴 준비', {
+            //     centerX: boss.centerX,
+            //     hoverHeight: boss.hoverHeight,
+            //     currentX: boss.x,
+            //     currentY: boss.y
+            // });
         }
     } else if (boss.movePhase === 1) {
         // 중앙 호버링 패턴 (화면 중앙에서 다양한 움직임)
@@ -5359,8 +5399,9 @@ function handleBossPattern(boss) {
             const newX = boss.centerX + centerOffset + additionalX;
             const newY = boss.hoverHeight + verticalOffset + additionalY;
             
-            // 4. 위치 변화량 제한 (한 프레임에 최대 2px만 이동)
-            const maxFrameMove = 2;
+            // 4. 위치 변화량 제한 (델타 타임 적용으로 프레임 독립적)
+            const normalizedDeltaTime = Math.min(deltaTime / 16.67, 2.0);
+            const maxFrameMove = 2 * normalizedDeltaTime; // 델타 타임에 따라 조정
             const deltaX = newX - boss.x;
             const deltaY = newY - boss.y;
             
@@ -5497,27 +5538,35 @@ function handleBossPattern(boss) {
             boss.needsPositionCheck = false;
         }
         
-        // 연속 프레임 점프 감지 (매 프레임 체크)
+        // 연속 프레임 점프 감지 (델타 타임 기반으로 개선)
         if (boss.lastX !== undefined && boss.lastY !== undefined) {
             const xJump = Math.abs(boss.x - boss.lastX);
             const yJump = Math.abs(boss.y - boss.lastY);
             
-            // 한 프레임에 10px 이상 점프하면 경고
-            if (xJump > 10 || yJump > 10) {
-                console.warn('🚨 보스 프레임 점프 감지:', {
-                    xJump: Math.round(xJump),
-                    yJump: Math.round(yJump),
-                    lastX: Math.round(boss.lastX),
-                    lastY: Math.round(boss.lastY),
-                    currentX: Math.round(boss.x),
-                    currentY: Math.round(boss.y)
-                });
+            // 델타 타임을 고려한 점프 감지 (프레임 독립적)
+            const normalizedDeltaTime = Math.min(deltaTime / 16.67, 2.0);
+            const maxAllowedJump = 5 * normalizedDeltaTime; // 델타 타임에 따라 허용 범위 조정
+            
+            // 한 프레임에 허용 범위 이상 점프하면 경고
+            if (xJump > maxAllowedJump || yJump > maxAllowedJump) {
+                // 성능 최적화를 위해 로그 제거
+                // console.warn('🚨 보스 프레임 점프 감지:', {
+                //     xJump: Math.round(xJump),
+                //     yJump: Math.round(yJump),
+                //     lastX: Math.round(boss.lastX),
+                //     lastY: Math.round(boss.lastY),
+                //     currentX: Math.round(boss.x),
+                //     currentY: Math.round(boss.y),
+                //     deltaTime: Math.round(deltaTime),
+                //     maxAllowedJump: Math.round(maxAllowedJump)
+                // });
                 
                 // 점프가 너무 크면 이전 위치로 복원
-                if (xJump > 20 || yJump > 20) {
+                if (xJump > maxAllowedJump * 2 || yJump > maxAllowedJump * 2) {
                     boss.x = boss.lastX;
                     boss.y = boss.lastY;
-                    console.log('🔄 보스 위치 복원됨');
+                    // 성능 최적화를 위해 로그 제거
+                    // console.log('🔄 보스 위치 복원됨');
                 }
             }
         }
