@@ -7066,6 +7066,24 @@ function bossFireSpreadShot(boss) {
             bullet.speed = bullet.speed * 0.6; // 총알 속도를 60%로 감소
         }
     }
+    
+    // 보호막 헬리콥터와 동일한 총알 추가 발사
+    const px = player.x + player.width/2;
+    const py = player.y + player.height/2;
+    const ex = boss.x + boss.width/2;
+    const ey = boss.y + boss.height/2;
+    const angle = Math.atan2(py - ey, px - ex);
+    
+    // 헬리콥터 총알과 동일한 스타일로 발사
+    helicopterBullets.push({
+        x: ex,
+        y: ey,
+        angle: angle,
+        speed: 7,
+        width: 36,
+        height: 8,
+        isBossBullet: true
+    });
 }
 
 // 기존 bossFireCrossShot 함수는 아래의 PC 버전용 개선된 함수로 대체됨
@@ -7078,6 +7096,24 @@ function bossFireSpiralShot(boss) {
         const angle = baseAngle + (i * Math.PI * 2 / spiralCount);
         createBossBullet(boss, angle, 'spiral');
     }
+    
+    // 보호막 헬리콥터와 동일한 총알 추가 발사
+    const px = player.x + player.width/2;
+    const py = player.y + player.height/2;
+    const ex = boss.x + boss.width/2;
+    const ey = boss.y + boss.height/2;
+    const angle = Math.atan2(py - ey, px - ex);
+    
+    // 헬리콥터 총알과 동일한 스타일로 발사
+    helicopterBullets.push({
+        x: ex,
+        y: ey,
+        angle: angle,
+        speed: 7,
+        width: 36,
+        height: 8,
+        isBossBullet: true
+    });
 }
 
 function bossFireWaveShot(boss) {
@@ -7088,6 +7124,24 @@ function bossFireWaveShot(boss) {
         const angle = (i * Math.PI * 2 / waveCount) + waveAngle;
         createBossBullet(boss, angle, 'wave');
     }
+    
+    // 보호막 헬리콥터와 동일한 총알 추가 발사
+    const px = player.x + player.width/2;
+    const py = player.y + player.height/2;
+    const ex = boss.x + boss.width/2;
+    const ey = boss.y + boss.height/2;
+    const angle = Math.atan2(py - ey, px - ex);
+    
+    // 헬리콥터 총알과 동일한 스타일로 발사
+    helicopterBullets.push({
+        x: ex,
+        y: ey,
+        angle: angle,
+        speed: 7,
+        width: 36,
+        height: 8,
+        isBossBullet: true
+    });
 }
 
 function bossFireTargetedShot(boss) {
@@ -7101,6 +7155,24 @@ function bossFireTargetedShot(boss) {
         const spreadAngle = baseAngle + (i - 6) * 0.15; // -0.9 ~ 0.9 범위로 좁게 분산
         createBossBullet(boss, spreadAngle, 'targeted');
     }
+    
+    // 보호막 헬리콥터와 동일한 총알 추가 발사
+    const px = player.x + player.width/2;
+    const py = player.y + player.height/2;
+    const ex = boss.x + boss.width/2;
+    const ey = boss.y + boss.height/2;
+    const angle = Math.atan2(py - ey, px - ex);
+    
+    // 헬리콥터 총알과 동일한 스타일로 발사
+    helicopterBullets.push({
+        x: ex,
+        y: ey,
+        angle: angle,
+        speed: 7,
+        width: 36,
+        height: 8,
+        isBossBullet: true
+    });
 }
 
 function bossFireRandomShot(boss) {
@@ -7110,6 +7182,24 @@ function bossFireRandomShot(boss) {
         const angle = Math.random() * Math.PI * 2;
         createBossBullet(boss, angle, 'random');
     }
+    
+    // 보호막 헬리콥터와 동일한 총알 추가 발사
+    const px = player.x + player.width/2;
+    const py = player.y + player.height/2;
+    const ex = boss.x + boss.width/2;
+    const ey = boss.y + boss.height/2;
+    const angle = Math.atan2(py - ey, px - ex);
+    
+    // 헬리콥터 총알과 동일한 스타일로 발사
+    helicopterBullets.push({
+        x: ex,
+        y: ey,
+        angle: angle,
+        speed: 7,
+        width: 36,
+        height: 8,
+        isBossBullet: true
+    });
 }
 
 function bossFireRapidShot(boss) {
@@ -7128,6 +7218,24 @@ function bossFireRapidShot(boss) {
         const bullet = createBossBullet(boss, angle, 'rapid');
         bullet.speed = bullet.speed * 1.5; // 더 빠른 속도
     }
+    
+    // 보호막 헬리콥터와 동일한 총알 추가 발사
+    const px = player.x + player.width/2;
+    const py = player.y + player.height/2;
+    const ex = boss.x + boss.width/2;
+    const ey = boss.y + boss.height/2;
+    const angle = Math.atan2(py - ey, px - ex);
+    
+    // 헬리콥터 총알과 동일한 스타일로 발사
+    helicopterBullets.push({
+        x: ex,
+        y: ey,
+        angle: angle,
+        speed: 7,
+        width: 36,
+        height: 8,
+        isBossBullet: true
+    });
 }
 
 function bossFireVortexShot(boss) {
@@ -7152,6 +7260,24 @@ function bossFireVortexShot(boss) {
         }
     }
     boss.vortexAngle = (boss.vortexAngle + 20) % 360;
+    
+    // 보호막 헬리콥터와 동일한 총알 추가 발사
+    const px = player.x + player.width/2;
+    const py = player.y + player.height/2;
+    const ex = boss.x + boss.width/2;
+    const ey = boss.y + boss.height/2;
+    const angle = Math.atan2(py - ey, px - ex);
+    
+    // 헬리콥터 총알과 동일한 스타일로 발사
+    helicopterBullets.push({
+        x: ex,
+        y: ey,
+        angle: angle,
+        speed: 7,
+        width: 36,
+        height: 8,
+        isBossBullet: true
+    });
 }
 
 function bossFirePulseShot(boss) {
@@ -7180,6 +7306,24 @@ function bossFirePulseShot(boss) {
         }
     }
     boss.pulsePhase += 0.3;
+    
+    // 보호막 헬리콥터와 동일한 총알 추가 발사
+    const px = player.x + player.width/2;
+    const py = player.y + player.height/2;
+    const ex = boss.x + boss.width/2;
+    const ey = boss.y + boss.height/2;
+    const angle = Math.atan2(py - ey, px - ex);
+    
+    // 헬리콥터 총알과 동일한 스타일로 발사
+    helicopterBullets.push({
+        x: ex,
+        y: ey,
+        angle: angle,
+        speed: 7,
+        width: 36,
+        height: 8,
+        isBossBullet: true
+    });
 }
 
 function bossFireCircleShot(boss) {
@@ -7195,6 +7339,24 @@ function bossFireCircleShot(boss) {
         const angle = (i * 22.5) * Math.PI / 180; // 360도를 16등분
         const bullet = createBossBullet(boss, angle, 'circle');
     }
+    
+    // 보호막 헬리콥터와 동일한 총알 추가 발사
+    const px = player.x + player.width/2;
+    const py = player.y + player.height/2;
+    const ex = boss.x + boss.width/2;
+    const ey = boss.y + boss.height/2;
+    const angle = Math.atan2(py - ey, px - ex);
+    
+    // 헬리콥터 총알과 동일한 스타일로 발사
+    helicopterBullets.push({
+        x: ex,
+        y: ey,
+        angle: angle,
+        speed: 7,
+        width: 36,
+        height: 8,
+        isBossBullet: true
+    });
 }
 
 // 새로운 보스 패턴 함수들 추가
@@ -7214,6 +7376,24 @@ function bossFireBurstShot(boss) {
             createBossBullet(boss, angle, 'burst');
         }, i * burstDelay);
     }
+    
+    // 보호막 헬리콥터와 동일한 총알 추가 발사
+    const px = player.x + player.width/2;
+    const py = player.y + player.height/2;
+    const ex = boss.x + boss.width/2;
+    const ey = boss.y + boss.height/2;
+    const angle = Math.atan2(py - ey, px - ex);
+    
+    // 헬리콥터 총알과 동일한 스타일로 발사
+    helicopterBullets.push({
+        x: ex,
+        y: ey,
+        angle: angle,
+        speed: 7,
+        width: 36,
+        height: 8,
+        isBossBullet: true
+    });
 }
 
 // PC 버전용 개선된 보스 패턴 함수들
@@ -7229,6 +7409,24 @@ function bossFireCrossShot(boss) {
         const angle = (i * Math.PI) / 2;
         createBossBullet(boss, angle, 'cross');
     }
+    
+    // 보호막 헬리콥터와 동일한 총알 추가 발사
+    const px = player.x + player.width/2;
+    const py = player.y + player.height/2;
+    const ex = boss.x + boss.width/2;
+    const ey = boss.y + boss.height/2;
+    const angle = Math.atan2(py - ey, px - ex);
+    
+    // 헬리콥터 총알과 동일한 스타일로 발사
+    helicopterBullets.push({
+        x: ex,
+        y: ey,
+        angle: angle,
+        speed: 7,
+        width: 36,
+        height: 8,
+        isBossBullet: true
+    });
 }
 
 function bossFireTrackingShot(boss) {
@@ -7246,6 +7444,24 @@ function bossFireTrackingShot(boss) {
         const angle = targetAngle + (i * 0.2);
         createBossBullet(boss, angle, 'tracking');
     }
+    
+    // 보호막 헬리콥터와 동일한 총알 추가 발사
+    const px = player.x + player.width/2;
+    const py = player.y + player.height/2;
+    const ex = boss.x + boss.width/2;
+    const ey = boss.y + boss.height/2;
+    const angle = Math.atan2(py - ey, px - ex);
+    
+    // 헬리콥터 총알과 동일한 스타일로 발사
+    helicopterBullets.push({
+        x: ex,
+        y: ey,
+        angle: angle,
+        speed: 7,
+        width: 36,
+        height: 8,
+        isBossBullet: true
+    });
 }
 
 function bossFireEnhancedSpiralShot(boss) {
@@ -7259,6 +7475,24 @@ function bossFireEnhancedSpiralShot(boss) {
         const angle = (i * Math.PI / 4) + (boss.rotorAngle || 0);
         createBossBullet(boss, angle, 'enhanced_spiral');
     }
+    
+    // 보호막 헬리콥터와 동일한 총알 추가 발사
+    const px = player.x + player.width/2;
+    const py = player.y + player.height/2;
+    const ex = boss.x + boss.width/2;
+    const ey = boss.y + boss.height/2;
+    const angle = Math.atan2(py - ey, px - ex);
+    
+    // 헬리콥터 총알과 동일한 스타일로 발사
+    helicopterBullets.push({
+        x: ex,
+        y: ey,
+        angle: angle,
+        speed: 7,
+        width: 36,
+        height: 8,
+        isBossBullet: true
+    });
 }
 
 function bossFireEnhancedWaveShot(boss) {
@@ -7274,6 +7508,24 @@ function bossFireEnhancedWaveShot(boss) {
         const angle = baseAngle + waveOffset;
         createBossBullet(boss, angle, 'enhanced_wave');
     }
+    
+    // 보호막 헬리콥터와 동일한 총알 추가 발사
+    const px = player.x + player.width/2;
+    const py = player.y + player.height/2;
+    const ex = boss.x + boss.width/2;
+    const ey = boss.y + boss.height/2;
+    const angle = Math.atan2(py - ey, px - ex);
+    
+    // 헬리콥터 총알과 동일한 스타일로 발사
+    helicopterBullets.push({
+        x: ex,
+        y: ey,
+        angle: angle,
+        speed: 7,
+        width: 36,
+        height: 8,
+        isBossBullet: true
+    });
 }
 
 function bossFireHomingShot(boss) {
@@ -7290,6 +7542,21 @@ function bossFireHomingShot(boss) {
     const angle = Math.atan2(py - by, px - bx);
     
     createBossBullet(boss, angle, 'homing');
+    
+    // 보호막 헬리콥터와 동일한 총알 추가 발사
+    const ex = boss.x + boss.width/2;
+    const ey = boss.y + boss.height/2;
+    
+    // 헬리콥터 총알과 동일한 스타일로 발사
+    helicopterBullets.push({
+        x: ex,
+        y: ey,
+        angle: angle,
+        speed: 7,
+        width: 36,
+        height: 8,
+        isBossBullet: true
+    });
 }
 
 function bossFireChaoticShot(boss) {
@@ -7305,6 +7572,24 @@ function bossFireChaoticShot(boss) {
         const speed = 3 + Math.random() * 4; // 속도도 랜덤
         createBossBullet(boss, angle, 'chaotic', speed);
     }
+    
+    // 보호막 헬리콥터와 동일한 총알 추가 발사
+    const px = player.x + player.width/2;
+    const py = player.y + player.height/2;
+    const ex = boss.x + boss.width/2;
+    const ey = boss.y + boss.height/2;
+    const angle = Math.atan2(py - ey, px - ex);
+    
+    // 헬리콥터 총알과 동일한 스타일로 발사
+    helicopterBullets.push({
+        x: ex,
+        y: ey,
+        angle: angle,
+        speed: 7,
+        width: 36,
+        height: 8,
+        isBossBullet: true
+    });
 }
 
 function bossFireRainbowShot(boss) {
@@ -7322,6 +7607,24 @@ function bossFireRainbowShot(boss) {
         const colorIndex = i % colors.length;
         createBossBullet(boss, angle, 'rainbow', 5, colors[colorIndex]);
     }
+    
+    // 보호막 헬리콥터와 동일한 총알 추가 발사
+    const px = player.x + player.width/2;
+    const py = player.y + player.height/2;
+    const ex = boss.x + boss.width/2;
+    const ey = boss.y + boss.height/2;
+    const angle = Math.atan2(py - ey, px - ex);
+    
+    // 헬리콥터 총알과 동일한 스타일로 발사
+    helicopterBullets.push({
+        x: ex,
+        y: ey,
+        angle: angle,
+        speed: 7,
+        width: 36,
+        height: 8,
+        isBossBullet: true
+    });
 }
 
 function bossFireMeteorShot(boss) {
@@ -7344,6 +7647,21 @@ function bossFireMeteorShot(boss) {
         bullet.height *= 2;
         bullet.damage = 200; // 데미지 증가
     }
+    
+    // 보호막 헬리콥터와 동일한 총알 추가 발사
+    const ex = boss.x + boss.width/2;
+    const ey = boss.y + boss.height/2;
+    
+    // 헬리콥터 총알과 동일한 스타일로 발사
+    helicopterBullets.push({
+        x: ex,
+        y: ey,
+        angle: angle,
+        speed: 7,
+        width: 36,
+        height: 8,
+        isBossBullet: true
+    });
 }
 
 
