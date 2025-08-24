@@ -5231,7 +5231,7 @@ function createBoss() {
         speed: 0.5,                      // 부드러운 움직임 속도 (떨림 방지)
         pattern: BOSS_PATTERNS.CIRCLE_SHOT,
         angle: 0,
-        movePhase: 0,
+        movePhase: 1,                    // 움직임 활성화 (떨림 방지 움직임용)
         targetX: canvas.width / 2 - 34,  // 목표 위치도 중앙
         targetY: 150,                    // 목표 높이도 고정
         phase: 0,
@@ -5255,7 +5255,7 @@ function createBoss() {
         invulnerableDuration: 3000,      // 3초간 무적 (패턴 발사 시간 확보)
         type: ENEMY_TYPES.HELICOPTER,
         rotorAngle: 0,
-        rotorSpeed: 0.15,                // 보스 메인 로터 속도
+        rotorSpeed: 0.2,                // 보스 메인 로터 속도
         hoverHeight: 150,                // 호버 높이 고정
         hoverTimer: 0,
         hoverDirection: 1,
@@ -5274,6 +5274,7 @@ function createBoss() {
         spawnTime: currentTime,          // 생성 시간 기록
         minStayTime: BOSS_SETTINGS.MIN_STAY_TIME,  // 최소 체류 시간 (10초)
         staticMode: false,               // 부드러운 움직임 모드 (떨림 방지 + 자연스러운 움직임)
+        timer: currentTime,              // 움직임 타이머 (떨림 방지 움직임용)
         // 파괴 조건: 동적으로 계산된 hitCount만큼 명중 또는 10초 경과
     };
     
@@ -5488,7 +5489,9 @@ function handleBossPattern(boss) {
                 }
             }, 2000);
         }
-            } else if (boss.movePhase === 1) {
+        
+        // 🚨 움직임 활성화 조건 개선
+        if (boss.movePhase === 1 && !boss.staticMode) {
             // 🚁 보스 부드러운 움직임 - 떨림 현상 제거 + 자연스러운 움직임
             // 경계선을 벗어나도 자유롭게 움직임
             
@@ -5498,20 +5501,20 @@ function handleBossPattern(boss) {
                 
                 // 🚨 떨림 방지를 위한 부드러운 움직임 패턴
                 const timeFactor = (currentTime - boss.timer) / 1000;
-                const radius = 60; // 적당한 반지름 (떨림 방지)
-                const speed = 0.08; // 매우 느린 속도 (떨림 방지)
+                const radius = 50; // 적당한 반지름 (떨림 방지)
+                const speed = 0.05; // 매우 느린 속도 (떨림 방지)
                 
                 // 부드러운 원형 움직임 (떨림 없는 자연스러운 패턴)
                 const xOffset = Math.sin(timeFactor * speed) * radius;
-                const yOffset = Math.cos(timeFactor * speed) * (radius * 0.4); // Y축은 더 작게
+                const yOffset = Math.cos(timeFactor * speed) * (radius * 0.3); // Y축은 더 작게
                 
                 // 부드러운 움직임 적용 (떨림 방지)
                 boss.x = centerX + xOffset;
                 boss.y = centerY + yOffset;
                 
-                // 🚨 떨림 방지를 위한 정밀한 위치 조정
-                boss.x = Math.round(boss.x * 100) / 100; // 소수점 2자리까지 정밀도 유지
-                boss.y = Math.round(boss.y * 100) / 100; // 소수점 2자리까지 정밀도 유지
+                // 🚨 떨림 방지를 위한 정밀한 위치 조정 (더 정밀하게)
+                boss.x = Math.round(boss.x * 1000) / 1000; // 소수점 3자리까지 정밀도 유지
+                boss.y = Math.round(boss.y * 1000) / 1000; // 소수점 3자리까지 정밀도 유지
                 
                 // 디버깅: 부드러운 움직임 상태
                 if (!boss.lastDebugLog || currentTime - boss.lastDebugLog > 2000) {
@@ -5528,11 +5531,13 @@ function handleBossPattern(boss) {
                         pattern: '부드러운 원형 패턴으로 떨림 없는 움직임',
                         radius: radius,
                         speed: speed,
-                        note: '떨림 방지 + 자유로운 움직임 유지'
+                        timeFactor: Math.round(timeFactor * 100) / 100,
+                        note: '떨림 방지 + 자유로운 움직임 유지 (정밀도 향상)'
                     });
                     boss.lastDebugLog = currentTime;
                 }
             }
+        }
         
         // 화면 경계 체크 (정적 모드에서는 단순화) - 움직임이 없으므로 기본 위치만 유지
         // 움직임이 완전히 제거되었으므로 경계 체크도 단순화
