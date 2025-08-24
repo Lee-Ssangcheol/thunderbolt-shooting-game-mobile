@@ -3199,11 +3199,8 @@ function checkEnemyCollisions(enemy) {
             if (enemy.isBoss) {
                 const currentTime = Date.now();
                 
-                // 초기 무적 상태 체크 (패턴 발사 보장)
-                if (enemy.isInvulnerable) {
-                    console.log('🛡️ 보스 무적 상태 - 피격 무시 (패턴 발사 보장)');
-                    return true; // 총알은 소멸하지 않음
-                }
+                // 무적 상태 해제됨 (즉시 공격 가능)
+                // 무적 상태 체크 로직 제거됨
                 
                 // 특수 무기인 경우 즉시 파괴
                 if (bullet.isSpecial) {
@@ -5250,9 +5247,9 @@ function createBoss() {
         lastHitTime: null,
         isBeingHit: false,
         hitDuration: null,               // 피격 상태 지속 시간
-        isInvulnerable: true,            // 초기 무적 상태 (패턴 발사 보장)
-        invulnerableTimer: currentTime,  // 무적 타이머
-        invulnerableDuration: 3000,      // 3초간 무적 (패턴 발사 시간 확보)
+        isInvulnerable: false,           // 무적 상태 해제 (즉시 공격 가능)
+        invulnerableTimer: null,         // 무적 타이머 해제
+        invulnerableDuration: 0,         // 무적 시간 0초
         type: ENEMY_TYPES.HELICOPTER,
         rotorAngle: 0,
         rotorSpeed: 0.2,                // 보스 메인 로터 속도
@@ -5310,13 +5307,8 @@ function createBoss() {
         }
     }, 1000); // 1초 후 첫 패턴 발사 (즉시 공격)
     
-    // 3초 후 무적 상태 해제 (패턴 발사 완료 후)
-    setTimeout(() => {
-        if (boss && boss.health > 0 && !bossDestroyed && bossActive) {
-            boss.isInvulnerable = false;
-            console.log('🛡️ 보스 무적 상태 해제됨 (패턴 발사 완료)');
-        }
-    }, 3000); // 3초 후 무적 해제
+    // 무적 상태 해제됨 (즉시 공격 가능)
+    console.log('🛡️ 보스 무적 상태 해제됨 (즉시 공격 가능)');
     
     console.log('🚁 보스 헬리콥터 생성 완료:', {
         boss: boss,
@@ -5387,14 +5379,8 @@ function handleBossPattern(boss) {
     
     const currentTime = Date.now();
     
-    // 무적 상태 자동 해제 (시간 기반)
-    if (boss.isInvulnerable && boss.invulnerableTimer && boss.invulnerableDuration) {
-        if (currentTime - boss.invulnerableTimer >= boss.invulnerableDuration) {
-            boss.isInvulnerable = false;
-            boss.invulnerableTimer = null;
-            console.log('🛡️ 보스 무적 상태 자동 해제됨 (시간 경과)');
-        }
-    }
+    // 무적 상태 해제됨 (즉시 공격 가능)
+    // 무적 상태 자동 해제 로직 제거됨
     
     // 피격 상태 자동 해제 (시간 기반) - 더 적극적으로 처리
     if (boss.isBeingHit && boss.lastHitTime && boss.hitDuration) {
