@@ -6,69 +6,12 @@ const TOP_EFFECT_ZONE = 20;  // 상단 효과 무시 영역 (픽셀)
 // 모바일 디바이스 감지
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-// 모바일 속도 조절 (원상복구)
-const mobileSpeedMultiplier = isMobile ? 1.0 : 1.0; // 모바일에서 원래 속도
+// 모바일 속도 조절 (더 느리게 조정)
+const mobileSpeedMultiplier = isMobile ? 1.0 : 1.0;
 
-// 모바일 프레임 제한 및 델타 타임 시스템
-const MOBILE_FPS_LIMIT = isMobile ? 60 : 60; // 모바일에서 60fps로 제한
-const MOBILE_FRAME_INTERVAL = 1000 / MOBILE_FPS_LIMIT;
-
-// 델타 타임 시스템 (프레임 독립적 움직임)
-let lastFrameTime = 0;
-let deltaTime = 16.67; // 기본 60fps 기준 (1000ms / 60fps)
-
-// 객체 풀링 시스템 (성능 최적화)
-class ObjectPool {
-    constructor(createFn, resetFn, initialSize = 20) {
-        this.createFn = createFn;
-        this.resetFn = resetFn;
-        this.pool = [];
-        this.active = [];
-        
-        // 초기 풀 생성
-        for (let i = 0; i < initialSize; i++) {
-            this.pool.push(createFn());
-        }
-    }
-    
-    get() {
-        if (this.pool.length > 0) {
-            const obj = this.pool.pop();
-            this.active.push(obj);
-            return obj;
-        } else {
-            // 풀이 비어있으면 새로 생성
-            const obj = this.createFn();
-            this.active.push(obj);
-            return obj;
-        }
-    }
-    
-    release(obj) {
-        const index = this.active.indexOf(obj);
-        if (index > -1) {
-            this.active.splice(index, 1);
-            this.resetFn(obj);
-            this.pool.push(obj);
-        }
-    }
-    
-    releaseAll() {
-        this.active.forEach(obj => {
-            this.resetFn(obj);
-            this.pool.push(obj);
-        });
-        this.active = [];
-    }
-    
-    getActiveCount() {
-        return this.active.length;
-    }
-    
-    getPoolSize() {
-        return this.pool.length;
-    }
-}
+// 모바일 프레임 제한 (60fps 대신 55fps로 완화)
+const MOBILE_FPS_LIMIT = isMobile ? 100 : 100;
+const MOBILE_FRAME_INTERVAL = 800 / MOBILE_FPS_LIMIT;
 
 // 전체화면 상태 추적 변수
 let isFullscreenActive = false;
@@ -79,14 +22,6 @@ const FULLSCREEN_COOLDOWN = 1000; // 1초 쿨다운
 
 // 게임 상태 변수
 let gameStarted = false;
-let frameCount = 0; // 프레임 카운터 (성능 최적화용)
-
-// 객체 풀 인스턴스들 (성능 최적화)
-let explosionPool;
-let bulletPool;
-let enemyBulletPool;
-let bombPool;
-let collisionEffectPool;
 
 // 전체화면 상태 확인 함수
 function checkFullscreenState() {
@@ -1371,102 +1306,11 @@ function setupExitHandlers() {
     });
 }
 
-// 객체 풀 초기화 함수 (성능 최적화)
-function initializeObjectPools() {
-    // 폭발 효과 풀
-    explosionPool = new ObjectPool(
-        () => new Explosion(0, 0, false),
-        (explosion) => {
-            explosion.x = 0;
-            explosion.y = 0;
-            explosion.radius = 1;
-            explosion.isFinished = false;
-            explosion.particles = [];
-            explosion.cloudParticles = [];
-            explosion.cloudRadius = 0;
-        },
-        30 // 초기 풀 크기
-    );
-    
-    // 총알 풀
-    bulletPool = new ObjectPool(
-        () => ({
-            x: 0, y: 0, width: 4, height: 8, speed: 6, damage: 100,
-            isBossBullet: false, isSpecial: false, isSpread: false
-        }),
-        (bullet) => {
-            bullet.x = 0;
-            bullet.y = 0;
-            bullet.width = 4;
-            bullet.height = 8;
-            bullet.speed = 6;
-            bullet.damage = 100;
-            bullet.isBossBullet = false;
-            bullet.isSpecial = false;
-            bullet.isSpread = false;
-        },
-        50 // 초기 풀 크기
-    );
-    
-    // 적 총알 풀
-    enemyBulletPool = new ObjectPool(
-        () => ({
-            x: 0, y: 0, width: 8, height: 18, speed: 4
-        }),
-        (bullet) => {
-            bullet.x = 0;
-            bullet.y = 0;
-            bullet.width = 8;
-            bullet.height = 18;
-            bullet.speed = 4;
-        },
-        30 // 초기 풀 크기
-    );
-    
-    // 폭탄 풀
-    bombPool = new ObjectPool(
-        () => ({
-            x: 0, y: 0, width: 15, height: 15, speed: 5,
-            rotation: 0, rotationSpeed: 0.1, trail: [], isBossBomb: false
-        }),
-        (bomb) => {
-            bomb.x = 0;
-            bomb.y = 0;
-            bomb.width = 15;
-            bomb.height = 15;
-            bomb.speed = 5;
-            bomb.rotation = 0;
-            bomb.rotationSpeed = 0.1;
-            bomb.trail = [];
-            bomb.isBossBomb = false;
-        },
-        20 // 초기 풀 크기
-    );
-    
-    // 충돌 효과 풀
-    collisionEffectPool = new ObjectPool(
-        () => ({
-            x: 0, y: 0, radius: 10, life: 10, pulse: 0
-        }),
-        (effect) => {
-            effect.x = 0;
-            effect.y = 0;
-            effect.radius = 10;
-            effect.life = 10;
-            effect.pulse = 0;
-        },
-        20 // 초기 풀 크기
-    );
-}
-
 // 게임 초기화 함수 수정
 async function initializeGame() {
     console.log('게임 초기화 시작');
     
     try {
-        // 객체 풀 초기화 (성능 최적화)
-        initializeObjectPools();
-        
         // 종료 이벤트 핸들러 설정
         setupExitHandlers();
         
@@ -1482,9 +1326,6 @@ async function initializeGame() {
         scoreForSpread = 0;
         gameStarted = false; // 화면 터치 대기 상태
         isStartScreen = true;
-        frameCount = 0; // 프레임 카운터 초기화
-        lastFrameTime = performance.now(); // 델타 타임 초기화
-        deltaTime = 16.67; // 델타 타임 초기화
         
         // 모든 투사체 및 폭발물 완전 초기화
         bullets = [];
@@ -1625,22 +1466,15 @@ function restartGame() {
         window.secondPlaneExpireTime = null;
     }
     
-            // 모든 투사체 및 폭발물 완전 초기화
-        enemies = [];
-        bullets = [];
-        explosions = [];
-        bombs = [];
-        dynamites = [];
-        helicopterBullets = [];
-        enemyBullets = [];
-        collisionEffects = [];
-        
-        // 객체 풀 재초기화 (성능 최적화)
-        if (explosionPool) explosionPool.releaseAll();
-        if (bulletPool) bulletPool.releaseAll();
-        if (enemyBulletPool) enemyBulletPool.releaseAll();
-        if (bombPool) bombPool.releaseAll();
-        if (collisionEffectPool) collisionEffectPool.releaseAll();
+    // 모든 투사체 및 폭발물 완전 초기화
+    enemies = [];
+    bullets = [];
+    explosions = [];
+    bombs = [];
+    dynamites = [];
+    helicopterBullets = [];
+    enemyBullets = [];
+    collisionEffects = [];
     
     // 보스 관련 상태 완전 초기화
     bossActive = false;
@@ -1671,10 +1505,7 @@ function restartGame() {
     levelScore = 0;
     scoreForSpread = 0;
     gameLevel = 1;
-            frameCount = 0; // 프레임 카운터 초기화
-        lastFrameTime = performance.now(); // 델타 타임 초기화
-        deltaTime = 16.67; // 델타 타임 초기화
-        levelUpScore = 1500; // 레벨업 기준 점수 초기화
+            levelUpScore = 1500; // 레벨업 기준 점수 초기화
     
     // 특수무기 관련 상태 초기화
     specialWeaponCharged = false;
@@ -1714,8 +1545,7 @@ function createEnemy(forceType = null) {
         // 레벨 7 이상: 모든 속성을 레벨 7과 동일하게 고정 (증가 제한)
         currentDifficulty = difficultySettings[7];
         
-        // 성능 최적화를 위해 로그 제거
-        // console.log(`createEnemy - 레벨 ${gameLevel}: 레벨 7 난이도로 고정 (속도: ${currentDifficulty.enemySpeed}, 적 수: ${currentDifficulty.maxEnemies}, 생성률: ${currentDifficulty.enemySpawnRate})`);
+        console.log(`createEnemy - 레벨 ${gameLevel}: 레벨 7 난이도로 고정 (속도: ${currentDifficulty.enemySpeed}, 적 수: ${currentDifficulty.maxEnemies}, 생성률: ${currentDifficulty.enemySpawnRate})`);
     }
     
     // 강제 타입이 지정된 경우 해당 타입으로 생성, 그렇지 않으면 기존 로직 사용
@@ -2138,12 +1968,7 @@ function handleEnemyBullets() {
         // 플레이어와 충돌 체크
         if (checkCollision(bullet, player) || (hasSecondPlane && checkCollision(bullet, secondPlane))) {
             handleCollision();
-            // 객체 풀 사용 (성능 최적화)
-            const explosion = explosionPool.get();
-            explosion.x = bullet.x;
-            explosion.y = bullet.y;
-            explosion.isFinal = false;
-            explosions.push(explosion);
+            explosions.push(new Explosion(bullet.x, bullet.y, false));
             // 폭발음
             safePlay(explosionSound);
             return false;
@@ -2151,27 +1976,21 @@ function handleEnemyBullets() {
         // 플레이어 총알과의 충돌 체크 (충돌 이펙트/음으로 변경)
         for (let i = bullets.length - 1; i >= 0; i--) {
             if (checkCollision(bullet, bullets[i])) {
-                // 충돌 이펙트: 크기와 지속시간 증가 (객체 풀 사용)
-                const effect = collisionEffectPool.get();
-                effect.x = bullet.x;
-                effect.y = bullet.y;
-                effect.radius = 30;  // 3배 증가
-                effect.life = 30;    // 3배 증가
-                effect.pulse = 0;    // 펄스 효과를 위한 변수 추가
-                collisionEffects.push(effect);
+                // 충돌 이펙트: 크기와 지속시간 증가
+                collisionEffects.push({ 
+                    x: bullet.x, 
+                    y: bullet.y, 
+                    radius: 30,  // 3배 증가
+                    life: 30,    // 3배 증가
+                    pulse: 0     // 펄스 효과를 위한 변수 추가
+                });
                 // 충돌음
                 safePlay(collisionSound);
                 bullets.splice(i, 1);
                 return false;
             }
         }
-        // 화면 밖으로 나간 총알 제거
-        if (bullet.y >= canvas.height) {
-            enemyBulletPool.release(bullet); // 객체 풀로 반환
-            return false;
-        }
-        
-        return true;
+        return bullet.y < canvas.height;
     });
 }
 
@@ -2276,23 +2095,23 @@ function fireEnemyBullet(enemy) {
         const rightX = enemy.x + enemy.width * 0.82;
         const bulletY = enemy.y + enemy.height;
         
-        // 총알 개수 제한 (2발에서 1발로 감소) - 객체 풀 사용
+        // 총알 개수 제한 (2발에서 1발로 감소)
         if (Math.random() < 0.5) { // 50% 확률로 왼쪽만 발사
-            const bullet = enemyBulletPool.get();
-            bullet.x = leftX;
-            bullet.y = bulletY;
-            bullet.width = 8;
-            bullet.height = 18;
-            bullet.speed = enemy.bulletSpeed;
-            enemyBullets.push(bullet);
+            enemyBullets.push({
+                x: leftX,
+                y: bulletY,
+                width: 8,
+                height: 18,
+                speed: enemy.bulletSpeed
+            });
         } else { // 50% 확률로 오른쪽만 발사
-            const bullet = enemyBulletPool.get();
-            bullet.x = rightX;
-            bullet.y = bulletY;
-            bullet.width = 8;
-            bullet.height = 18;
-            bullet.speed = enemy.bulletSpeed;
-            enemyBullets.push(bullet);
+            enemyBullets.push({
+                x: rightX,
+                y: bulletY,
+                width: 8,
+                height: 18,
+                speed: enemy.bulletSpeed
+            });
         }
     } else {  // 30% 확률로 폭탄 발사
         // 폭탄 개수 제한 (기존 bombCount에서 최대 2개로 제한)
@@ -2835,7 +2654,7 @@ function gameLoop() {
             ctx.font = 'bold 20px Arial';
             ctx.fillText('시작/재시작 버튼을 눌러 시작', canvas.width/2, canvas.height/2 + 50);
         }
-        // 모바일에서 프레임 제한 적용 (성능 최적화)
+        // 모바일에서만 프레임 제한 적용
         if (isMobile) {
             setTimeout(() => {
                 requestAnimationFrame(gameLoop);
@@ -2909,7 +2728,7 @@ function gameLoop() {
             ctx.fillText(`최종 점수: ${score}`, canvas.width/2, canvas.height/2 + 60);
             ctx.fillText('스페이스바를 눌러 재시작', canvas.width/2, canvas.height/2 + 160);
         }
-        // 모바일에서 프레임 제한 적용 (성능 최적화)
+        // 모바일에서만 프레임 제한 적용
         if (isMobile) {
             setTimeout(() => {
                 requestAnimationFrame(gameLoop);
@@ -2921,22 +2740,11 @@ function gameLoop() {
     }
 
     try {
-        // 프레임 카운터 증가 (성능 최적화용)
-        frameCount++;
-        
-        // 델타 타임 계산 (프레임 독립적 움직임)
-        const currentFrameTime = performance.now();
-        deltaTime = currentFrameTime - lastFrameTime;
-        lastFrameTime = currentFrameTime;
-        
-        // 델타 타임을 16.67ms (60fps) 기준으로 정규화
-        const normalizedDeltaTime = Math.min(deltaTime / 16.67, 2.0); // 최대 2배까지만 허용
-        
-        // 깜박임 효과 처리 (델타 타임 적용)
+        // 깜박임 효과 처리
         if (flashTimer > 0) {
             ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            flashTimer -= normalizedDeltaTime * 16;
+            flashTimer -= 16;
         }
 
         // 플레이어 이동 처리
@@ -2994,23 +2802,18 @@ function gameLoop() {
             }
         }
         
-        // 헬리콥터 생성 체크 (게임 루프에서 직접 호출) - 성능 최적화
+        // 헬리콥터 생성 체크 (게임 루프에서 직접 호출)
         if (gameStarted && !isBossActive && currentTime - lastHelicopterSpawnTime >= MIN_HELICOPTER_SPAWN_INTERVAL) {
-            // 적 수 계산을 캐싱하여 성능 최적화
-            let currentShieldedHelicopters = 0;
-            let currentNormalPlanes = 0;
+            // 현재 보호막 헬리콥터 수 확인 (보스 제외)
+            const currentShieldedHelicopters = enemies.filter(enemy => 
+                (enemy.type === ENEMY_TYPES.HELICOPTER || enemy.type === ENEMY_TYPES.HELICOPTER2) && 
+                enemy.hasShield && !enemy.isShieldBroken && !enemy.isBoss
+            ).length;
             
-            // 한 번의 반복으로 모든 적 타입 계산
-            for (const enemy of enemies) {
-                if (enemy.isBoss) continue;
-                
-                if ((enemy.type === ENEMY_TYPES.HELICOPTER || enemy.type === ENEMY_TYPES.HELICOPTER2) && 
-                    enemy.hasShield && !enemy.isShieldBroken) {
-                    currentShieldedHelicopters++;
-                } else if (enemy.type === ENEMY_TYPES.PLANE) {
-                    currentNormalPlanes++;
-                }
-            }
+            // 현재 일반 비행기 수 확인 (보스 제외)
+            const currentNormalPlanes = enemies.filter(enemy => 
+                enemy.type === ENEMY_TYPES.PLANE && !enemy.isBoss
+            ).length;
             
             const totalEnemies = currentShieldedHelicopters + currentNormalPlanes;
             
@@ -3027,25 +2830,24 @@ function gameLoop() {
                     const helicopterCount = Math.min(Math.floor(Math.random() * 3) + 2, maxHelicoptersToSpawn); // 2, 3, 4 중 랜덤하되 제한 내에서
                     
                     for (let i = 0; i < helicopterCount; i++) {
-                        // 즉시 생성하여 성능 최적화
-                        createEnemy('HELICOPTER');
+                        // 약간의 시간차를 두고 생성하여 자연스럽게 등장
+                        setTimeout(() => {
+                            createEnemy('HELICOPTER');
+                        }, i * 150); // 150ms 간격으로 생성 (더 빠르게)
                     }
                     
                     lastHelicopterSpawnTime = currentTime;
-                    // 성능 최적화를 위해 로그 제거
-                    // console.log(`${helicopterCount}대의 헬리콥터 생성됨 (레벨 ${gameLevel}, 확률: ${Math.round(spawnChance * 100)}%) - 현재 총 적 수: ${totalEnemies + helicopterCount}/6 - 시간:`, new Date(currentTime).toLocaleTimeString());
+                    console.log(`${helicopterCount}대의 헬리콥터 생성됨 (레벨 ${gameLevel}, 확률: ${Math.round(spawnChance * 100)}%) - 현재 총 적 수: ${totalEnemies + helicopterCount}/6 - 시간:`, new Date(currentTime).toLocaleTimeString());
                 }
             } else {
-                // 성능 최적화를 위해 로그 제거
-                // console.log(`헬리콥터 생성 제한: 현재 총 적 수 ${totalEnemies}/6으로 인해 생성 불가`);
+                console.log(`헬리콥터 생성 제한: 현재 총 적 수 ${totalEnemies}/6으로 인해 생성 불가`);
             }
         }
 
         // 보스 총알 정리 (보스가 파괴된 후 남은 총알 제거)
         if (bossDestroyed || !bossActive) {
             bullets = bullets.filter(bullet => !bullet.isBossBullet);
-                            // 성능 최적화를 위해 로그 제거
-                // console.log('보스 파괴 후 남은 보스 총알 정리 완료');
+            console.log('보스 파괴 후 남은 보스 총알 정리 완료');
         }
         
         // 총알 이동 및 충돌 체크
@@ -3060,20 +2862,19 @@ function gameLoop() {
         // 두 번째 비행기 타이머 관리 (매 프레임마다 업데이트)
         updateSecondPlaneTimer();
         
-        // 추가 타이머 검증 (성능 최적화 - 10프레임마다만 실행)
-        if (hasSecondPlane && secondPlaneTimer > 0 && frameCount % 10 === 0) {
+        // 추가 타이머 검증 (매 프레임마다)
+        if (hasSecondPlane && secondPlaneTimer > 0) {
             const currentTime = Date.now();
             const elapsedTime = currentTime - secondPlaneTimer;
             
-            // 타이머가 정상적으로 작동하는지 확인
-            if (elapsedTime >= 0 && elapsedTime < 10000) {
-                // 타이머가 정상 작동 중
-                const remainingTime = Math.max(0, Math.ceil((10000 - elapsedTime) / 1000));
-                if (remainingTime <= 3) { // 3초 이하일 때만 로그
-                    // 성능 최적화를 위해 로그 제거
-                    // console.log(`프레임별 타이머 확인: ${remainingTime}초 남음 (경과: ${elapsedTime}ms)`);
-                }
+                    // 타이머가 정상적으로 작동하는지 확인
+        if (elapsedTime >= 0 && elapsedTime < 10000) {
+            // 타이머가 정상 작동 중
+            const remainingTime = Math.max(0, Math.ceil((10000 - elapsedTime) / 1000));
+            if (remainingTime <= 3) { // 3초 이하일 때만 로그
+                console.log(`프레임별 타이머 확인: ${remainingTime}초 남음 (경과: ${elapsedTime}ms)`);
             }
+        }
         }
         
         // 추가 안전장치: 타이머가 멈춰있을 경우 강제 업데이트
@@ -3102,44 +2903,25 @@ function gameLoop() {
         // 레벨업 체크
         checkLevelUp();
 
-            // 폭발 효과 업데이트 및 그리기 (성능 최적화)
-    if (explosions.length > 0) {
+        // 폭발 효과 업데이트 및 그리기
         handleExplosions();
-    }
-    
-    // 충돌 효과 업데이트 및 그리기 (성능 최적화)
-    if (collisionEffects.length > 0) {
+
+        // 충돌 효과 업데이트 및 그리기
         handleCollisionEffects();
-    }
 
-        // 폭탄 처리 추가 (성능 최적화)
-        if (bombs.length > 0) {
-            handleBombs();
-        }
+        // 폭탄 처리 추가
+        handleBombs();
 
-        // 다이나마이트 처리 추가 (성능 최적화)
-        if (dynamites.length > 0) {
-            handleDynamites();
-        }
+        // 다이나마이트 처리 추가
+        handleDynamites();
 
         // UI 그리기
         drawUI();
         
         // 모바일 컨트롤 상태 표시
         showMobileControlStatus();
-        
-        // 객체 풀 상태 모니터링 (성능 최적화)
-        if (frameCount % 300 === 0) { // 5초마다 한 번씩
-            console.log('🔧 객체 풀 상태:', {
-                explosions: `${explosionPool.getActiveCount()}/${explosionPool.getPoolSize()}`,
-                bullets: `${bulletPool.getActiveCount()}/${bulletPool.getPoolSize()}`,
-                enemyBullets: `${enemyBulletPool.getActiveCount()}/${enemyBulletPool.getPoolSize()}`,
-                bombs: `${bombPool.getActiveCount()}/${bombPool.getPoolSize()}`,
-                collisionEffects: `${collisionEffectPool.getActiveCount()}/${collisionEffectPool.getPoolSize()}`
-            });
-        }
 
-        // 모바일에서 프레임 제한 적용 (성능 최적화)
+        // 모바일에서만 프레임 제한 적용
         if (isMobile) {
             setTimeout(() => {
                 requestAnimationFrame(gameLoop);
@@ -3164,32 +2946,30 @@ function handlePlayerMovement() {
     // 모바일에서는 하단 컨트롤 영역을 고려하여 제한 (처음 위치와 동일하게 확장)
     const maxY = isMobile ? canvas.height - 100 : canvas.height - player.height - margin;
     
-    // 비행기 중심을 기준으로 좌우 이동 제한 설정 (델타 타임 적용)
+    // 비행기 중심을 기준으로 좌우 이동 제한 설정
     // 비행기 일부가 화면 밖으로 나갈 수 있도록 허용
-    const normalizedDeltaTime = Math.min(deltaTime / 16.67, 2.0);
-    
     if (keys.ArrowLeft && player.x > -player.width / 2.5) {
-        player.x -= player.speed * 1.2 * normalizedDeltaTime; // 좌우 이동 속도를 0.5에서 1.2로 증가
+        player.x -= player.speed * 1.2; // 좌우 이동 속도를 0.5에서 1.2로 증가
         if (hasSecondPlane) {
-            secondPlane.x -= player.speed * 1.2 * normalizedDeltaTime;
+            secondPlane.x -= player.speed * 1.2;
         }
     }
     if (keys.ArrowRight && player.x < canvas.width - player.width / 2) {
-        player.x += player.speed * 1.2 * normalizedDeltaTime; // 좌우 이동 속도를 0.5에서 1.2로 증가
+        player.x += player.speed * 1.2; // 좌우 이동 속도를 0.5에서 1.2로 증가
         if (hasSecondPlane) {
-            secondPlane.x += player.speed * 1.2 * normalizedDeltaTime;
+            secondPlane.x += player.speed * 1.2;
         }
     }
     if (keys.ArrowUp && player.y > margin) {
-        player.y -= player.speed * normalizedDeltaTime;
+        player.y -= player.speed;
         if (hasSecondPlane) {
-            secondPlane.y -= player.speed * normalizedDeltaTime;
+            secondPlane.y -= player.speed;
         }
     }
     if (keys.ArrowDown && player.y < maxY) {
-        player.y += player.speed * normalizedDeltaTime;
+        player.y += player.speed;
         if (hasSecondPlane) {
-            secondPlane.y += player.speed * normalizedDeltaTime;
+            secondPlane.y += player.speed;
         }
     }
 }
@@ -3205,8 +2985,7 @@ function handleEnemies() {
         // 레벨 7 이상: 모든 속성을 레벨 7과 동일하게 고정 (증가 제한)
         currentDifficulty = difficultySettings[7];
         
-        // 성능 최적화를 위해 로그 제거
-        // console.log(`handleEnemies - 레벨 ${gameLevel}: 레벨 7 난이도로 고정 (속도: ${currentDifficulty.enemySpeed}, 적 수: ${currentDifficulty.maxEnemies}, 생성률: ${currentDifficulty.enemySpawnRate})`);
+        console.log(`handleEnemies - 레벨 ${gameLevel}: 레벨 7 난이도로 고정 (속도: ${currentDifficulty.enemySpeed}, 적 수: ${currentDifficulty.maxEnemies}, 생성률: ${currentDifficulty.enemySpawnRate})`);
     }
     
     // 보스 존재 여부 체크 - 더 정확한 체크
@@ -3233,22 +3012,16 @@ function handleEnemies() {
         handleSnakePattern();
     }
     
-    // 적 생성 로직 개선 - 게임이 시작되고 터치 후에만 적들이 생성되도록 (성능 최적화)
+    // 적 생성 로직 개선 - 게임이 시작되고 터치 후에만 적들이 생성되도록
     // 적 비행기와 보호막 헬리콥터 합하여 최대 6대 제한 (보스 제외), 일반 비행기 최소 4대, 보호막 헬리콥터 기본 2대 보장
-    let currentShieldedHelicopters = 0;
-    let currentNormalPlanes = 0;
+    const currentShieldedHelicopters = enemies.filter(enemy => 
+        (enemy.type === ENEMY_TYPES.HELICOPTER || enemy.type === ENEMY_TYPES.HELICOPTER2) && 
+        enemy.hasShield && !enemy.isShieldBroken && !enemy.isBoss
+    ).length;
     
-    // 한 번의 반복으로 모든 적 타입 계산 (성능 최적화)
-    for (const enemy of enemies) {
-        if (enemy.isBoss) continue;
-        
-        if ((enemy.type === ENEMY_TYPES.HELICOPTER || enemy.type === ENEMY_TYPES.HELICOPTER2) && 
-            enemy.hasShield && !enemy.isShieldBroken) {
-            currentShieldedHelicopters++;
-        } else if (enemy.type === ENEMY_TYPES.PLANE) {
-            currentNormalPlanes++;
-        }
-    }
+    const currentNormalPlanes = enemies.filter(enemy => 
+        enemy.type === ENEMY_TYPES.PLANE && !enemy.isBoss
+    ).length;
     
     const totalEnemies = currentShieldedHelicopters + currentNormalPlanes;
     
@@ -3283,8 +3056,7 @@ function handleEnemies() {
         if (shouldCreate) {
             createEnemy(createType);
             lastEnemySpawnTime = currentTime;
-            // 성능 최적화를 위해 로그 제거
-            // console.log('새로운 적 생성됨 (보호막 헬리콥터: ' + currentShieldedHelicopters + ', 일반 비행기: ' + currentNormalPlanes + ', 총: ' + totalEnemies + '/6) - 생성 타입: ' + createType);
+            console.log('새로운 적 생성됨 (보호막 헬리콥터: ' + currentShieldedHelicopters + ', 일반 비행기: ' + currentNormalPlanes + ', 총: ' + totalEnemies + '/6) - 생성 타입: ' + createType);
         }
     }
     
@@ -3295,8 +3067,7 @@ function handleEnemies() {
     enemies = enemies.filter(enemy => {
         // 보스가 파괴된 경우 즉시 제거
         if (enemy.isBoss && (bossDestroyed || enemy.health <= 0)) {
-            // 성능 최적화를 위해 로그 제거
-            // console.log('handleEnemies: 보스 파괴됨 - 즉시 제거');
+            console.log('handleEnemies: 보스 파괴됨 - 즉시 제거');
             return false;
         }
         
@@ -4021,24 +3792,17 @@ function handleSpecialWeapon() {
     }
 }
 
-// 폭발 효과 업데이트 및 그리기 (객체 풀 사용)
+// 폭발 효과 업데이트 및 그리기
 function handleExplosions() {
     explosions = explosions.filter(explosion => {
         // 상단 효과 무시 영역 체크
         if (explosion.y < TOP_EFFECT_ZONE) {
-            explosionPool.release(explosion); // 객체 풀로 반환
             return false; // 폭발 효과 제거
         }
         
         explosion.update();
         explosion.draw();
-        
-        if (explosion.isFinished) {
-            explosionPool.release(explosion); // 객체 풀로 반환
-            return false;
-        }
-        
-        return true;
+        return !explosion.isFinished;
     });
 }
 
@@ -4971,13 +4735,6 @@ function handleBullets() {
             return true; // 총알은 계속 이동하되 효과는 발생하지 않음
         }
         
-        // 화면 밖으로 나간 총알 제거
-        if (bullet.y < -50 || bullet.y > canvas.height + 50 || 
-            bullet.x < -50 || bullet.x > canvas.width + 50) {
-            bulletPool.release(bullet); // 객체 풀로 반환
-            return false;
-        }
-        
         if (bullet.isBossBullet) {
             // 보스 총알 처리 - 패턴별 이동 방식 적용
             const props = bullet.patternProperties;
@@ -5408,7 +5165,7 @@ function createBoss() {
         hitDuration: null, // 피격 상태 지속 시간
         type: ENEMY_TYPES.HELICOPTER,
         rotorAngle: 0,
-        rotorSpeed: 0.15, // 보스 메인 로터 속도
+        rotorSpeed: 0.1, // 보스 로터 속도를 50%로 감소 (0.2 * 0.5 = 0.1)
         hoverHeight: 150,
         hoverTimer: 0,
         hoverDirection: 1,
@@ -5491,15 +5248,15 @@ function handleBossPattern(boss) {
         }
     }
     
-    // 디버깅: 함수 호출 확인 (성능 최적화를 위해 주석 처리)
-    // console.log('handleBossPattern 함수 호출됨', {
-    //     boss: boss,
-    //     currentTime: currentTime,
-    //     patternTimer: boss.patternTimer,
-    //     patternInterval: BOSS_SETTINGS.PATTERN_INTERVAL,
-    //     timeDiff: currentTime - boss.patternTimer,
-    //     isBeingHit: boss.isBeingHit
-    // });
+    // 디버깅: 함수 호출 확인
+    console.log('handleBossPattern 함수 호출됨', {
+        boss: boss,
+        currentTime: currentTime,
+        patternTimer: boss.patternTimer,
+        patternInterval: BOSS_SETTINGS.PATTERN_INTERVAL,
+        timeDiff: currentTime - boss.patternTimer,
+        isBeingHit: boss.isBeingHit
+    });
     
     // 보스 페이즈 체크 및 업데이트
     const currentPhase = BOSS_SETTINGS.PHASE_THRESHOLDS.findIndex(
@@ -5526,36 +5283,32 @@ function handleBossPattern(boss) {
         }
     }
     
-    // 로터 회전 업데이트 (델타 타임 적용으로 프레임 독립적)
+    // 로터 회전 업데이트 (헬리콥터1과 동일하게 매 프레임마다)
     if (typeof boss.rotorAngle !== 'undefined' && typeof boss.rotorSpeed !== 'undefined') {
-        const normalizedDeltaTime = Math.min(deltaTime / 16.67, 2.0);
-        boss.rotorAngle += boss.rotorSpeed * normalizedDeltaTime;
+        boss.rotorAngle += boss.rotorSpeed;
     }
     
-    // 보스 이동 패턴 (화면 중앙 체공 및 역동적 움직임) - 델타 타임 적용
+    // 보스 이동 패턴 (화면 중앙 체공 및 역동적 움직임)
     if (boss.movePhase === 0) {
         // 초기 진입 - 화면 중앙으로 진입
         if (typeof boss.speed !== 'undefined') {
-            const normalizedDeltaTime = Math.min(deltaTime / 16.67, 2.0);
-            boss.y += boss.speed * 0.6 * normalizedDeltaTime; // 진입 속도 조정 (델타 타임 적용)
+            boss.y += boss.speed * 0.6; // 진입 속도 조정
         }
         // 화면 중앙으로 수렴하는 진입 경로
         const targetX = canvas.width / 2 - boss.width / 2;
         const dx = targetX - boss.x;
-        const normalizedDeltaTime = Math.min(deltaTime / 16.67, 2.0);
-        boss.x += dx * 0.02 * normalizedDeltaTime; // 부드럽게 중앙으로 이동 (델타 타임 적용)
+        boss.x += dx * 0.02; // 부드럽게 중앙으로 이동
         
         if (typeof boss.hoverHeight !== 'undefined' && boss.y >= boss.hoverHeight) {
             boss.movePhase = 1;
             boss.timer = currentTime;
             boss.centerX = canvas.width / 2 - boss.width / 2; // 중앙 기준점 설정
-            // 성능 최적화를 위해 로그 제거
-            // console.log('🚁 보스 중앙 호버링 시작 - 역동적 패턴 준비', {
-            //     centerX: boss.centerX,
-            //     hoverHeight: boss.hoverHeight,
-            //     currentX: boss.x,
-            //     currentY: boss.y
-            // });
+            console.log('🚁 보스 중앙 호버링 시작 - 역동적 패턴 준비', {
+                centerX: boss.centerX,
+                hoverHeight: boss.hoverHeight,
+                currentX: boss.x,
+                currentY: boss.y
+            });
         }
     } else if (boss.movePhase === 1) {
         // 중앙 호버링 패턴 (화면 중앙에서 다양한 움직임)
@@ -5593,9 +5346,8 @@ function handleBossPattern(boss) {
             const newX = boss.centerX + centerOffset + additionalX;
             const newY = boss.hoverHeight + verticalOffset + additionalY;
             
-            // 4. 위치 변화량 제한 (델타 타임 적용으로 프레임 독립적)
-            const normalizedDeltaTime = Math.min(deltaTime / 16.67, 2.0);
-            const maxFrameMove = 2 * normalizedDeltaTime; // 델타 타임에 따라 조정
+            // 4. 위치 변화량 제한 (한 프레임에 최대 2px만 이동)
+            const maxFrameMove = 2;
             const deltaX = newX - boss.x;
             const deltaY = newY - boss.y;
             
@@ -5732,35 +5484,27 @@ function handleBossPattern(boss) {
             boss.needsPositionCheck = false;
         }
         
-        // 연속 프레임 점프 감지 (델타 타임 기반으로 개선)
+        // 연속 프레임 점프 감지 (매 프레임 체크)
         if (boss.lastX !== undefined && boss.lastY !== undefined) {
             const xJump = Math.abs(boss.x - boss.lastX);
             const yJump = Math.abs(boss.y - boss.lastY);
             
-            // 델타 타임을 고려한 점프 감지 (프레임 독립적)
-            const normalizedDeltaTime = Math.min(deltaTime / 16.67, 2.0);
-            const maxAllowedJump = 5 * normalizedDeltaTime; // 델타 타임에 따라 허용 범위 조정
-            
-            // 한 프레임에 허용 범위 이상 점프하면 경고
-            if (xJump > maxAllowedJump || yJump > maxAllowedJump) {
-                // 성능 최적화를 위해 로그 제거
-                // console.warn('🚨 보스 프레임 점프 감지:', {
-                //     xJump: Math.round(xJump),
-                //     yJump: Math.round(yJump),
-                //     lastX: Math.round(boss.lastX),
-                //     lastY: Math.round(boss.lastY),
-                //     currentX: Math.round(boss.x),
-                //     currentY: Math.round(boss.y),
-                //     deltaTime: Math.round(deltaTime),
-                //     maxAllowedJump: Math.round(maxAllowedJump)
-                // });
+            // 한 프레임에 10px 이상 점프하면 경고
+            if (xJump > 10 || yJump > 10) {
+                console.warn('🚨 보스 프레임 점프 감지:', {
+                    xJump: Math.round(xJump),
+                    yJump: Math.round(yJump),
+                    lastX: Math.round(boss.lastX),
+                    lastY: Math.round(boss.lastY),
+                    currentX: Math.round(boss.x),
+                    currentY: Math.round(boss.y)
+                });
                 
                 // 점프가 너무 크면 이전 위치로 복원
-                if (xJump > maxAllowedJump * 2 || yJump > maxAllowedJump * 2) {
+                if (xJump > 20 || yJump > 20) {
                     boss.x = boss.lastX;
                     boss.y = boss.lastY;
-                    // 성능 최적화를 위해 로그 제거
-                    // console.log('🔄 보스 위치 복원됨');
+                    console.log('🔄 보스 위치 복원됨');
                 }
             }
         }
@@ -6433,18 +6177,19 @@ function drawStartScreen() {
     ctx.fillText('상하좌우로 움직일 수 있습니다.', 50, canvas.height - 140);
 }
 
-// 폭탄 생성 함수 추가 (객체 풀 사용)
+// 폭탄 생성 함수 추가
 function createBomb(enemy) {
-    const bomb = bombPool.get();
-    bomb.x = enemy.x + enemy.width/2;
-    bomb.y = enemy.y + enemy.height;
-    bomb.width = 15;
-    bomb.height = 15;
-    bomb.speed = 5;
-    bomb.rotation = 0;
-    bomb.rotationSpeed = 0.1;
-    bomb.trail = [];
-    bomb.isBossBomb = !!enemy.isBoss; // 보스가 발사한 폭탄이면 true
+    const bomb = {
+        x: enemy.x + enemy.width/2,
+        y: enemy.y + enemy.height,
+        width: 15,
+        height: 15,
+        speed: 5,
+        rotation: 0,
+        rotationSpeed: 0.1,
+        trail: [],
+        isBossBomb: !!enemy.isBoss // 보스가 발사한 폭탄이면 true
+    };
     bombs.push(bomb);
 }
 
@@ -6484,23 +6229,12 @@ function handleBombs() {
         // 플레이어와 충돌 체크
         if (checkCollision(bomb, player) || (hasSecondPlane && checkCollision(bomb, secondPlane))) {
             handleCollision();
-            // 객체 풀 사용 (성능 최적화)
-            const explosion = explosionPool.get();
-            explosion.x = bomb.x;
-            explosion.y = bomb.y;
-            explosion.isFinal = true;
-            explosions.push(explosion);
-            bombPool.release(bomb); // 객체 풀로 반환
+            explosions.push(new Explosion(bomb.x, bomb.y, true));
             return false;
         }
         
         // 화면 밖으로 나간 폭탄 제거
-        if (bomb.y >= canvas.height) {
-            bombPool.release(bomb); // 객체 풀로 반환
-            return false;
-        }
-        
-        return true;
+        return bomb.y < canvas.height;
     });
 }
 
@@ -7677,13 +7411,7 @@ function handleCollisionEffects() {
         ctx.restore();
         
         effect.life--;
-        
-        if (effect.life <= 0) {
-            collisionEffectPool.release(effect); // 객체 풀로 반환
-            return false;
-        }
-        
-        return true;
+        return effect.life > 0;
     });
 }
 
@@ -7943,30 +7671,32 @@ function createUnifiedBullet() {
         
         for (let i = 0; i < 24; i++) { // 24발 발사
             const angle = startAngle + (i * angleStep);
-            const bullet = bulletPool.get();
-            bullet.x = player.x + player.width / 2;
-            bullet.y = player.y;
-            bullet.width = 8;   // 크기 2배 증가 (4에서 8로)
-            bullet.height = 16; // 크기 2배 증가 (8에서 16으로)
-            bullet.speed = 6;   // 통일된 속도
-            bullet.angle = angle;
-            bullet.damage = 200; // 확산탄 데미지 (일반 총알의 2배)
-            bullet.isBossBullet = false;
-            bullet.isSpecial = false;
-            bullet.isSpread = true;
+            const bullet = {
+                x: player.x + player.width / 2,
+                y: player.y,
+                width: 8,   // 크기 2배 증가 (4에서 8로)
+                height: 16, // 크기 2배 증가 (8에서 16으로)
+                speed: 6,   // 통일된 속도
+                angle: angle,
+                damage: 200, // 확산탄 데미지 (일반 총알의 2배)
+                isBossBullet: false,
+                isSpecial: false,
+                isSpread: true
+            };
             bullets.push(bullet);
         }
     } else {
-        // 일반 총알 발사 (레벨 1 수준으로 제한) - 객체 풀 사용
-        const bullet = bulletPool.get();
-        bullet.x = player.x + player.width / 2;
-        bullet.y = player.y;
-        bullet.width = 4;   // 통일된 크기
-        bullet.height = 8;  // 통일된 크기
-        bullet.speed = 6;   // 통일된 속도
-        bullet.damage = 100;
-        bullet.isBossBullet = false;
-        bullet.isSpecial = false;
+        // 일반 총알 발사 (레벨 1 수준으로 제한)
+        const bullet = {
+            x: player.x + player.width / 2,
+            y: player.y,
+            width: 4,   // 통일된 크기
+            height: 8,  // 통일된 크기
+            speed: 6,   // 통일된 속도
+            damage: 100,
+            isBossBullet: false,
+            isSpecial: false
+        };
         bullets.push(bullet);
     }
     
