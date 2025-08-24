@@ -5544,8 +5544,8 @@ function handleBossPattern(boss) {
             });
             
             // 단순화된 패턴 실행 시스템 (체력에 상관없이 순환)
-            // 1-3개 패턴을 연속으로 발사 (랜덤하게 결정)
-            const patternCount = Math.random() < 0.4 ? 3 : (Math.random() < 0.7 ? 2 : 1);
+            // 1-2개 패턴을 연속으로 발사 (2회로 제한)
+            const patternCount = Math.random() < 0.6 ? 2 : 1;
             
             console.log(`🎯 보스 패턴 실행: ${patternCount}개 연속 발사`, {
                 selectedPattern: selectedPattern,
@@ -5565,7 +5565,7 @@ function handleBossPattern(boss) {
                 }
             }
             
-            // 연속 패턴 실행 (5초 간격 기준으로 조정)
+            // 연속 패턴 실행 (3초 간격으로 단축)
             patternsToExecute.forEach((patternName, index) => {
                 setTimeout(() => {
                     try {
@@ -5624,10 +5624,10 @@ function handleBossPattern(boss) {
                         console.log(`🔄 기본 패턴으로 폴백: cross`);
                         bossFireCrossShot(boss);
                     }
-                }, index * 5000); // 각 패턴을 5초 간격으로 연속 발사
+                }, index * 3000); // 각 패턴을 3초 간격으로 연속 발사
             });
             
-            console.log(`🎬 연속 패턴 발사 시작: ${patternsToExecute.length}개 패턴, 총 ${patternsToExecute.length * 5000}ms 소요`);
+            console.log(`🎬 연속 패턴 발사 시작: ${patternsToExecute.length}개 패턴, 총 ${patternsToExecute.length * 3000}ms 소요`);
         }
     }
 }
@@ -7028,17 +7028,31 @@ function hexToRgb(hex) {
 
 // 보스 발사 패턴 함수들
 function bossFireSpreadShot(boss) {
-    // 확산탄 패턴: 플레이어 방향 기준으로 확산 (속도 조정)
+    // 확산탄 패턴: 랜덤 방향과 개수로 확산 (매번 다른 패턴)
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
-    const playerAngle = Math.atan2(player.y - bossY, player.x - bossX);
     
-    // 플레이어 방향을 기준으로 7발 확산 발사 (속도 60%로 감소)
-    for (let i = -3; i <= 3; i++) {
-        const angle = playerAngle + (i * 0.3);
+    // 랜덤 설정: 방향 수, 총알 개수, 각도 간격
+    const directionCounts = [6, 8, 10, 12, 16]; // 가능한 방향 수들
+    const bulletCounts = [6, 8, 10, 12, 16];   // 가능한 총알 개수들
+    const angleSpreads = [0.2, 0.3, 0.4, 0.5, 0.6]; // 가능한 각도 간격들
+    
+    // 랜덤하게 선택
+    const selectedDirections = directionCounts[Math.floor(Math.random() * directionCounts.length)];
+    const selectedBullets = bulletCounts[Math.floor(Math.random() * bulletCounts.length)];
+    const selectedAngleSpread = angleSpreads[Math.floor(Math.random() * angleSpreads.length)];
+    
+    // 랜덤 시작 각도 (0~360도)
+    const startAngle = Math.random() * Math.PI * 2;
+    
+    // 선택된 설정으로 총알 발사
+    for (let i = 0; i < selectedBullets; i++) {
+        const angle = startAngle + (i * Math.PI * 2 / selectedBullets);
         const bullet = createBossBullet(boss, angle, 'spread');
         if (bullet && bullet.speed) {
-            bullet.speed = bullet.speed * 0.6; // 총알 속도를 60%로 감소
+            // 랜덤 속도 변화 (80%~120%)
+            const speedMultiplier = 0.8 + (Math.random() * 0.4);
+            bullet.speed = bullet.speed * speedMultiplier;
         }
     }
     
@@ -7064,11 +7078,21 @@ function bossFireSpreadShot(boss) {
 // 기존 bossFireCrossShot 함수는 아래의 PC 버전용 개선된 함수로 대체됨
 
 function bossFireSpiralShot(boss) {
-    // 나선형 발사 패턴
-    const spiralCount = 8;
-    const baseAngle = (Date.now() / 1000) % (Math.PI * 2);
-    for (let i = 0; i < spiralCount; i++) {
-        const angle = baseAngle + (i * Math.PI * 2 / spiralCount);
+    // 나선형 발사 패턴: 랜덤 방향과 개수로 나선형 발사 (매번 다른 패턴)
+    // 랜덤 설정: 총알 개수, 회전 속도, 시작 각도
+    const spiralCounts = [6, 8, 10, 12, 16]; // 가능한 총알 개수들
+    const rotationSpeeds = [0.5, 1.0, 1.5, 2.0, 2.5]; // 가능한 회전 속도들
+    
+    // 랜덤하게 선택
+    const selectedSpiralCount = spiralCounts[Math.floor(Math.random() * spiralCounts.length)];
+    const selectedRotationSpeed = rotationSpeeds[Math.floor(Math.random() * rotationSpeeds.length)];
+    
+    // 랜덤 시작 각도 (0~360도)
+    const startAngle = Math.random() * Math.PI * 2;
+    
+    // 선택된 설정으로 총알 발사
+    for (let i = 0; i < selectedSpiralCount; i++) {
+        const angle = startAngle + (i * Math.PI * 2 / selectedSpiralCount) + (Date.now() / 1000 * selectedRotationSpeed);
         createBossBullet(boss, angle, 'spiral');
     }
     
@@ -7092,11 +7116,24 @@ function bossFireSpiralShot(boss) {
 }
 
 function bossFireWaveShot(boss) {
-    // 파도형 발사 패턴 - 12발로 증가
-    const waveCount = 12;
-    const waveAngle = Math.sin(Date.now() / 500) * 0.5;
-    for (let i = 0; i < waveCount; i++) {
-        const angle = (i * Math.PI * 2 / waveCount) + waveAngle;
+    // 파도형 발사 패턴: 랜덤 방향과 개수로 파도형 발사 (매번 다른 패턴)
+    // 랜덤 설정: 총알 개수, 파도 진폭, 파도 주기
+    const waveCounts = [8, 12, 16, 20, 24]; // 가능한 총알 개수들
+    const waveAmplitudes = [0.3, 0.5, 0.7, 0.9, 1.1]; // 가능한 파도 진폭들
+    const wavePeriods = [300, 500, 700, 900, 1100]; // 가능한 파도 주기들 (ms)
+    
+    // 랜덤하게 선택
+    const selectedWaveCount = waveCounts[Math.floor(Math.random() * waveCounts.length)];
+    const selectedAmplitude = waveAmplitudes[Math.floor(Math.random() * waveAmplitudes.length)];
+    const selectedPeriod = wavePeriods[Math.floor(Math.random() * wavePeriods.length)];
+    
+    // 랜덤 시작 각도 (0~360도)
+    const startAngle = Math.random() * Math.PI * 2;
+    
+    // 선택된 설정으로 총알 발사
+    for (let i = 0; i < selectedWaveCount; i++) {
+        const waveAngle = Math.sin(Date.now() / selectedPeriod) * selectedAmplitude;
+        const angle = startAngle + (i * Math.PI * 2 / selectedWaveCount) + waveAngle;
         createBossBullet(boss, angle, 'wave');
     }
     
@@ -7308,10 +7345,19 @@ function bossFireCircleShot(boss) {
         return;
     }
     
-    // 원형 패턴: 모든 방향으로 균등하게 발사
-    const bulletCount = 16;
-    for (let i = 0; i < bulletCount; i++) {
-        const angle = (i * 22.5) * Math.PI / 180; // 360도를 16등분
+    // 원형 패턴: 랜덤 방향과 개수로 모든 방향 발사 (매번 다른 패턴)
+    // 랜덤 설정: 총알 개수, 시작 각도
+    const bulletCounts = [8, 12, 16, 20, 24]; // 가능한 총알 개수들
+    
+    // 랜덤하게 선택
+    const selectedBullets = bulletCounts[Math.floor(Math.random() * bulletCounts.length)];
+    
+    // 랜덤 시작 각도 (0~360도)
+    const startAngle = Math.random() * Math.PI * 2;
+    
+    // 선택된 설정으로 총알 발사
+    for (let i = 0; i < selectedBullets; i++) {
+        const angle = startAngle + (i * Math.PI * 2 / selectedBullets);
         const bullet = createBossBullet(boss, angle, 'circle');
     }
     
@@ -7378,10 +7424,23 @@ function bossFireCrossShot(boss) {
         return;
     }
     
-    // 십자 발사 패턴: 4방향으로 총알 발사 (PC 버전용)
-    console.log('십자 발사 패턴 실행 - 4발 발사');
-    for (let i = 0; i < 4; i++) {
-        const angle = (i * Math.PI) / 2;
+    // 십자 발사 패턴: 랜덤 방향과 개수로 총알 발사 (매번 다른 패턴)
+    console.log('십자 발사 패턴 실행 - 랜덤 패턴');
+    
+    // 랜덤 설정: 방향 수, 총알 개수, 시작 각도
+    const directionCounts = [4, 6, 8, 10, 12]; // 가능한 방향 수들
+    const bulletCounts = [4, 6, 8, 10, 12];   // 가능한 총알 개수들
+    
+    // 랜덤하게 선택
+    const selectedDirections = directionCounts[Math.floor(Math.random() * directionCounts.length)];
+    const selectedBullets = bulletCounts[Math.floor(Math.random() * bulletCounts.length)];
+    
+    // 랜덤 시작 각도 (0~360도)
+    const startAngle = Math.random() * Math.PI * 2;
+    
+    // 선택된 설정으로 총알 발사
+    for (let i = 0; i < selectedBullets; i++) {
+        const angle = startAngle + (i * Math.PI * 2 / selectedBullets);
         createBossBullet(boss, angle, 'cross');
     }
     
