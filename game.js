@@ -3273,14 +3273,14 @@ function checkEnemyCollisions(enemy) {
                 // 추가: 플레이어 총알이 보스에 명중 시 발사음도 재생
                 safePlay(shootSound);
                 
-                // 체력이 0이 되면 보스 파괴 (75발 맞으면 즉시 파괴)
+                // 체력이 0이 되면 보스 파괴 (50발 맞으면 즉시 파괴)
                 if (enemy.health <= 0) {
                     const currentTime = Date.now();
                     const timeSinceSpawn = currentTime - (enemy.spawnTime || currentTime);
                     const minStayTime = enemy.minStayTime || BOSS_SETTINGS.MIN_STAY_TIME;
                     
-                    // 75발을 맞춘 경우 (hitCount >= 75) 즉시 파괴
-                    if (enemy.hitCount >= 75) {
+                    // 50발을 맞춘 경우 (hitCount >= 50) 즉시 파괴
+                    if (enemy.hitCount >= 50) {
                         console.log('보스 75발 맞음 - 즉시 파괴:', {
                             health: enemy.health,
                             hitCount: enemy.hitCount,
@@ -3304,8 +3304,8 @@ function checkEnemyCollisions(enemy) {
                     }
                     
                     // 파괴 조건에 따른 로그 메시지
-                    if (enemy.hitCount >= 75) {
-                        console.log('🎯 보스 파괴됨 - 75발 명중 달성!:', {
+                    if (enemy.hitCount >= 50) {
+                        console.log('🎯 보스 파괴됨 - 50발 명중 달성!:', {
                             health: enemy.health,
                             hitCount: enemy.hitCount,
                             timeSinceSpawn: timeSinceSpawn,
@@ -4033,8 +4033,8 @@ function drawUI() {
         ctx.lineWidth = 2;
         ctx.strokeRect(canvas.width/2 - 100, 20, 200, 20);
         
-        // 체력바 (체력 7500 기준으로 조정, 강제로 7500 사용)
-        const healthPercentage = bossHealth / 7500;
+        // 체력바 (체력 5000 기준으로 조정)
+        const healthPercentage = bossHealth / 5000;
         let healthColor;
         if (healthPercentage > 0.7) healthColor = 'rgba(0, 255, 0, 0.9)';      // 초록색 (70% 이상)
         else if (healthPercentage > 0.5) healthColor = 'rgba(0, 255, 255, 0.9)'; // 청록색 (50-70%)
@@ -4045,13 +4045,13 @@ function drawUI() {
         ctx.fillStyle = healthColor;
         ctx.fillRect(canvas.width/2 - 100, 20, healthPercentage * 200, 20);
         
-        // 체력 수치 (강제로 7500 표시)
+        // 체력 수치 (체력 5000 기준)
         ctx.fillStyle = 'white';
         ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(`보스 체력: ${Math.ceil(bossHealth)}/7500`, canvas.width/2, 35);
+        ctx.fillText(`보스 체력: ${Math.ceil(bossHealth)}/5000`, canvas.width/2, 35);
         
-        // 페이즈 표시 (체력 7500 기준으로 조정된 임계값 사용)
+        // 페이즈 표시 (체력 5000 기준으로 조정된 임계값 사용)
         const currentPhase = BOSS_SETTINGS.PHASE_THRESHOLDS.findIndex(
             threshold => bossHealth > threshold.health
         );
@@ -4059,15 +4059,15 @@ function drawUI() {
             ctx.fillText(`페이즈 ${currentPhase + 1}`, canvas.width/2, 60);
         }
         
-        // 체력 수치 상세 정보 (디버깅용, 강제로 7500 표시)
+        // 체력 수치 상세 정보 (디버깅용, 체력 5000 기준)
         ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
         ctx.font = 'bold 12px Arial';
-        ctx.fillText(`체력: ${Math.ceil(bossHealth)}/7500 (${Math.round(healthPercentage * 100)}%)`, canvas.width/2, 80);
+        ctx.fillText(`체력: ${Math.ceil(bossHealth)}/5000 (${Math.round(healthPercentage * 100)}%)`, canvas.width/2, 80);
         
-        // 디버깅 정보 화면에 표시 (강제로 7500 표시)
+        // 디버깅 정보 화면에 표시 (체력 5000 기준)
         ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
         ctx.font = 'bold 10px Arial';
-        ctx.fillText(`Debug: bossHealth=${bossHealth}, BOSS_HEALTH=7500`, canvas.width/2, 100);
+        ctx.fillText(`Debug: bossHealth=${bossHealth}, BOSS_HEALTH=5000`, canvas.width/2, 100);
     }
     
     // 데미지 텍스트 그리기
@@ -4976,17 +4976,17 @@ function getBossScore() {
 
 // 보스 관련 상수 추가
 const BOSS_SETTINGS = {
-    HEALTH: 7500,        // 체력 7500으로 증가 (방어력 50% 향상, 75발 맞으면 파괴)
+    HEALTH: 5000,        // 체력 5000으로 복구
     DAMAGE: 50,          // 보스 총알 데미지
     SPEED: 2.0,         // 보스 이동 속도를 2.0으로 조정 (적당한 속도)
     BULLET_SPEED: 4,    // 보스 총알 속도를 3에서 4로 증가
     PATTERN_INTERVAL: 12000, // 12초(12000ms)로 증가 (기존 6초의 2배)
     SPAWN_INTERVAL: 15000,  // 보스 출현 간격을 15초로 설정
     MIN_STAY_TIME: 10000,   // 보스 최소 체류 시간 10초로 단축
-    PHASE_THRESHOLDS: [  // 페이즈 전환 체력 임계값 (체력 7500 기준으로 조정)
-        { health: 5625, speed: 2.5, bulletSpeed: 5 },    // 속도 증가 (75%)
-        { health: 3750, speed: 3.0, bulletSpeed: 6 },    // 속도 증가 (50%)
-        { health: 1875, speed: 3.5, bulletSpeed: 7 }     // 속도 증가 (25%)
+    PHASE_THRESHOLDS: [  // 페이즈 전환 체력 임계값 (체력 5000 기준으로 조정)
+        { health: 3750, speed: 2.5, bulletSpeed: 5 },    // 속도 증가 (75%)
+        { health: 2500, speed: 3.0, bulletSpeed: 6 },    // 속도 증가 (50%)
+        { health: 1250, speed: 3.5, bulletSpeed: 7 }     // 속도 증가 (25%)
     ]
 };
 
@@ -5065,7 +5065,7 @@ function createBoss() {
     // 보스 상태 초기화
     bossActive = true;
     isBossActive = true; // 보스 활성화 상태 설정
-            bossHealth = 7500; // 강제로 7500 사용
+            bossHealth = 5000; // 체력 5000으로 복구
     bossPattern = 0;
     bossTimer = currentTime;
     lastBossSpawnTime = currentTime; // 보스 생성 시간 기록
@@ -5094,7 +5094,7 @@ function createBoss() {
         patternTimer: currentTime, // 즉시 첫 번째 공격 시작
         bulletSpeed: BOSS_SETTINGS.BULLET_SPEED,
         isBoss: true,
-        health: 7500, // 강제로 7500 사용
+        health: 5000, // 체력 5000으로 복구
         randomOffsetX: Math.random() * 120 - 60,
         randomOffsetY: Math.random() * 120 - 60,
         randomAngle: Math.random() * Math.PI * 2,
@@ -5125,7 +5125,7 @@ function createBoss() {
         // 보스 체류 시간 관리
         spawnTime: currentTime,           // 생성 시간 기록
         minStayTime: BOSS_SETTINGS.MIN_STAY_TIME,  // 최소 체류 시간 (10초)
-        // 파괴 조건: 75발 명중 또는 10초 경과
+        // 파괴 조건: 50발 명중 또는 10초 경과
     };
     
     // 보스 추가
