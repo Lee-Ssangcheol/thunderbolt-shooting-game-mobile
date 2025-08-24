@@ -22,6 +22,7 @@ const FULLSCREEN_COOLDOWN = 1000; // 1초 쿨다운
 
 // 게임 상태 변수
 let gameStarted = false;
+let frameCount = 0; // 프레임 카운터 (성능 최적화용)
 
 // 전체화면 상태 확인 함수
 function checkFullscreenState() {
@@ -1326,6 +1327,7 @@ async function initializeGame() {
         scoreForSpread = 0;
         gameStarted = false; // 화면 터치 대기 상태
         isStartScreen = true;
+        frameCount = 0; // 프레임 카운터 초기화
         
         // 모든 투사체 및 폭발물 완전 초기화
         bullets = [];
@@ -1505,6 +1507,7 @@ function restartGame() {
     levelScore = 0;
     scoreForSpread = 0;
     gameLevel = 1;
+    frameCount = 0; // 프레임 카운터 초기화
             levelUpScore = 1500; // 레벨업 기준 점수 초기화
     
     // 특수무기 관련 상태 초기화
@@ -1545,7 +1548,8 @@ function createEnemy(forceType = null) {
         // 레벨 7 이상: 모든 속성을 레벨 7과 동일하게 고정 (증가 제한)
         currentDifficulty = difficultySettings[7];
         
-        console.log(`createEnemy - 레벨 ${gameLevel}: 레벨 7 난이도로 고정 (속도: ${currentDifficulty.enemySpeed}, 적 수: ${currentDifficulty.maxEnemies}, 생성률: ${currentDifficulty.enemySpawnRate})`);
+        // 성능 최적화를 위해 로그 제거
+        // console.log(`createEnemy - 레벨 ${gameLevel}: 레벨 7 난이도로 고정 (속도: ${currentDifficulty.enemySpeed}, 적 수: ${currentDifficulty.maxEnemies}, 생성률: ${currentDifficulty.enemySpawnRate})`);
     }
     
     // 강제 타입이 지정된 경우 해당 타입으로 생성, 그렇지 않으면 기존 로직 사용
@@ -2654,14 +2658,8 @@ function gameLoop() {
             ctx.font = 'bold 20px Arial';
             ctx.fillText('시작/재시작 버튼을 눌러 시작', canvas.width/2, canvas.height/2 + 50);
         }
-        // 모바일에서만 프레임 제한 적용
-        if (isMobile) {
-            setTimeout(() => {
-                requestAnimationFrame(gameLoop);
-            }, MOBILE_FRAME_INTERVAL);
-        } else {
-            requestAnimationFrame(gameLoop);
-        }
+        // 프레임 제한 없이 requestAnimationFrame 사용 (성능 최적화)
+        requestAnimationFrame(gameLoop);
         return;
     }
 
@@ -2728,18 +2726,15 @@ function gameLoop() {
             ctx.fillText(`최종 점수: ${score}`, canvas.width/2, canvas.height/2 + 60);
             ctx.fillText('스페이스바를 눌러 재시작', canvas.width/2, canvas.height/2 + 160);
         }
-        // 모바일에서만 프레임 제한 적용
-        if (isMobile) {
-            setTimeout(() => {
-                requestAnimationFrame(gameLoop);
-            }, MOBILE_FRAME_INTERVAL);
-        } else {
-            requestAnimationFrame(gameLoop);
-        }
+        // 프레임 제한 없이 requestAnimationFrame 사용 (성능 최적화)
+        requestAnimationFrame(gameLoop);
         return;
     }
 
     try {
+        // 프레임 카운터 증가 (성능 최적화용)
+        frameCount++;
+        
         // 깜박임 효과 처리
         if (flashTimer > 0) {
             ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
@@ -2802,18 +2797,23 @@ function gameLoop() {
             }
         }
         
-        // 헬리콥터 생성 체크 (게임 루프에서 직접 호출)
+        // 헬리콥터 생성 체크 (게임 루프에서 직접 호출) - 성능 최적화
         if (gameStarted && !isBossActive && currentTime - lastHelicopterSpawnTime >= MIN_HELICOPTER_SPAWN_INTERVAL) {
-            // 현재 보호막 헬리콥터 수 확인 (보스 제외)
-            const currentShieldedHelicopters = enemies.filter(enemy => 
-                (enemy.type === ENEMY_TYPES.HELICOPTER || enemy.type === ENEMY_TYPES.HELICOPTER2) && 
-                enemy.hasShield && !enemy.isShieldBroken && !enemy.isBoss
-            ).length;
+            // 적 수 계산을 캐싱하여 성능 최적화
+            let currentShieldedHelicopters = 0;
+            let currentNormalPlanes = 0;
             
-            // 현재 일반 비행기 수 확인 (보스 제외)
-            const currentNormalPlanes = enemies.filter(enemy => 
-                enemy.type === ENEMY_TYPES.PLANE && !enemy.isBoss
-            ).length;
+            // 한 번의 반복으로 모든 적 타입 계산
+            for (const enemy of enemies) {
+                if (enemy.isBoss) continue;
+                
+                if ((enemy.type === ENEMY_TYPES.HELICOPTER || enemy.type === ENEMY_TYPES.HELICOPTER2) && 
+                    enemy.hasShield && !enemy.isShieldBroken) {
+                    currentShieldedHelicopters++;
+                } else if (enemy.type === ENEMY_TYPES.PLANE) {
+                    currentNormalPlanes++;
+                }
+            }
             
             const totalEnemies = currentShieldedHelicopters + currentNormalPlanes;
             
@@ -2830,24 +2830,25 @@ function gameLoop() {
                     const helicopterCount = Math.min(Math.floor(Math.random() * 3) + 2, maxHelicoptersToSpawn); // 2, 3, 4 중 랜덤하되 제한 내에서
                     
                     for (let i = 0; i < helicopterCount; i++) {
-                        // 약간의 시간차를 두고 생성하여 자연스럽게 등장
-                        setTimeout(() => {
-                            createEnemy('HELICOPTER');
-                        }, i * 150); // 150ms 간격으로 생성 (더 빠르게)
+                        // 즉시 생성하여 성능 최적화
+                        createEnemy('HELICOPTER');
                     }
                     
                     lastHelicopterSpawnTime = currentTime;
-                    console.log(`${helicopterCount}대의 헬리콥터 생성됨 (레벨 ${gameLevel}, 확률: ${Math.round(spawnChance * 100)}%) - 현재 총 적 수: ${totalEnemies + helicopterCount}/6 - 시간:`, new Date(currentTime).toLocaleTimeString());
+                    // 성능 최적화를 위해 로그 제거
+                    // console.log(`${helicopterCount}대의 헬리콥터 생성됨 (레벨 ${gameLevel}, 확률: ${Math.round(spawnChance * 100)}%) - 현재 총 적 수: ${totalEnemies + helicopterCount}/6 - 시간:`, new Date(currentTime).toLocaleTimeString());
                 }
             } else {
-                console.log(`헬리콥터 생성 제한: 현재 총 적 수 ${totalEnemies}/6으로 인해 생성 불가`);
+                // 성능 최적화를 위해 로그 제거
+                // console.log(`헬리콥터 생성 제한: 현재 총 적 수 ${totalEnemies}/6으로 인해 생성 불가`);
             }
         }
 
         // 보스 총알 정리 (보스가 파괴된 후 남은 총알 제거)
         if (bossDestroyed || !bossActive) {
             bullets = bullets.filter(bullet => !bullet.isBossBullet);
-            console.log('보스 파괴 후 남은 보스 총알 정리 완료');
+                            // 성능 최적화를 위해 로그 제거
+                // console.log('보스 파괴 후 남은 보스 총알 정리 완료');
         }
         
         // 총알 이동 및 충돌 체크
@@ -2862,19 +2863,20 @@ function gameLoop() {
         // 두 번째 비행기 타이머 관리 (매 프레임마다 업데이트)
         updateSecondPlaneTimer();
         
-        // 추가 타이머 검증 (매 프레임마다)
-        if (hasSecondPlane && secondPlaneTimer > 0) {
+        // 추가 타이머 검증 (성능 최적화 - 10프레임마다만 실행)
+        if (hasSecondPlane && secondPlaneTimer > 0 && frameCount % 10 === 0) {
             const currentTime = Date.now();
             const elapsedTime = currentTime - secondPlaneTimer;
             
-                    // 타이머가 정상적으로 작동하는지 확인
-        if (elapsedTime >= 0 && elapsedTime < 10000) {
-            // 타이머가 정상 작동 중
-            const remainingTime = Math.max(0, Math.ceil((10000 - elapsedTime) / 1000));
-            if (remainingTime <= 3) { // 3초 이하일 때만 로그
-                console.log(`프레임별 타이머 확인: ${remainingTime}초 남음 (경과: ${elapsedTime}ms)`);
+            // 타이머가 정상적으로 작동하는지 확인
+            if (elapsedTime >= 0 && elapsedTime < 10000) {
+                // 타이머가 정상 작동 중
+                const remainingTime = Math.max(0, Math.ceil((10000 - elapsedTime) / 1000));
+                if (remainingTime <= 3) { // 3초 이하일 때만 로그
+                    // 성능 최적화를 위해 로그 제거
+                    // console.log(`프레임별 타이머 확인: ${remainingTime}초 남음 (경과: ${elapsedTime}ms)`);
+                }
             }
-        }
         }
         
         // 추가 안전장치: 타이머가 멈춰있을 경우 강제 업데이트
@@ -2903,17 +2905,25 @@ function gameLoop() {
         // 레벨업 체크
         checkLevelUp();
 
-        // 폭발 효과 업데이트 및 그리기
-        handleExplosions();
+        // 폭발 효과 업데이트 및 그리기 (성능 최적화)
+        if (explosions.length > 0) {
+            handleExplosions();
+        }
 
-        // 충돌 효과 업데이트 및 그리기
-        handleCollisionEffects();
+        // 충돌 효과 업데이트 및 그리기 (성능 최적화)
+        if (collisionEffects.length > 0) {
+            handleCollisionEffects();
+        }
 
-        // 폭탄 처리 추가
-        handleBombs();
+        // 폭탄 처리 추가 (성능 최적화)
+        if (bombs.length > 0) {
+            handleBombs();
+        }
 
-        // 다이나마이트 처리 추가
-        handleDynamites();
+        // 다이나마이트 처리 추가 (성능 최적화)
+        if (dynamites.length > 0) {
+            handleDynamites();
+        }
 
         // UI 그리기
         drawUI();
@@ -2921,14 +2931,8 @@ function gameLoop() {
         // 모바일 컨트롤 상태 표시
         showMobileControlStatus();
 
-        // 모바일에서만 프레임 제한 적용
-        if (isMobile) {
-            setTimeout(() => {
-                requestAnimationFrame(gameLoop);
-            }, MOBILE_FRAME_INTERVAL);
-        } else {
-            requestAnimationFrame(gameLoop);
-        }
+        // 프레임 제한 없이 requestAnimationFrame 사용 (성능 최적화)
+        requestAnimationFrame(gameLoop);
     } catch (error) {
         console.error('게임 루프 실행 중 오류:', error);
         console.error('오류 스택:', error.stack);
@@ -2985,7 +2989,8 @@ function handleEnemies() {
         // 레벨 7 이상: 모든 속성을 레벨 7과 동일하게 고정 (증가 제한)
         currentDifficulty = difficultySettings[7];
         
-        console.log(`handleEnemies - 레벨 ${gameLevel}: 레벨 7 난이도로 고정 (속도: ${currentDifficulty.enemySpeed}, 적 수: ${currentDifficulty.maxEnemies}, 생성률: ${currentDifficulty.enemySpawnRate})`);
+        // 성능 최적화를 위해 로그 제거
+        // console.log(`handleEnemies - 레벨 ${gameLevel}: 레벨 7 난이도로 고정 (속도: ${currentDifficulty.enemySpeed}, 적 수: ${currentDifficulty.maxEnemies}, 생성률: ${currentDifficulty.enemySpawnRate})`);
     }
     
     // 보스 존재 여부 체크 - 더 정확한 체크
@@ -3012,16 +3017,22 @@ function handleEnemies() {
         handleSnakePattern();
     }
     
-    // 적 생성 로직 개선 - 게임이 시작되고 터치 후에만 적들이 생성되도록
+    // 적 생성 로직 개선 - 게임이 시작되고 터치 후에만 적들이 생성되도록 (성능 최적화)
     // 적 비행기와 보호막 헬리콥터 합하여 최대 6대 제한 (보스 제외), 일반 비행기 최소 4대, 보호막 헬리콥터 기본 2대 보장
-    const currentShieldedHelicopters = enemies.filter(enemy => 
-        (enemy.type === ENEMY_TYPES.HELICOPTER || enemy.type === ENEMY_TYPES.HELICOPTER2) && 
-        enemy.hasShield && !enemy.isShieldBroken && !enemy.isBoss
-    ).length;
+    let currentShieldedHelicopters = 0;
+    let currentNormalPlanes = 0;
     
-    const currentNormalPlanes = enemies.filter(enemy => 
-        enemy.type === ENEMY_TYPES.PLANE && !enemy.isBoss
-    ).length;
+    // 한 번의 반복으로 모든 적 타입 계산 (성능 최적화)
+    for (const enemy of enemies) {
+        if (enemy.isBoss) continue;
+        
+        if ((enemy.type === ENEMY_TYPES.HELICOPTER || enemy.type === ENEMY_TYPES.HELICOPTER2) && 
+            enemy.hasShield && !enemy.isShieldBroken) {
+            currentShieldedHelicopters++;
+        } else if (enemy.type === ENEMY_TYPES.PLANE) {
+            currentNormalPlanes++;
+        }
+    }
     
     const totalEnemies = currentShieldedHelicopters + currentNormalPlanes;
     
@@ -3056,7 +3067,8 @@ function handleEnemies() {
         if (shouldCreate) {
             createEnemy(createType);
             lastEnemySpawnTime = currentTime;
-            console.log('새로운 적 생성됨 (보호막 헬리콥터: ' + currentShieldedHelicopters + ', 일반 비행기: ' + currentNormalPlanes + ', 총: ' + totalEnemies + '/6) - 생성 타입: ' + createType);
+            // 성능 최적화를 위해 로그 제거
+            // console.log('새로운 적 생성됨 (보호막 헬리콥터: ' + currentShieldedHelicopters + ', 일반 비행기: ' + currentNormalPlanes + ', 총: ' + totalEnemies + '/6) - 생성 타입: ' + createType);
         }
     }
     
@@ -3067,7 +3079,8 @@ function handleEnemies() {
     enemies = enemies.filter(enemy => {
         // 보스가 파괴된 경우 즉시 제거
         if (enemy.isBoss && (bossDestroyed || enemy.health <= 0)) {
-            console.log('handleEnemies: 보스 파괴됨 - 즉시 제거');
+            // 성능 최적화를 위해 로그 제거
+            // console.log('handleEnemies: 보스 파괴됨 - 즉시 제거');
             return false;
         }
         
