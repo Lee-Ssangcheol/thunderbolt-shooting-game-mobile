@@ -3798,12 +3798,16 @@ function drawUI() {
     ctx.font = '16px Arial'; // 모든 텍스트를 16px로 통일
     ctx.textAlign = 'left';
     
-    // 기본 정보 (25px 간격으로 통일)
-    ctx.fillText(`점수: ${score}`, 20, 25);
-    ctx.fillText(`레벨: ${gameLevel} (${getDifficultyName(gameLevel)})`, 20, 50);
-    ctx.fillText(`다음 레벨까지: ${levelUpScore - levelScore}`, 20, 75);
-    ctx.fillText(`(레벨${gameLevel}→${gameLevel + 1}: ${levelUpScore}점)`, 20, 100);
-    ctx.fillText(`최고 점수: ${highScore}`, 20, 125);
+    // 줄 간격 표준화
+    let y = 25;
+    const lineHeight = 25;
+    
+    // 기본 정보 (표준 줄간격 적용)
+    ctx.fillText(`점수: ${score}`, 20, y); y += lineHeight;
+    ctx.fillText(`레벨: ${gameLevel} (${getDifficultyName(gameLevel)})`, 20, y); y += lineHeight;
+    ctx.fillText(`다음 레벨까지: ${levelUpScore - levelScore}`, 20, y); y += lineHeight;
+    ctx.fillText(`(레벨${gameLevel}→${gameLevel + 1}: ${levelUpScore}점)`, 20, y); y += lineHeight;
+    ctx.fillText(`최고 점수: ${highScore}`, 20, y); y += lineHeight;
     
     // 확산탄 정보 (25px 간격으로 통일)
     const remainingScore = Math.max(0, 1000 - scoreForSpread);
@@ -3813,14 +3817,17 @@ function drawUI() {
             // 쿨다운 남은 시간 계산
             const cooldownElapsed = Date.now() - (window.spreadShotCooldownStartTime || 0);
             const remainingCooldown = Math.max(0, Math.ceil((20000 - cooldownElapsed) / 1000));
-            ctx.fillText(`확산탄 쿨다운: ${remainingCooldown}초`, 20, 150);
+            ctx.fillText(`확산탄 쿨다운: ${remainingCooldown}초`, 20, y);
+            y += lineHeight;
         } else {
             ctx.fillStyle = '#00FF00';
-            ctx.fillText(`확산탄 사용 가능: ${scoreForSpread}/1000`, 20, 150);
+            ctx.fillText(`확산탄 사용 가능: ${scoreForSpread}/1000`, 20, y);
+            y += lineHeight;
         }
     } else {
         ctx.fillStyle = 'white';
-        ctx.fillText(`다음 확산탄까지: ${remainingScore}점`, 20, 150);
+        ctx.fillText(`다음 확산탄까지: ${remainingScore}점`, 20, y);
+        y += lineHeight;
     }
     
     // 보호막 헬리콥터 관련 UI 안내 제거
@@ -3844,11 +3851,13 @@ function drawUI() {
             
             if (discountedScore > 0) {
                 ctx.fillStyle = '#00FFFF'; // 청록색으로 디스카운트 표시
-                ctx.fillText(`다음 추가 비행기까지: ${discountedScore}점`, 20, 200);
+                ctx.fillText(`다음 추가 비행기까지: ${discountedScore}점`, 20, y);
+                y += lineHeight;
                 console.log(`디스카운트 진행 중: ${discountedScore}점 남음 (${discountSeconds}초 경과)`);
             } else {
                 ctx.fillStyle = '#00FF00'; // 초록색으로 무료 획득 표시
-                ctx.fillText(`다음 추가 비행기까지: 무료 획득!`, 20, 200);
+                ctx.fillText(`다음 추가 비행기까지: 무료 획득!`, 20, y);
+                y += lineHeight;
                 console.log(`디스카운트 완료: 무료 획득 가능!`);
                 
                 // 디스카운트 완료 후 무료 획득 처리
@@ -3887,7 +3896,8 @@ function drawUI() {
             }
         } else {
             ctx.fillStyle = 'white';
-            ctx.fillText(`다음 추가 비행기까지: ${nextPlaneScore - score}점`, 20, 200);
+            ctx.fillText(`다음 추가 비행기까지: ${nextPlaneScore - score}점`, 20, y);
+            y += lineHeight;
             console.log('디스카운트 비활성화 상태 - cooldownCompletedTime:', window.cooldownCompletedTime);
         }
     } else if (hasSecondPlane && secondPlaneTimer > 0) {
@@ -3897,17 +3907,22 @@ function drawUI() {
         
         if (elapsedTime >= 10000) {
             ctx.fillStyle = '#FF0000';
-            ctx.fillText(`추가 비행기 만료됨`, 20, 200);
+            ctx.fillText(`추가 비행기 만료됨`, 20, y);
+            y += lineHeight;
         } else {
             ctx.fillStyle = '#00FF00';
-            ctx.fillText(`추가 비행기 활성화: ${remainingTime}초 남음`, 20, 200);
+            ctx.fillText(`추가 비행기 활성화: ${remainingTime}초 남음`, 20, y);
+            y += lineHeight;
         }
     } else if (isSecondPlaneOnCooldown && secondPlaneCooldownTimer > 0) {
         // 3단계: 추가 비행기 쿨다운 (20초)
         const cooldownElapsed = Date.now() - secondPlaneCooldownTimer;
         const remainingCooldown = Math.max(0, Math.ceil((20000 - cooldownElapsed) / 1000));
         ctx.fillStyle = '#FF8800';
-        ctx.fillText(`추가 비행기 쿨다운: ${remainingCooldown}초`, 20, 200);
+        ctx.fillText(`추가 비행기 쿨다운: ${remainingCooldown}초`, 20, y);
+        
+        // 진행률 바를 텍스트 바로 아래에 표시
+        const barY = y + 5;
         
         console.log('=== 쿨다운 상태 표시 ===');
         console.log('쿨다운 진행 중:', {
@@ -3921,13 +3936,17 @@ function drawUI() {
         const barWidth = 200;
         const barHeight = 4;
         ctx.fillStyle = '#444444';
-        ctx.fillRect(20, 205, barWidth, barHeight);
+        ctx.fillRect(20, barY, barWidth, barHeight);
         ctx.fillStyle = '#FF8800';
-        ctx.fillRect(20, 205, barWidth * progress, barHeight);
+        ctx.fillRect(20, barY, barWidth * progress, barHeight);
+        
+        // 바까지 반영하여 줄간격 증가
+        y += lineHeight + 10;
     } else if (hasSecondPlane) {
         // 오류 상태 표시
         ctx.fillStyle = '#FFAA00';
-        ctx.fillText(`추가 비행기 상태 오류`, 20, 200);
+        ctx.fillText(`추가 비행기 상태 오류`, 20, y);
+        y += lineHeight;
     }
     
     // 디버깅: 현재 상태 로그 (콘솔에서 확인)
@@ -3993,10 +4012,10 @@ function drawUI() {
         }
     };
     
-    // 남은 목숨 표시 (25px 간격으로 정리)
+    // 남은 목숨 표시 (표준 줄간격 적용)
     ctx.fillStyle = 'red';
     ctx.font = 'bold 20px Arial';
-    ctx.fillText(`남은 목숨: ${maxLives - collisionCount}`, 20, 240);
+    ctx.fillText(`남은 목숨: ${maxLives - collisionCount}`, 20, y);
     
     // 제작자 정보 표시 (25px 간격으로 정리)
     ctx.fillStyle = 'white';
