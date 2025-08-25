@@ -699,7 +699,7 @@ let enemySpawnRate = 2000;  // 적 생성 주기 (ms)
 let enemySpeed = 2 * mobileSpeedMultiplier;  // 적 이동 속도
 
 // 보호막 헬리콥터 파괴 관련 변수 추가
-let shieldedHelicopterDestroyed = 0;  // 보호막 헬리콥터 파괴 수 (5대마다 목숨 추가)
+let shieldedHelicopterDestroyed = 0;  // 보호막 헬리콥터 파괴 수 (3대마다 목숨 추가)
 let livesAddedFromHelicopters = 0;    // 헬리콥터 파괴로 추가된 목숨 수
 
 // 목숨 추가 메시지 표시 관련 변수
@@ -3825,9 +3825,10 @@ function drawUI() {
         ctx.fillText(`다음 확산탄까지: ${remainingScore}점`, 20, 150);
     }
     
-    // 보호막 헬리콥터 파괴 진행 상황 표시 (25px 간격으로 통일)
-    const nextLifeAt = Math.ceil(shieldedHelicopterDestroyed / 5) * 5;
-    const remainingHelicopters = nextLifeAt - shieldedHelicopterDestroyed;
+    // 보호막 헬리콥터 파괴 진행 상황 표시 (3대마다 목숨 +1)
+    const threshold = 3;
+    const nextLifeAt = Math.ceil(shieldedHelicopterDestroyed / threshold) * threshold;
+    const remainingHelicopters = Math.max(0, nextLifeAt - shieldedHelicopterDestroyed);
     
     if (remainingHelicopters > 0) {
         ctx.fillStyle = '#FFD700'; // 금색으로 표시
