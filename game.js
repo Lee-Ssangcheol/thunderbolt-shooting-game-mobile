@@ -3444,14 +3444,14 @@ function checkEnemyCollisions(enemy) {
                     // 보호막 헬리콥터 파괴 카운터 증가
                     shieldedHelicopterDestroyed++;
                     
-                    // 5대 파괴할 때마다 목숨 1개 추가
-                    if (shieldedHelicopterDestroyed % 5 === 0) {
+                    // 3대 파괴할 때마다 목숨 1개 추가
+                    if (shieldedHelicopterDestroyed % 3 === 0) {
                         maxLives++;
                         livesAddedFromHelicopters++;
-                        console.log(`보호막 헬리콥터 5대 파괴! 목숨 1개 추가됨.`);
+                        console.log(`보호막 헬리콥터 3대 파괴! 목숨 1개 추가됨.`);
                         
                         // 목숨 추가 메시지 설정
-                        lifeAddedMessage = `🎉 보호막 헬리콥터 5대 파괴! 목숨 1개 추가됨! 🎉`;
+                        lifeAddedMessage = `🎉 보호막 헬리콥터 3대 파괴! 목숨 1개 추가됨! 🎉`;
                         lifeAddedMessageTimer = Date.now();
                         
                         // 목숨 추가 효과음 재생
@@ -5652,7 +5652,7 @@ function handleBossPattern(boss) {
     if (currentTime - boss.patternTimer >= adjustedInterval) {
         boss.patternTimer = currentTime;
         // 1초 간격 랜덤 비중복(셔플백) 패턴 실행
-        const availablePatterns = ['spread', 'special', 'meteor'];
+        const availablePatterns = ['spread', 'special', 'meteor', 'circle', 'spiral'];
         if (!Array.isArray(boss.patternBag)) {
             boss.patternBag = [];
         }
@@ -5684,6 +5684,12 @@ function handleBossPattern(boss) {
                     break;
                 case 'meteor':
                     bossFireMeteorShot(boss);
+                    break;
+                case 'circle':
+                    bossFireCircleShot(boss);
+                    break;
+                case 'spiral':
+                    bossFireSpiralShot(boss);
                     break;
                 default:
                     bossFireSpreadShot(boss);
@@ -7215,6 +7221,26 @@ function bossFireMeteorShot(boss) {
         height: 8,
         isBossBullet: true
     });
+}
+
+// 보스 원형 패턴: 현재 각도 기준으로 12발 균등 방사
+function bossFireCircleShot(boss) {
+    const bulletCount = 12;
+    const angleStep = (Math.PI * 2) / bulletCount;
+    for (let i = 0; i < bulletCount; i++) {
+        createBossBullet(boss, i * angleStep, 'circle');
+    }
+}
+
+// 보스 나선 패턴: 짧은 지연으로 16발을 연속 회전 발사
+function bossFireSpiralShot(boss) {
+    const bulletCount = 16;
+    const baseAngle = Math.random() * Math.PI * 2;
+    for (let i = 0; i < bulletCount; i++) {
+        const angle = baseAngle + i * (Math.PI / 8);
+        // 즉시 생성으로 통일(지연 없앰: 스케줄러 1초 주기와 충돌 방지)
+        createBossBullet(boss, angle, 'spiral');
+    }
 }
 
 
