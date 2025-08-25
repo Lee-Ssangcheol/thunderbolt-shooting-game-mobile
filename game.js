@@ -596,6 +596,7 @@ const shootSound = new Audio();
 const explosionSound = new Audio();
 const collisionSound = new Audio();
 const levelUpSound = new Audio();  // 레벨업 효과음 추가
+const warningSound = new Audio();  // 목숨 감소 경고음
 
 // 사운드 파일 경로 설정
 if (window.electronAPI) {
@@ -611,11 +612,15 @@ if (window.electronAPI) {
     window.electronAPI.getSoundPath('levelup.mp3').then(path => {
         levelUpSound.src = path;
     });
+    window.electronAPI.getSoundPath('warning.mp3').then(path => {
+        warningSound.src = path;
+    });
 } else {
     shootSound.src = 'sounds/shoot.mp3';
     explosionSound.src = 'sounds/explosion.mp3';
     collisionSound.src = 'sounds/collision.mp3';
     levelUpSound.src = 'sounds/levelup.mp3';
+    warningSound.src = 'sounds/warning.mp3';
 }
 
 // 사운드 설정
@@ -623,6 +628,7 @@ shootSound.volume = 0.1;  // 발사음 볼륨
 explosionSound.volume = 0.1;  // 폭발음 볼륨
 collisionSound.volume = 0.1;  // 충돌음 볼륨
 levelUpSound.volume = 0.1;  // 레벨업 효과음 볼륨
+warningSound.volume = 0.15;  // 경고음 볼륨
 
 // 충돌 사운드 재생 시간 제어를 위한 변수 추가
 let lastCollisionTime = 0;
@@ -692,6 +698,8 @@ let livesAddedFromHelicopters = 0;    // 헬리콥터 파괴로 추가된 목숨
 // 목숨 추가 메시지 표시 관련 변수
 let lifeAddedMessage = '';
 let lifeAddedMessageTimer = 0;
+// 목숨 감소 경고 플래시 타이밍
+let lifeWarningFlashEndTime = 0;
 const LIFE_ADDED_MESSAGE_DURATION = 3000; // 3초간 표시
 
 // 보스 패턴 상수는 아래에서 정의됨
@@ -2372,12 +2380,21 @@ function handleCollision() {
         }
         
         const currentTime = Date.now();
+        const livesBefore = maxLives - collisionCount;
         collisionCount++;
         flashTimer = flashDuration;
         
         if (currentTime - lastCollisionTime >= collisionSoundCooldown) {
             safePlay(collisionSound);
             lastCollisionTime = currentTime;
+        }
+        
+        // 목숨 감소 경고음
+        const livesAfter = Math.max(0, maxLives - collisionCount);
+        if (livesAfter < livesBefore) {
+            safePlay(warningSound);
+            // 경고 플래시: 400ms 동안 반전 효과
+            lifeWarningFlashEndTime = Date.now() + 400;
         }
         
         // 목숨이 모두 소진되었을 때만 게임 오버
@@ -4001,8 +4018,16 @@ function drawUI() {
         }
     };
     
-    // 남은 목숨 표시 (표준 줄간격 적용)
-    ctx.fillStyle = 'red';
+    // 남은 목숨 표시 (경고 플래시 시 반전 효과)
+    const isLifeWarningActive = Date.now() < lifeWarningFlashEndTime;
+    if (isLifeWarningActive) {
+        // 경고 활성 시: 노란 배경 / 빨간 텍스트
+        ctx.fillStyle = '#FFFF00';
+        ctx.fillRect(15, y - 18, 220, 26);
+        ctx.fillStyle = '#FF0000';
+    } else {
+        ctx.fillStyle = 'red';
+    }
     ctx.font = 'bold 20px Arial';
     ctx.fillText(`남은 목숨: ${maxLives - collisionCount}`, 20, y);
     
