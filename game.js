@@ -7104,48 +7104,144 @@ function hexToRgb(hex) {
 
 // 보스 발사 패턴 함수들
 function bossFireSpreadShot(boss) {
-    // 확산탄 패턴: 랜덤 방향으로 발사 (1초 간격으로 호출됨)
-    // 보스의 현재 위치를 기준으로 발사 (중앙 고정이 아닌 유동적 위치)
+    // 확산탄 패턴: 레벨에 따라 난이도/다양성 증가
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
+    const px = player.x + player.width/2;
+    const py = player.y + player.height/2;
+    const aimAngle = Math.atan2(py - bossY, px - bossX);
     
-    // 랜덤 설정: 총알 개수와 방향을 매번 다르게
-    const bulletCounts = [8, 12, 16, 20]; // 가능한 총알 개수들
-    const selectedBullets = bulletCounts[Math.floor(Math.random() * bulletCounts.length)];
+    // 난이도/가중치 계산
+    const clampedLevel = Math.max(1, Math.min(gameLevel || 1, 20));
+    const levelFactor = 1 + (clampedLevel - 1) * 0.12; // 1.0 ~ 2.28
+    const baseCount = 10 + Math.floor(clampedLevel * 1.2); // 11~34
+    const bulletCount = Math.max(12, Math.min(36, baseCount));
+    const baseSpeedScale = 0.9 + (clampedLevel * 0.05); // 0.95~1.9
     
-    // 랜덤 시작 각도 (0~360도)
-    const startAngle = Math.random() * Math.PI * 2;
+    // 서브 패턴 선택 (최근 서브패턴과 중복 최소화)
+    const variants = ['random_ring','aimed_burst','multi_ring','arc_sweep','spiral_burst','alternating_speed'];
+    let variantPool = variants.slice();
+    if (boss.lastSpreadVariant) {
+        variantPool = variantPool.filter(v => v !== boss.lastSpreadVariant);
+        if (variantPool.length === 0) variantPool = variants.slice();
+    }
+    const selectedVariant = variantPool[Math.floor(Math.random() * variantPool.length)];
+    boss.lastSpreadVariant = selectedVariant;
     
-    // 랜덤한 방향으로 총알 발사
-    for (let i = 0; i < selectedBullets; i++) {
-        // 랜덤한 각도로 발사 (균등하지 않게)
-        const randomOffset = (Math.random() - 0.5) * Math.PI; // -90도 ~ +90도 랜덤 오프셋
-        const angle = startAngle + (i * Math.PI * 2 / selectedBullets) + randomOffset;
-        const bullet = createBossBullet(boss, angle, 'spread');
-        if (bullet && bullet.speed) {
-            // 랜덤 속도 변화 (80%~120%)
-            const speedMultiplier = 0.8 + (Math.random() * 0.4);
-            bullet.speed = bullet.speed * speedMultiplier;
+    const twoPI = Math.PI * 2;
+    const startAngle = Math.random() * twoPI;
+    
+    switch (selectedVariant) {
+        case 'random_ring': {
+            for (let i = 0; i < bulletCount; i++) {
+                const angle = startAngle + (i * twoPI / bulletCount) + (Math.random() - 0.5) * (Math.PI / 2);
+                const b = createBossBullet(boss, angle, 'spread');
+                if (b && b.speed) {
+                    const speedMultiplier = baseSpeedScale * (0.9 + Math.random() * 0.6); // 0.9~1.5 가변 × 난이도
+                    b.speed *= speedMultiplier;
+                }
+            }
+            break;
+        }
+        case 'aimed_burst': {
+            // 플레이어 조준 중심의 좁은 확산
+            const halfSpread = Math.max(Math.PI / 12, Math.PI / (10 - Math.min(clampedLevel, 8))); // 레벨 높을수록 좁아짐
+            const localCount = Math.min(bulletCount, 20);
+            for (let i = 0; i < localCount; i++) {
+                const t = localCount === 1 ? 0 : (i / (localCount - 1));
+                const angle = aimAngle - halfSpread + t * (2 * halfSpread);
+                const b = createBossBullet(boss, angle, 'spread');
+                if (b && b.speed) {
+                    const speedMultiplier = baseSpeedScale * (1.0 + (t - 0.5) * 0.4); // 중심 빠르게, 가장자리 느리게
+                    b.speed *= speedMultiplier;
+                }
+            }
+            break;
+        }
+        case 'multi_ring': {
+            // 2~3개 링으로 동시 발사 (속도/오프셋 차등)
+            const rings = clampedLevel >= 8 ? 3 : 2;
+            for (let r = 0; r < rings; r++) {
+                const ringCount = Math.floor(bulletCount / (r === 0 ? 2 : 3));
+                const ringOffset = startAngle + (r * (Math.PI / rings));
+                for (let i = 0; i < ringCount; i++) {
+                    const angle = ringOffset + (i * twoPI / ringCount);
+                    const b = createBossBullet(boss, angle, 'spread');
+                    if (b && b.speed) {
+                        const speedMultiplier = baseSpeedScale * (1.0 + r * 0.25); // 바깥 링 빠르게
+                        b.speed *= speedMultiplier;
+                    }
+                }
+            }
+            break;
+        }
+        case 'arc_sweep': {
+            // 큰 호(arc) 형태로 촘촘하게 발사
+            const arcWidth = Math.min(twoPI * 0.75, Math.PI * (0.4 + clampedLevel * 0.05)); // 레벨↑ -> 더 넓은 호
+            const localCount = Math.min(bulletCount + 6, 40);
+            for (let i = 0; i < localCount; i++) {
+                const t = localCount === 1 ? 0 : (i / (localCount - 1));
+                const angle = startAngle - arcWidth / 2 + t * arcWidth;
+                const b = createBossBullet(boss, angle, 'spread');
+                if (b && b.speed) {
+                    const speedMultiplier = baseSpeedScale * (0.95 + Math.random() * 0.3);
+                    b.speed *= speedMultiplier;
+                }
+            }
+            break;
+        }
+        case 'spiral_burst': {
+            // 스파이럴 성분을 섞은 확산 (한 번에 회전 편향)
+            const angleStep = twoPI / bulletCount;
+            const spiralBias = 0.08 + Math.min(0.18, clampedLevel * 0.01);
+            for (let i = 0; i < bulletCount; i++) {
+                const angle = startAngle + i * angleStep + i * spiralBias;
+                const b = createBossBullet(boss, angle, 'spread');
+                if (b && b.speed) {
+                    const speedMultiplier = baseSpeedScale * (0.9 + (i / bulletCount) * 0.6);
+                    b.speed *= speedMultiplier;
+                }
+            }
+            break;
+        }
+        case 'alternating_speed':
+        default: {
+            // 속도/크기 교차 패턴의 링
+            for (let i = 0; i < bulletCount; i++) {
+                const angle = startAngle + (i * twoPI / bulletCount);
+                const b = createBossBullet(boss, angle, 'spread');
+                if (b) {
+                    if (b.speed) {
+                        const speedMultiplier = baseSpeedScale * (i % 2 === 0 ? 1.4 : 0.9);
+                        b.speed *= speedMultiplier;
+                    }
+                    // 약간의 크기 변화를 통해 가시적 다양성
+                    if (i % 3 === 0) {
+                        b.width *= 1.1; b.height *= 1.1;
+                    } else if (i % 3 === 1) {
+                        b.width *= 0.9; b.height *= 0.9;
+                    }
+                }
+            }
+            break;
         }
     }
     
-    // 보호막 헬리콥터와 동일한 총알 추가 발사
-    const px = player.x + player.width/2;
-    const py = player.y + player.height/2;
-    const ex = boss.x + boss.width/2;
-    const ey = boss.y + boss.height/2;
-    const angle = Math.atan2(py - ey, px - ex);
-    
-    // 헬리콥터 총알과 동일한 스타일로 발사
-    helicopterBullets.push({
-        x: ex,
-        y: ey,
-        angle: angle,
-        speed: 7,
-        width: 36,
-        height: 8,
-        isBossBullet: true
-    });
+    // 추가: 플레이어 조준 탄 1발 (가시성 강화)
+    {
+        const ex = bossX;
+        const ey = bossY;
+        const ha = aimAngle;
+        helicopterBullets.push({
+            x: ex,
+            y: ey,
+            angle: ha,
+            speed: 7 + Math.min(3, clampedLevel * 0.2),
+            width: 36,
+            height: 8,
+            isBossBullet: true
+        });
+    }
 }
 
 // 보스 특수무기 패턴 함수 추가
