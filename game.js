@@ -4043,7 +4043,7 @@ function drawUI() {
     if (!specialWeaponCharged) {
         const barWidth = 200;
         const barHeight = 20;
-        const barY = y + 5; // 현재 라인 바로 아래에 배치
+        const barY = y + lineHeight; // "남은 목숨"과 동일한 줄 간격만큼 띄움
         
         // 게이지 바 배경
         ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
@@ -4071,7 +4071,7 @@ function drawUI() {
         
         const barWidth = 200;
         const barHeight = 20;
-        const barY = y + 5;
+        const barY = y + lineHeight; // 동일 줄 간격 적용
         
         // 배경색 설정 (게이지 바)
         ctx.fillStyle = isRed ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 0, 255, 0.3)';
