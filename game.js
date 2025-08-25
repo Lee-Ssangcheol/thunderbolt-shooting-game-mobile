@@ -2393,8 +2393,8 @@ function handleCollision() {
         const livesAfter = Math.max(0, maxLives - collisionCount);
         if (livesAfter < livesBefore) {
             safePlay(warningSound);
-            // 경고 플래시: 400ms 동안 반전 효과
-            lifeWarningFlashEndTime = Date.now() + 400;
+            // 경고 플래시: 2000ms 동안 깜빡임 효과
+            lifeWarningFlashEndTime = Date.now() + 2000;
         }
         
         // 목숨이 모두 소진되었을 때만 게임 오버
@@ -4019,8 +4019,10 @@ function drawUI() {
     };
     
     // 남은 목숨 표시 (경고 플래시 시 반전 효과)
-    const isLifeWarningActive = Date.now() < lifeWarningFlashEndTime;
-    if (isLifeWarningActive) {
+    const nowForLife = Date.now();
+    const isLifeWarningActive = nowForLife < lifeWarningFlashEndTime;
+    const shouldBlinkOn = isLifeWarningActive && Math.floor((lifeWarningFlashEndTime - nowForLife) / 200) % 2 === 0;
+    if (shouldBlinkOn) {
         // 경고 활성 시: 노란 배경 / 빨간 텍스트
         ctx.fillStyle = '#FFFF00';
         ctx.fillRect(15, y - 18, 220, 26);
