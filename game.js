@@ -7135,10 +7135,12 @@ function bossFireSpreadShot(boss) {
         case 'random_ring': {
             for (let i = 0; i < bulletCount; i++) {
                 const angle = startAngle + (i * twoPI / bulletCount) + (Math.random() - 0.5) * (Math.PI / 2);
-                const b = createBossBullet(boss, angle, 'spread');
+                const b = createBossBullet(boss, angle, 'random');
                 if (b && b.speed) {
                     const speedMultiplier = baseSpeedScale * (0.9 + Math.random() * 0.6); // 0.9~1.5 가변 × 난이도
                     b.speed *= speedMultiplier;
+                    // 확산탄 판정 유지
+                    b.isSpread = true;
                 }
             }
             break;
@@ -7150,10 +7152,11 @@ function bossFireSpreadShot(boss) {
             for (let i = 0; i < localCount; i++) {
                 const t = localCount === 1 ? 0 : (i / (localCount - 1));
                 const angle = aimAngle - halfSpread + t * (2 * halfSpread);
-                const b = createBossBullet(boss, angle, 'spread');
+                const b = createBossBullet(boss, angle, 'homing');
                 if (b && b.speed) {
                     const speedMultiplier = baseSpeedScale * (1.0 + (t - 0.5) * 0.4); // 중심 빠르게, 가장자리 느리게
                     b.speed *= speedMultiplier;
+                    b.isSpread = true;
                 }
             }
             break;
@@ -7166,10 +7169,11 @@ function bossFireSpreadShot(boss) {
                 const ringOffset = startAngle + (r * (Math.PI / rings));
                 for (let i = 0; i < ringCount; i++) {
                     const angle = ringOffset + (i * twoPI / ringCount);
-                    const b = createBossBullet(boss, angle, 'spread');
+                    const b = createBossBullet(boss, angle, 'circle');
                     if (b && b.speed) {
                         const speedMultiplier = baseSpeedScale * (1.0 + r * 0.25); // 바깥 링 빠르게
                         b.speed *= speedMultiplier;
+                        b.isSpread = true;
                     }
                 }
             }
@@ -7182,10 +7186,11 @@ function bossFireSpreadShot(boss) {
             for (let i = 0; i < localCount; i++) {
                 const t = localCount === 1 ? 0 : (i / (localCount - 1));
                 const angle = startAngle - arcWidth / 2 + t * arcWidth;
-                const b = createBossBullet(boss, angle, 'spread');
+                const b = createBossBullet(boss, angle, 'wave');
                 if (b && b.speed) {
                     const speedMultiplier = baseSpeedScale * (0.95 + Math.random() * 0.3);
                     b.speed *= speedMultiplier;
+                    b.isSpread = true;
                 }
             }
             break;
@@ -7196,10 +7201,11 @@ function bossFireSpreadShot(boss) {
             const spiralBias = 0.08 + Math.min(0.18, clampedLevel * 0.01);
             for (let i = 0; i < bulletCount; i++) {
                 const angle = startAngle + i * angleStep + i * spiralBias;
-                const b = createBossBullet(boss, angle, 'spread');
+                const b = createBossBullet(boss, angle, 'spiral');
                 if (b && b.speed) {
                     const speedMultiplier = baseSpeedScale * (0.9 + (i / bulletCount) * 0.6);
                     b.speed *= speedMultiplier;
+                    b.isSpread = true;
                 }
             }
             break;
@@ -7221,6 +7227,7 @@ function bossFireSpreadShot(boss) {
                     } else if (i % 3 === 1) {
                         b.width *= 0.9; b.height *= 0.9;
                     }
+                    b.isSpread = true;
                 }
             }
             break;
