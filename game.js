@@ -271,20 +271,7 @@ console.log('모바일 컨트롤 요소들:', mobileControls);
 
 // 화면에 모바일 컨트롤 상태 표시
 function showMobileControlStatus() {
-    // 모바일 컨트롤 상태 표시 제거 (게임 상황 안내와 겹침 방지)
-    // if (isMobile) {
-    //     ctx.fillStyle = 'white';
-    //     ctx.font = '14px Arial';
-    //     ctx.fillText('모바일 모드', 10, 70);
-    //     
-    //     // 각 버튼의 존재 여부 표시
-    //     const buttons = ['btnFire', 'btnSpecial', 'btnPause', 'btnReset', 'btnUp', 'btnDown', 'btnLeft', 'btnRight'];
-    //     buttons.forEach((btn, index) => {
-    //         const element = mobileControls[btn];
-    //         const status = element ? '✓' : '✗';
-    //         ctx.fillText(`${btn}: ${status}`, 10, 90 + index * 15);
-    //     });
-    // }
+    // 모바일 컨트롤 상태 안내는 더 이상 표시하지 않음
 }
 
 // 모바일 터치 컨트롤 이벤트 설정
@@ -699,7 +686,7 @@ let enemySpawnRate = 2000;  // 적 생성 주기 (ms)
 let enemySpeed = 2 * mobileSpeedMultiplier;  // 적 이동 속도
 
 // 보호막 헬리콥터 파괴 관련 변수 추가
-let shieldedHelicopterDestroyed = 0;  // 보호막 헬리콥터 파괴 수 (3대마다 목숨 추가)
+let shieldedHelicopterDestroyed = 0;  // 보호막 헬리콥터 파괴 수 (2대마다 목숨 추가)
 let livesAddedFromHelicopters = 0;    // 헬리콥터 파괴로 추가된 목숨 수
 
 // 목숨 추가 메시지 표시 관련 변수
@@ -3444,17 +3431,19 @@ function checkEnemyCollisions(enemy) {
                     // 보호막 헬리콥터 파괴 카운터 증가
                     shieldedHelicopterDestroyed++;
                     
-                    // 1대 파괴할 때마다 목숨 1개 추가
-                    maxLives++;
-                    livesAddedFromHelicopters++;
-                    console.log(`보호막 헬리콥터 격추! 목숨 1개 추가됨.`);
-                    
-                    // 목숨 추가 메시지 설정
-                    lifeAddedMessage = `🎉 보호막 헬리콥터 격추! 목숨 1개 추가됨! 🎉`;
-                    lifeAddedMessageTimer = Date.now();
-                    
-                    // 목숨 추가 효과음 재생
-                    safePlay(levelUpSound);
+                    // 2대 파괴할 때마다 목숨 1개 추가
+                    if (shieldedHelicopterDestroyed % 2 === 0) {
+                        maxLives++;
+                        livesAddedFromHelicopters++;
+                        console.log(`보호막 헬리콥터 2대 파괴! 목숨 1개 추가됨.`);
+                        
+                        // 목숨 추가 메시지 설정
+                        lifeAddedMessage = `🎉 보호막 헬리콥터 2대 파괴! 목숨 1개 추가됨! 🎉`;
+                        lifeAddedMessageTimer = Date.now();
+                        
+                        // 목숨 추가 효과음 재생
+                        safePlay(levelUpSound);
+                    }
                     
                     // 보호막 파괴 시 보스와 동일한 큰 폭발 효과
                     explosions.push(new Explosion(
@@ -5546,22 +5535,19 @@ function handleBossPattern(boss) {
                 
                 // 🚨 떨림 방지를 위한 부드러운 움직임 패턴
                 const timeFactor = (currentTime - boss.timer) / 1000;
-                const radius = 50; // 적당한 반지름 (떨림 방지)
-                const speed = 0.05; // 매우 느린 속도 (떨림 방지)
+                const radius = 50;
+                const speed = 0.05;
                 
                 // 부드러운 원형 움직임 (떨림 없는 자연스러운 패턴)
                 const xOffset = Math.sin(timeFactor * speed) * radius;
-                const yOffset = Math.cos(timeFactor * speed) * (radius * 0.3); // Y축은 더 작게
+                const yOffset = Math.cos(timeFactor * speed) * (radius * 0.3);
                 
-                // 부드러운 움직임 적용 (떨림 방지)
                 boss.x = centerX + xOffset;
                 boss.y = centerY + yOffset;
                 
-                // 🚨 떨림 방지를 위한 정밀한 위치 조정 (더 정밀하게)
-                boss.x = Math.round(boss.x * 1000) / 1000; // 소수점 3자리까지 정밀도 유지
-                boss.y = Math.round(boss.y * 1000) / 1000; // 소수점 3자리까지 정밀도 유지
+                boss.x = Math.round(boss.x * 1000) / 1000;
+                boss.y = Math.round(boss.y * 1000) / 1000;
                 
-                // 디버깅: 부드러운 움직임 상태
                 if (!boss.lastDebugLog || currentTime - boss.lastDebugLog > 2000) {
                     console.log('🔍 보스 움직임 디버깅 (부드러운 움직임):', {
                         centerX: Math.round(boss.centerX),
@@ -5572,38 +5558,19 @@ function handleBossPattern(boss) {
                         yOffset: Math.round(yOffset),
                         staticMode: boss.staticMode,
                         movementStatus: '부드러운 원형 움직임',
-                        stability: '떨림 현상 제거 + 자연스러운 움직임',
-                        pattern: '부드러운 원형 패턴으로 떨림 없는 움직임',
                         radius: radius,
                         speed: speed,
                         timeFactor: Math.round(timeFactor * 100) / 100,
-                        note: '떨림 방지 + 자유로운 움직임 유지 (정밀도 향상)'
+                        note: '정밀도 향상'
                     });
                     boss.lastDebugLog = currentTime;
                 }
             }
         }
         
-        // 화면 경계 체크 (정적 모드에서는 단순화) - 움직임이 없으므로 기본 위치만 유지
-        // 움직임이 완전히 제거되었으므로 경계 체크도 단순화
+        // 화면 경계 체크 단순화
         const centerX = canvas.width / 2 - boss.width / 2;
-        
-        // 🚨 정적 모드 체크 로직도 완전 제거
-        // 보스의 위치를 전혀 건드리지 않도록 모든 로직 비활성화
-        // if (boss.staticMode) {
-        //     // 모든 정적 모드 관련 로직 제거
-        // }
-        
-        // 🚨 보스 위치를 전혀 건드리지 않음 (떨림 현상 근본 해결)
-        // 보스가 생성될 때 설정된 위치를 그대로 유지
-        
-
-        
-        // 🚨 모든 경계 제한과 강제 복귀 로직 완전 제거
-        // 보스가 캔버스 경계를 벗어났다 들어와도 자유롭게 움직임 (떨림 현상 방지)
-        // if (boss.x < 0 || boss.x > canvas.width - boss.width || boss.y < 0 || boss.y > canvas.height - boss.height) {
-        //     // 모든 경계 제한 로직 제거 - 자유로운 움직임 허용
-        // }
+        // 보스 위치는 생성 시 설정값 유지
         
         // 보스 위치 모니터링 및 안전장치 (5초마다)
         if (!boss.lastPositionLog || currentTime - boss.lastPositionLog > 5000) {
@@ -5618,21 +5585,6 @@ function handleBossPattern(boss) {
             boss.lastPositionLog = currentTime;
         }
         
-        // 🚨 위치 점프 방지 안전장치 완전 제거
-        // 보스의 자연스러운 움직임을 방해하지 않도록 모든 제한 해제
-        // if (boss.needsPositionCheck) {
-        //     // 모든 위치 점프 방지 로직 제거
-        // }
-        
-        // 🚨 연속 프레임 점프 감지 시스템 완전 제거
-        // 보스의 자연스러운 움직임을 방해하지 않도록 모든 제한 해제
-        // if (boss.lastX !== undefined && boss.lastY !== undefined) {
-        //     // 모든 점프 감지 로직 제거
-        // }
-        
-        // 🚨 이전 위치 저장 시스템도 제거
-        // boss.lastX = boss.x;
-        // boss.lastY = boss.y;
         
         // 폭탄 투하
         if (typeof boss.canDropBomb !== 'undefined' && typeof boss.lastBombDrop !== 'undefined' && 
