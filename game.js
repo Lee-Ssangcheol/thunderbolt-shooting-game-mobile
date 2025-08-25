@@ -2919,7 +2919,11 @@ function handleEnemies() {
         // 레벨 5 이상: 모든 속성을 레벨 5와 동일하게 고정 (증가 제한)
         currentDifficulty = difficultySettings[5];
         
-        console.log(`handleEnemies - 레벨 ${gameLevel}: 레벨 5 난이도로 고정 (속도: ${currentDifficulty.enemySpeed}, 적 수: ${currentDifficulty.maxEnemies}, 생성률: ${currentDifficulty.enemySpawnRate})`);
+        // 성능 보호: 이 로그는 2초에 한 번만 출력
+        if (!window.__lastEnemiesLogTime || currentTime - window.__lastEnemiesLogTime > 2000) {
+            console.log(`handleEnemies - 레벨 ${gameLevel}: 레벨 5 난이도로 고정 (속도: ${currentDifficulty.enemySpeed}, 적 수: ${currentDifficulty.maxEnemies}, 생성률: ${currentDifficulty.enemySpawnRate})`);
+            window.__lastEnemiesLogTime = currentTime;
+        }
     }
     
     // 보스 존재 여부 체크 - 더 정확한 체크
@@ -5400,13 +5404,21 @@ function handleBossPattern(boss) {
         // 패턴 타이머가 없으면 복구
         if (!boss.patternTimer) {
             boss.patternTimer = Date.now();
-            console.log('🔧 보스 패턴 타이머 복구됨');
+            // 성능 보호: 디버그 로그 스로틀(2초)
+            if (!window.__lastBossDebugLogTime || Date.now() - window.__lastBossDebugLogTime > 2000) {
+                console.log('🔧 보스 패턴 타이머 복구됨');
+                window.__lastBossDebugLogTime = Date.now();
+            }
         }
         
         // 패턴 순환 카운터가 없으면 복구
         if (typeof boss.patternRotationCounter === 'undefined') {
             boss.patternRotationCounter = 0;
-            console.log('🔧 보스 패턴 순환 카운터 복구됨');
+            // 성능 보호: 디버그 로그 스로틀(2초)
+            if (!window.__lastBossDebugLogTime || Date.now() - window.__lastBossDebugLogTime > 2000) {
+                console.log('🔧 보스 패턴 순환 카운터 복구됨');
+                window.__lastBossDebugLogTime = Date.now();
+            }
         }
     }
     
@@ -5618,17 +5630,20 @@ function handleBossPattern(boss) {
             console.log('⏰ 보스 패턴 타이머 초기화됨');
         }
         
-        // 디버깅: 패턴 타이머 상태 확인
+        // 디버깅: 패턴 타이머 상태 확인 (2초 스로틀)
         const timeSinceLastPattern = currentTime - boss.patternTimer;
-        console.log('🔍 보스 패턴 타이머 상태:', {
-            currentTime: currentTime,
-            patternTimer: boss.patternTimer,
-            timeSinceLastPattern: timeSinceLastPattern,
-            adjustedInterval: adjustedInterval,
-            baseInterval: baseInterval,
-            bossPhase: boss.phase,
-            remainingTime: Math.max(0, adjustedInterval - timeSinceLastPattern)
-        });
+        if (!window.__lastBossTimerLogTime || currentTime - window.__lastBossTimerLogTime > 2000) {
+            console.log('🔍 보스 패턴 타이머 상태:', {
+                currentTime: currentTime,
+                patternTimer: boss.patternTimer,
+                timeSinceLastPattern: timeSinceLastPattern,
+                adjustedInterval: adjustedInterval,
+                baseInterval: baseInterval,
+                bossPhase: boss.phase,
+                remainingTime: Math.max(0, adjustedInterval - timeSinceLastPattern)
+            });
+            window.__lastBossTimerLogTime = currentTime;
+        }
         
         if (currentTime - boss.patternTimer >= adjustedInterval) {
             boss.patternTimer = currentTime;
@@ -7130,9 +7145,9 @@ function bossFireSpecialShot(boss) {
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
-    // 원형 방사형 설정: 25발을 360도 전체에 균등하게 배치
-    const bulletCount = 25;
-    const angleStep = (Math.PI * 2) / bulletCount; // 360도를 25등분
+    // 원형 방사형 설정: 20발을 360도 전체에 균등하게 배치
+    const bulletCount = 20;
+    const angleStep = (Math.PI * 2) / bulletCount; // 360도를 20등분
     
     // 360도 전체 방향에 원형으로 발사
     for (let i = 0; i < bulletCount; i++) {
