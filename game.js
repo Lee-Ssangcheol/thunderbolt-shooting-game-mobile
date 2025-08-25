@@ -5619,77 +5619,79 @@ function handleBossPattern(boss) {
             boss.lastBombDrop = currentTime;
             createBomb(boss);
         }
-        
-        // 공격 패턴 - 정확한 5초 간격으로 고정
-        const baseInterval = 1000; // 1초 간격으로 고정
-        const adjustedInterval = baseInterval; // 항상 1초 유지
-        
-        // 패턴 타이머 초기화 보장 (더 적극적으로 처리)
-        if (!boss.patternTimer) {
-            boss.patternTimer = currentTime;
+    }
+    
+    // 공격 패턴 - 1초 간격으로 고정 (movePhase와 무관하게 동작)
+    const baseInterval = 1000;
+    const adjustedInterval = baseInterval;
+    
+    // 패턴 타이머 초기화 보장
+    if (!boss.patternTimer) {
+        boss.patternTimer = currentTime;
+        if (!window.__lastBossTimerInitLog || currentTime - window.__lastBossTimerInitLog > 2000) {
             console.log('⏰ 보스 패턴 타이머 초기화됨');
+            window.__lastBossTimerInitLog = currentTime;
         }
-        
-        // 디버깅: 패턴 타이머 상태 확인 (2초 스로틀)
-        const timeSinceLastPattern = currentTime - boss.patternTimer;
-        if (!window.__lastBossTimerLogTime || currentTime - window.__lastBossTimerLogTime > 2000) {
-            console.log('🔍 보스 패턴 타이머 상태:', {
-                currentTime: currentTime,
-                patternTimer: boss.patternTimer,
-                timeSinceLastPattern: timeSinceLastPattern,
-                adjustedInterval: adjustedInterval,
-                baseInterval: baseInterval,
-                bossPhase: boss.phase,
-                remainingTime: Math.max(0, adjustedInterval - timeSinceLastPattern)
-            });
-            window.__lastBossTimerLogTime = currentTime;
+    }
+    
+    // 디버깅: 패턴 타이머 상태 확인 (2초 스로틀)
+    const timeSinceLastPattern = currentTime - boss.patternTimer;
+    if (!window.__lastBossTimerLogTime || currentTime - window.__lastBossTimerLogTime > 2000) {
+        console.log('🔍 보스 패턴 타이머 상태:', {
+            currentTime: currentTime,
+            patternTimer: boss.patternTimer,
+            timeSinceLastPattern: timeSinceLastPattern,
+            adjustedInterval: adjustedInterval,
+            baseInterval: baseInterval,
+            bossPhase: boss.phase,
+            remainingTime: Math.max(0, adjustedInterval - timeSinceLastPattern)
+        });
+        window.__lastBossTimerLogTime = currentTime;
+    }
+    
+    if (currentTime - boss.patternTimer >= adjustedInterval) {
+        boss.patternTimer = currentTime;
+        // 1초 간격 랜덤 비중복(셔플백) 패턴 실행
+        const availablePatterns = ['spread', 'special', 'meteor'];
+        if (!Array.isArray(boss.patternBag)) {
+            boss.patternBag = [];
         }
-        
-        if (currentTime - boss.patternTimer >= adjustedInterval) {
-            boss.patternTimer = currentTime;
-            // 1초 간격 랜덤 비중복(셔플백) 패턴 실행
-            const availablePatterns = ['spread', 'special', 'meteor'];
-            if (!Array.isArray(boss.patternBag)) {
-                boss.patternBag = [];
+        if (boss.patternBag.length === 0) {
+            const bag = availablePatterns.slice();
+            for (let i = bag.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                const temp = bag[i];
+                bag[i] = bag[j];
+                bag[j] = temp;
             }
-            if (boss.patternBag.length === 0) {
-                const bag = availablePatterns.slice();
-                for (let i = bag.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    const temp = bag[i];
-                    bag[i] = bag[j];
-                    bag[j] = temp;
-                }
-                // 직전 패턴과의 즉시 중복 방지: 첫 요소가 lastPattern이면 뒤로 보내기
-                if (boss.lastPattern && bag[0] === boss.lastPattern && bag.length > 1) {
-                    const first = bag.shift();
-                    bag.push(first);
-                }
-                boss.patternBag = bag;
+            if (boss.lastPattern && bag[0] === boss.lastPattern && bag.length > 1) {
+                const first = bag.shift();
+                bag.push(first);
             }
-            const selectedPattern = boss.patternBag.shift();
-            boss.lastPattern = selectedPattern;
-            console.log('🎲 보스 패턴 선택(1초 랜덤/비중복):', { selectedPattern, bagSize: boss.patternBag.length });
+            boss.patternBag = bag;
+        }
+        const selectedPattern = boss.patternBag.shift();
+        boss.lastPattern = selectedPattern;
+        console.log('🎲 보스 패턴 선택(1초 랜덤/비중복):', { selectedPattern, bagSize: boss.patternBag.length });
 
-            try {
-                switch (selectedPattern) {
-                    case 'spread':
-                        bossFireSpreadShot(boss);
-                        break;
-                    case 'special':
-                        bossFireSpecialShot(boss);
-                        break;
-                    case 'meteor':
-                        bossFireMeteorShot(boss);
-                        break;
-                    default:
-                        bossFireSpreadShot(boss);
-                        break;
-                }
-            } catch (error) {
-                console.error('❌ 패턴 실행 실패, 기본 확산탄으로 폴백', { selectedPattern, error });
-                bossFireSpreadShot(boss);
+        try {
+            switch (selectedPattern) {
+                case 'spread':
+                    bossFireSpreadShot(boss);
+                    break;
+                case 'special':
+                    bossFireSpecialShot(boss);
+                    break;
+                case 'meteor':
+                    bossFireMeteorShot(boss);
+                    break;
+                default:
+                    bossFireSpreadShot(boss);
+                    break;
             }
+        } catch (error) {
+            console.error('❌ 패턴 실행 실패, 기본 확산탄으로 폴백', { selectedPattern, error });
+            bossFireSpreadShot(boss);
         }
     }
 }
