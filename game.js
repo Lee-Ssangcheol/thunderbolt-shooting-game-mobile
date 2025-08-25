@@ -4023,53 +4023,68 @@ function drawUI() {
     ctx.textAlign = 'right';
     ctx.fillText('제작/저작권자:Lee.SS.C', canvas.width - 20, canvas.height - 30); 
 
-    // 특수 무기 게이지 표시 (25px 간격으로 정리)
+    // 특수 무기 게이지 표시 (상단으로 이동, 표준 줄간격 근처에 배치)
     if (!specialWeaponCharged) {
+        const barWidth = 200;
+        const barHeight = 20;
+        const barY = y + 5; // 현재 라인 바로 아래에 배치
+        
         // 게이지 바 배경
         ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.fillRect(20, 300, 200, 20);
+        ctx.fillRect(20, barY, barWidth, barHeight);
         
         // 게이지 바
         ctx.fillStyle = 'rgba(0, 255, 255, 0.8)';
-        ctx.fillRect(20, 300, (specialWeaponCharge / SPECIAL_WEAPON_MAX_CHARGE) * 200, 20);
+        ctx.fillRect(20, barY, (specialWeaponCharge / SPECIAL_WEAPON_MAX_CHARGE) * barWidth, barHeight);
         
         // 게이지 바 위에 텍스트 표시
         ctx.fillStyle = 'white';
         ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
         const percentText = `특수 무기 : ${Math.floor((specialWeaponCharge / SPECIAL_WEAPON_MAX_CHARGE) * 100)}%`;
-        ctx.fillText(percentText, 120, 315);
+        ctx.fillText(percentText, 120, barY + 15);
+        
+        // 줄 간격 진행
+        y += lineHeight + 10;
+        ctx.textAlign = 'left';
     } else {
         // 깜빡이는 효과를 위한 시간 계산
         const blinkSpeed = 500; // 깜빡임 속도 (밀리초)
         const currentTime = Date.now();
         const isRed = Math.floor(currentTime / blinkSpeed) % 2 === 0;
         
+        const barWidth = 200;
+        const barHeight = 20;
+        const barY = y + 5;
+        
         // 배경색 설정 (게이지 바)
         ctx.fillStyle = isRed ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 0, 255, 0.3)';
-        ctx.fillRect(10, 280, 200, 20);
+        ctx.fillRect(20, barY, barWidth, barHeight);
         
         // 테두리 효과
         ctx.strokeStyle = isRed ? 'red' : 'cyan';
         ctx.lineWidth = 2;
-        ctx.strokeRect(10, 280, 200, 20);
+        ctx.strokeRect(20, barY, barWidth, barHeight);
         
         // 게이지 바 위에 텍스트 표시
         ctx.fillStyle = 'white';
         ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
         const percentText = `특수 무기 : ${Math.floor((specialWeaponCharge / SPECIAL_WEAPON_MAX_CHARGE) * 100)}%`;
-        ctx.fillText(percentText, 120, 295);
+        ctx.fillText(percentText, 120, barY + 15);
         
         // 준비 완료 메시지 배경
         ctx.fillStyle = isRed ? 'rgba(255, 0, 0, 0.2)' : 'rgba(0, 0, 255, 0.2)';
-        ctx.fillRect(10, 300, 300, 30);
+        ctx.fillRect(20, barY + 25, 300, 30);
         
         // 텍스트 색상 설정
         ctx.fillStyle = isRed ? 'red' : 'cyan';
         ctx.font = 'bold 20px Arial';
         ctx.textAlign = 'left';
-        ctx.fillText('특수 무기 준비 완료', 15, 320);
+        ctx.fillText('특수 무기 준비 완료', 25, barY + 45);
+        
+        // 줄 간격 진행
+        y += lineHeight + 40;
     }
     
     // 보스 체력 표시 개선
