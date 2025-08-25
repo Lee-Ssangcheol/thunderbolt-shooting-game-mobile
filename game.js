@@ -5031,8 +5031,8 @@ const BOSS_SETTINGS = {
     DAMAGE: 50,          // 보스 총알 데미지
     SPEED: 2.0,         // 보스 이동 속도를 2.0으로 조정 (적당한 속도)
     BULLET_SPEED: 4,    // 보스 총알 속도를 3에서 4로 증가
-    PATTERN_INTERVAL: 3000, // 3초(3000ms)로 단축 (더 빠른 패턴 발사)
-    SPAWN_INTERVAL: 15000,  // 보스 출현 간격을 15초로 설정
+    PATTERN_INTERVAL: 1000, // 1초(1000ms)로 단축 (더 빠른 패턴 발사)
+    SPAWN_INTERVAL: 10000,  // 보스 출현 간격 기본 10초
     MIN_STAY_TIME: 20000,   // 보스 최소 체류 시간 20초로 증가 (더 오래 머물기)
     // 페이즈 임계값은 동적으로 계산됨
 };
@@ -5179,15 +5179,14 @@ function createBoss() {
         return;
     }
     
-    // 게임 레벨에 따른 보스 등장 빈도 조정 (레벨당 1초씩 단축, 최소 10초)
-    const levelBonus = Math.min(gameLevel, 5); // 레벨당 1초씩 단축, 최대 5초 단축
-    const adjustedSpawnInterval = Math.max(10000, BOSS_SETTINGS.SPAWN_INTERVAL - (levelBonus * 1000)); // 최소 10초 보장
+    // 10초 내외 랜덤화: 10~14초 사이에서 등장
+    const randomJitter = Math.floor(Math.random() * 5000); // 0~4999ms
+    const adjustedSpawnInterval = 10000 + randomJitter;
     
     if (timeSinceLastBoss < adjustedSpawnInterval) {
         console.log('레벨 기반 보스 생성 시간 조정:', {
             timeSinceLastBoss,
             adjustedSpawnInterval,
-            levelBonus,
             gameLevel
         });
         return;
@@ -5298,14 +5297,48 @@ function createBoss() {
             status: '완벽한 중앙 고정 + 부드러운 움직임 - 떨림 현상 제거 + 자연스러운 움직임'
         });
     
-    // 보스 생성 직후 즉시 첫 번째 패턴 발사 (hit 카운트 지연과 연동)
-    setTimeout(() => {
-        if (boss && boss.health > 0 && !bossDestroyed && bossActive) {
-            console.log('🚀 보스 생성 직후 즉시 첫 번째 패턴 발사 시작');
-            // 확산탄 패턴만 발사 (연속 발사 없음)
-            bossFireSpreadShot(boss);
+    // 스폰 즉시 1회 패턴 발사 (랜덤/비중복 규칙 준수)
+    try {
+        if (!Array.isArray(boss.patternBag)) {
+            boss.patternBag = [];
         }
-    }, 1000); // 1초 후 첫 패턴 발사 (즉시 공격)
+        const availablePatterns = ['spread', 'special', 'meteor'];
+        if (boss.patternBag.length === 0) {
+            const bag = availablePatterns.slice();
+            for (let i = bag.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                const temp = bag[i];
+                bag[i] = bag[j];
+                bag[j] = temp;
+            }
+            if (boss.lastPattern && bag[0] === boss.lastPattern && bag.length > 1) {
+                const first = bag.shift();
+                bag.push(first);
+            }
+            boss.patternBag = bag;
+        }
+        const selectedPattern = boss.patternBag.shift();
+        boss.lastPattern = selectedPattern;
+        console.log('🚀 보스 스폰 즉시 패턴 발사:', { selectedPattern });
+        switch (selectedPattern) {
+            case 'spread':
+                bossFireSpreadShot(boss);
+                break;
+            case 'special':
+                bossFireSpecialShot(boss);
+                break;
+            case 'meteor':
+                bossFireMeteorShot(boss);
+                break;
+            default:
+                bossFireSpreadShot(boss);
+                break;
+        }
+        // 다음 1초 주기를 위해 타이머 리셋
+        boss.patternTimer = Date.now();
+    } catch (e) {
+        console.error('보스 스폰 즉시 발사 실패', e);
+    }
     
     // 무적 상태 해제됨 (즉시 공격 가능)
     console.log('🛡️ 보스 무적 상태 해제됨 (즉시 공격 가능)');
@@ -5463,17 +5496,9 @@ function handleBossPattern(boss) {
                 currentY: boss.y
             });
             
-            // 중앙 도달 시 즉시 패턴 발사 시작
+            // 중앙 도달 후 자동 발사 비활성화 (랜덤 스케줄러로만 발사)
             boss.patternTimer = currentTime;
-            console.log('🎯 보스 중앙 도달 - 패턴 발사 시작');
-            
-            // 중앙 도달 시 2초 후 단일 패턴 발사 (연속 발사 없음)
-            setTimeout(() => {
-                if (boss && boss.health > 0 && !bossDestroyed && bossActive) {
-                    console.log('🎯 보스 중앙 도달 후 패턴 발사');
-                    bossFireSpreadShot(boss);
-                }
-            }, 2000);
+            console.log('🎯 보스 중앙 도달 - 자동 발사 없이 대기');
         }
         
         // 🚨 움직임 활성화 조건 개선
@@ -5584,8 +5609,8 @@ function handleBossPattern(boss) {
         }
         
         // 공격 패턴 - 정확한 5초 간격으로 고정
-        const baseInterval = BOSS_SETTINGS.PATTERN_INTERVAL; // 설정된 5초 간격 사용
-        const adjustedInterval = baseInterval; // 페이즈 보너스 제거하여 정확한 간격 보장
+        const baseInterval = 1000; // 1초 간격으로 고정
+        const adjustedInterval = baseInterval; // 항상 1초 유지
         
         // 패턴 타이머 초기화 보장 (더 적극적으로 처리)
         if (!boss.patternTimer) {
@@ -5605,114 +5630,51 @@ function handleBossPattern(boss) {
             remainingTime: Math.max(0, adjustedInterval - timeSinceLastPattern)
         });
         
-        // 강제 발사 메커니즘: 8초 이상 패턴을 발사하지 않으면 강제 발사
-        if (currentTime - boss.patternTimer > 8000) {
-            console.log('🚨 보스 패턴 강제 발사 (8초 초과)');
-            boss.patternTimer = currentTime;
-            // 단일 패턴만 발사 (2개 동시 발사 방지)
-            bossFireCrossShot(boss);
-        }
-        
         if (currentTime - boss.patternTimer >= adjustedInterval) {
             boss.patternTimer = currentTime;
-            
-            // 보스 체력에 상관없이 모든 패턴이 순환되도록 수정
-            // 패턴 순환을 위한 카운터 사용
-            if (!boss.patternRotationCounter) {
-                boss.patternRotationCounter = 0;
+            // 1초 간격 랜덤 비중복(셔플백) 패턴 실행
+            const availablePatterns = ['spread', 'special', 'meteor'];
+            if (!Array.isArray(boss.patternBag)) {
+                boss.patternBag = [];
             }
-            
-            // 모든 패턴을 순환하면서 사용
-            const allPatterns = [
-                'cross', 'spread', 'circle', 'spiral', 'wave', 'targeted', 
-                'random', 'rapid', 'vortex', 'pulse', 'burst', 'tracking', 
-                'enhanced_spiral', 'enhanced_wave', 'homing', 'chaotic', 
-                'rainbow', 'meteor'
-            ];
-            
-            // 현재 패턴 인덱스 계산
-            const currentPatternIndex = boss.patternRotationCounter % allPatterns.length;
-            const selectedPattern = allPatterns[currentPatternIndex];
-            
-            // 다음 패턴으로 순환
-            boss.patternRotationCounter++;
-            
-            // 패턴 순환 로그
-            console.log('🎮 보스 패턴 순환 시스템:', {
-                patternIndex: currentPatternIndex,
-                selectedPattern: selectedPattern,
-                totalPatterns: allPatterns.length,
-                rotationCounter: boss.patternRotationCounter,
-                bossHealth: bossHealth,
-                currentTime: currentTime
-            });
-            
-            // 단일 패턴 실행 시스템 (연속 발사 비활성화)
-            // 선택된 패턴만 1회 실행
-            console.log(`🎯 보스 패턴 실행: 단일 패턴 실행`, {
-                selectedPattern: selectedPattern,
-                timestamp: new Date().toLocaleTimeString()
-            });
-            
-            // 선택된 패턴만 실행 (연속 발사 없음)
+            if (boss.patternBag.length === 0) {
+                const bag = availablePatterns.slice();
+                for (let i = bag.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    const temp = bag[i];
+                    bag[i] = bag[j];
+                    bag[j] = temp;
+                }
+                // 직전 패턴과의 즉시 중복 방지: 첫 요소가 lastPattern이면 뒤로 보내기
+                if (boss.lastPattern && bag[0] === boss.lastPattern && bag.length > 1) {
+                    const first = bag.shift();
+                    bag.push(first);
+                }
+                boss.patternBag = bag;
+            }
+            const selectedPattern = boss.patternBag.shift();
+            boss.lastPattern = selectedPattern;
+            console.log('🎲 보스 패턴 선택(1초 랜덤/비중복):', { selectedPattern, bagSize: boss.patternBag.length });
+
             try {
-                console.log(`🚀 패턴 실행: ${selectedPattern}`);
-                
-                switch(selectedPattern) {
-                    case 'cross':
-                        bossFireCrossShot(boss);
-                        break;
+                switch (selectedPattern) {
                     case 'spread':
                         bossFireSpreadShot(boss);
                         break;
-                    case 'circle':
-                        bossFireCircleShot(boss);
+                    case 'special':
+                        bossFireSpecialShot(boss);
                         break;
-                    case 'spiral':
-                        bossFireSpiralShot(boss);
-                        break;
-                    case 'random':
-                        bossFireRandomShot(boss);
-                        break;
-                    case 'burst':
-                        bossFireBurstShot(boss);
-                        break;
-                    case 'wave':
-                        bossFireWaveShot(boss);
-                        break;
-                    case 'tracking':
-                        bossFireTrackingShot(boss);
-                        break;
-                    case 'vortex':
-                        bossFireVortexShot(boss);
-                        break;
-                    case 'pulse':
-                        bossFirePulseShot(boss);
-                        break;
-                    case 'enhanced_spiral':
-                        bossFireEnhancedSpiralShot(boss);
-                        break;
-                    case 'enhanced_wave':
-                        bossFireEnhancedWaveShot(boss);
-                        break;
-                    case 'rapid_fire':
-                        bossFireRapidShot(boss);
+                    case 'meteor':
+                        bossFireMeteorShot(boss);
                         break;
                     default:
-                        bossFireCrossShot(boss); // 기본값
+                        bossFireSpreadShot(boss);
                         break;
                 }
-                
-                console.log(`✅ 패턴 실행 완료: ${selectedPattern}`);
-                
             } catch (error) {
-                console.error(`❌ 패턴 실행 실패: ${selectedPattern}`, error);
-                // 에러 발생 시 기본 패턴으로 폴백
-                console.log(`🔄 기본 패턴으로 폴백: cross`);
-                bossFireCrossShot(boss);
+                console.error('❌ 패턴 실행 실패, 기본 확산탄으로 폴백', { selectedPattern, error });
+                bossFireSpreadShot(boss);
             }
-            
-            console.log(`🎬 단일 패턴 실행 완료: ${selectedPattern}`);
         }
     }
 }
@@ -5884,6 +5846,10 @@ function createBossBullet(boss, angle, patternType = 'spread', customSpeed = nul
             bulletColor = '#00FFFF'; // 시안색(밝은 청록색) - 확산탄 (검은 배경과 구분 잘됨)
             bulletSize = 12;
             break;
+        case 'special':
+            bulletColor = '#FF1493'; // 딥핑크 - 특수무기 (검은 배경과 구분 잘됨)
+            bulletSize = 16;
+            break;
         case 'cross':
             bulletColor = '#00FF00'; // 초록색 - 십자형
             bulletSize = 14;
@@ -5953,8 +5919,9 @@ function createBossBullet(boss, angle, patternType = 'spread', customSpeed = nul
         speed: customSpeed || boss.bulletSpeed,
         angle: angle,
         isBossBullet: true,
-        isSpread: true, // 확산탄으로 설정
-        damage: BOSS_SETTINGS.DAMAGE,
+        isSpread: patternType === 'spread', // 확산탄 패턴일 때만 true
+        isSpecial: patternType === 'special', // 특수무기 패턴일 때만 true
+        damage: patternType === 'special' ? BOSS_SETTINGS.DAMAGE * 2 : BOSS_SETTINGS.DAMAGE, // 특수무기는 2배 데미지
         trail: [], // 총알 꼬리 효과를 위한 배열
         glow: 1, // 빛나는 효과를 위한 값
         rotation: 0, // 회전 효과를 위한 값
@@ -7113,27 +7080,23 @@ function hexToRgb(hex) {
 
 // 보스 발사 패턴 함수들
 function bossFireSpreadShot(boss) {
-    // 확산탄 패턴: 유동적 위치에서 랜덤 방향과 개수로 확산 (매번 다른 패턴)
+    // 확산탄 패턴: 랜덤 방향으로 발사 (1초 간격으로 호출됨)
     // 보스의 현재 위치를 기준으로 발사 (중앙 고정이 아닌 유동적 위치)
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
-    // 랜덤 설정: 방향 수, 총알 개수, 각도 간격
-    const directionCounts = [6, 8, 10, 12, 16]; // 가능한 방향 수들
-    const bulletCounts = [6, 8, 10, 12, 16];   // 가능한 총알 개수들
-    const angleSpreads = [0.2, 0.3, 0.4, 0.5, 0.6]; // 가능한 각도 간격들
-    
-    // 랜덤하게 선택
-    const selectedDirections = directionCounts[Math.floor(Math.random() * directionCounts.length)];
+    // 랜덤 설정: 총알 개수와 방향을 매번 다르게
+    const bulletCounts = [8, 12, 16, 20]; // 가능한 총알 개수들
     const selectedBullets = bulletCounts[Math.floor(Math.random() * bulletCounts.length)];
-    const selectedAngleSpread = angleSpreads[Math.floor(Math.random() * angleSpreads.length)];
     
     // 랜덤 시작 각도 (0~360도)
     const startAngle = Math.random() * Math.PI * 2;
     
-    // 선택된 설정으로 총알 발사 (보스의 현재 유동적 위치에서)
+    // 랜덤한 방향으로 총알 발사
     for (let i = 0; i < selectedBullets; i++) {
-        const angle = startAngle + (i * Math.PI * 2 / selectedBullets);
+        // 랜덤한 각도로 발사 (균등하지 않게)
+        const randomOffset = (Math.random() - 0.5) * Math.PI; // -90도 ~ +90도 랜덤 오프셋
+        const angle = startAngle + (i * Math.PI * 2 / selectedBullets) + randomOffset;
         const bullet = createBossBullet(boss, angle, 'spread');
         if (bullet && bullet.speed) {
             // 랜덤 속도 변화 (80%~120%)
@@ -7161,536 +7124,24 @@ function bossFireSpreadShot(boss) {
     });
 }
 
-// 기존 bossFireCrossShot 함수는 아래의 PC 버전용 개선된 함수로 대체됨
-
-function bossFireSpiralShot(boss) {
-    // 나선형 발사 패턴: 유동적 위치에서 랜덤 방향과 개수로 나선형 발사 (매번 다른 패턴)
-    // 랜덤 설정: 총알 개수, 회전 속도, 시작 각도
-    const spiralCounts = [6, 8, 10, 12, 16]; // 가능한 총알 개수들
-    const rotationSpeeds = [0.5, 1.0, 1.5, 2.0, 2.5]; // 가능한 회전 속도들
-    
-    // 랜덤하게 선택
-    const selectedSpiralCount = spiralCounts[Math.floor(Math.random() * spiralCounts.length)];
-    const selectedRotationSpeed = rotationSpeeds[Math.floor(Math.random() * rotationSpeeds.length)];
-    
-    // 랜덤 시작 각도 (0~360도)
-    const startAngle = Math.random() * Math.PI * 2;
-    
-    // 선택된 설정으로 총알 발사
-    for (let i = 0; i < selectedSpiralCount; i++) {
-        const angle = startAngle + (i * Math.PI * 2 / selectedSpiralCount) + (Date.now() / 1000 * selectedRotationSpeed);
-        createBossBullet(boss, angle, 'spiral');
-    }
-    
-    // 보호막 헬리콥터와 동일한 총알 추가 발사
-    const px = player.x + player.width/2;
-    const py = player.y + player.height/2;
-    const ex = boss.x + boss.width/2;
-    const ey = boss.y + boss.height/2;
-    const angle = Math.atan2(py - ey, px - ex);
-    
-    // 헬리콥터 총알과 동일한 스타일로 발사
-    helicopterBullets.push({
-        x: ex,
-        y: ey,
-        angle: angle,
-        speed: 7,
-        width: 36,
-        height: 8,
-        isBossBullet: true
-    });
-}
-
-function bossFireWaveShot(boss) {
-    // 파도형 발사 패턴: 유동적 위치에서 랜덤 방향과 개수로 파도형 발사 (매번 다른 패턴)
-    // 랜덤 설정: 총알 개수, 파도 진폭, 파도 주기
-    const waveCounts = [8, 12, 16, 20, 24]; // 가능한 총알 개수들
-    const waveAmplitudes = [0.3, 0.5, 0.7, 0.9, 1.1]; // 가능한 파도 진폭들
-    const wavePeriods = [300, 500, 700, 900, 1100]; // 가능한 파도 주기들 (ms)
-    
-    // 랜덤하게 선택
-    const selectedWaveCount = waveCounts[Math.floor(Math.random() * waveCounts.length)];
-    const selectedAmplitude = waveAmplitudes[Math.floor(Math.random() * waveAmplitudes.length)];
-    const selectedPeriod = wavePeriods[Math.floor(Math.random() * wavePeriods.length)];
-    
-    // 랜덤 시작 각도 (0~360도)
-    const startAngle = Math.random() * Math.PI * 2;
-    
-    // 선택된 설정으로 총알 발사
-    for (let i = 0; i < selectedWaveCount; i++) {
-        const waveAngle = Math.sin(Date.now() / selectedPeriod) * selectedAmplitude;
-        const angle = startAngle + (i * Math.PI * 2 / selectedWaveCount) + waveAngle;
-        createBossBullet(boss, angle, 'wave');
-    }
-    
-    // 보호막 헬리콥터와 동일한 총알 추가 발사
-    const px = player.x + player.width/2;
-    const py = player.y + player.height/2;
-    const ex = boss.x + boss.width/2;
-    const ey = boss.y + boss.height/2;
-    const angle = Math.atan2(py - ey, px - ex);
-    
-    // 헬리콥터 총알과 동일한 스타일로 발사
-    helicopterBullets.push({
-        x: ex,
-        y: ey,
-        angle: angle,
-        speed: 7,
-        width: 36,
-        height: 8,
-        isBossBullet: true
-    });
-}
-
-function bossFireTargetedShot(boss) {
-    // 플레이어 방향 추적 발사: 플레이어를 향해 집중 발사
-    const targetX = player.x + player.width/2;
-    const targetY = player.y + player.height/2;
-    const baseAngle = Math.atan2(targetY - (boss.y + boss.height/2), targetX - (boss.x + boss.width/2));
-    
-    // 12발의 총알을 플레이어 방향으로 집중 발사 (좁은 각도로 분산)
-    for (let i = 0; i < 12; i++) {
-        const spreadAngle = baseAngle + (i - 6) * 0.15; // -0.9 ~ 0.9 범위로 좁게 분산
-        createBossBullet(boss, spreadAngle, 'targeted');
-    }
-    
-    // 보호막 헬리콥터와 동일한 총알 추가 발사
-    const px = player.x + player.width/2;
-    const py = player.y + player.height/2;
-    const ex = boss.x + boss.width/2;
-    const ey = boss.y + boss.height/2;
-    const angle = Math.atan2(py - ey, px - ex);
-    
-    // 헬리콥터 총알과 동일한 스타일로 발사
-    helicopterBullets.push({
-        x: ex,
-        y: ey,
-        angle: angle,
-        speed: 7,
-        width: 36,
-        height: 8,
-        isBossBullet: true
-    });
-}
-
-function bossFireRandomShot(boss) {
-    // 랜덤 방향 발사 - 12발로 증가
-    const randomCount = 12;
-    for (let i = 0; i < randomCount; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        createBossBullet(boss, angle, 'random');
-    }
-    
-    // 보호막 헬리콥터와 동일한 총알 추가 발사
-    const px = player.x + player.width/2;
-    const py = player.y + player.height/2;
-    const ex = boss.x + boss.width/2;
-    const ey = boss.y + boss.height/2;
-    const angle = Math.atan2(py - ey, px - ex);
-    
-    // 헬리콥터 총알과 동일한 스타일로 발사
-    helicopterBullets.push({
-        x: ex,
-        y: ey,
-        angle: angle,
-        speed: 7,
-        width: 36,
-        height: 8,
-        isBossBullet: true
-    });
-}
-
-function bossFireRapidShot(boss) {
-    // 보스 객체 유효성 검증
-    if (!boss || typeof boss !== 'object' || boss.health <= 0) {
-        console.warn('bossFireRapidShot: 유효하지 않은 보스 객체', boss);
-        return;
-    }
-    
-    // 연발형 패턴: 빠른 속도로 연속 발사, 일정한 각도로 분산
-    const bulletCount = 12;
-    const baseAngle = Math.random() * Math.PI * 2;
-    
-    for (let i = 0; i < bulletCount; i++) {
-        const angle = baseAngle + (i * 0.3); // 일정한 간격으로 분산
-        const bullet = createBossBullet(boss, angle, 'rapid');
-        bullet.speed = bullet.speed * 1.5; // 더 빠른 속도
-    }
-    
-    // 보호막 헬리콥터와 동일한 총알 추가 발사
-    const px = player.x + player.width/2;
-    const py = player.y + player.height/2;
-    const ex = boss.x + boss.width/2;
-    const ey = boss.y + boss.height/2;
-    const angle = Math.atan2(py - ey, px - ex);
-    
-    // 헬리콥터 총알과 동일한 스타일로 발사
-    helicopterBullets.push({
-        x: ex,
-        y: ey,
-        angle: angle,
-        speed: 7,
-        width: 36,
-        height: 8,
-        isBossBullet: true
-    });
-}
-
-function bossFireVortexShot(boss) {
-    // 보스 객체 유효성 검증
-    if (!boss || typeof boss !== 'object' || boss.health <= 0) {
-        console.warn('bossFireVortexShot: 유효하지 않은 보스 객체', boss);
-        return;
-    }
-    
-    // 필요한 속성이 없으면 초기화
-    if (typeof boss.vortexAngle === 'undefined') {
-        boss.vortexAngle = 0;
-    }
-    
-    // 소용돌이형 패턴: 나선형으로 회전하며 발사, 거리에 따라 속도 변화 (PC 버전용 개선)
-    const bulletCount = 16; // 10에서 16으로 증가
-    for (let i = 0; i < bulletCount; i++) {
-        const angle = (i * Math.PI / 8) + (boss.vortexAngle || 0) * 2;
-        const bullet = createBossBullet(boss, angle, 'vortex');
-        if (bullet && bullet.speed) {
-            bullet.speed = bullet.speed * (0.8 + i * 0.1); // 거리에 따라 속도 변화
-        }
-    }
-    boss.vortexAngle = (boss.vortexAngle + 20) % 360;
-    
-    // 보호막 헬리콥터와 동일한 총알 추가 발사
-    const px = player.x + player.width/2;
-    const py = player.y + player.height/2;
-    const ex = boss.x + boss.width/2;
-    const ey = boss.y + boss.height/2;
-    const angle = Math.atan2(py - ey, px - ex);
-    
-    // 헬리콥터 총알과 동일한 스타일로 발사
-    helicopterBullets.push({
-        x: ex,
-        y: ey,
-        angle: angle,
-        speed: 7,
-        width: 36,
-        height: 8,
-        isBossBullet: true
-    });
-}
-
-function bossFirePulseShot(boss) {
-    // 보스 객체 유효성 검증
-    if (!boss || typeof boss !== 'object' || boss.health <= 0) {
-        console.warn('bossFirePulseShot: 유효하지 않은 보스 객체', boss);
-        return;
-    }
-    
-    // 필요한 속성이 없으면 초기화
-    if (typeof boss.pulsePhase === 'undefined') {
-        boss.pulsePhase = 0;
-    }
-    
-    // 맥박형 패턴 - 펄스 형태로 발사
-    const bulletCount = 8;
-    const pulseIntensity = Math.sin(boss.pulsePhase) * 0.5 + 0.5;
-    
-    for (let i = 0; i < bulletCount; i++) {
-        const angle = (i * 45) * Math.PI / 180;
-        const bullet = createBossBullet(boss, angle, 'pulse');
-        if (bullet && bullet.speed) {
-            bullet.speed = bullet.speed * (1 + pulseIntensity * 0.5);
-            bullet.width = bullet.width * (1 + pulseIntensity * 0.3);
-            bullet.height = bullet.height * (1 + pulseIntensity * 0.3);
-        }
-    }
-    boss.pulsePhase += 0.3;
-    
-    // 보호막 헬리콥터와 동일한 총알 추가 발사
-    const px = player.x + player.width/2;
-    const py = player.y + player.height/2;
-    const ex = boss.x + boss.width/2;
-    const ey = boss.y + boss.height/2;
-    const angle = Math.atan2(py - ey, px - ex);
-    
-    // 헬리콥터 총알과 동일한 스타일로 발사
-    helicopterBullets.push({
-        x: ex,
-        y: ey,
-        angle: angle,
-        speed: 7,
-        width: 36,
-        height: 8,
-        isBossBullet: true
-    });
-}
-
-function bossFireCircleShot(boss) {
-    // 보스 객체 유효성 검증
-    if (!boss || typeof boss !== 'object' || boss.health <= 0) {
-        console.warn('bossFireCircleShot: 유효하지 않은 보스 객체', boss);
-        return;
-    }
-    
-    // 원형 패턴: 유동적 위치에서 랜덤 방향과 개수로 모든 방향 발사 (매번 다른 패턴)
-    // 랜덤 설정: 총알 개수, 시작 각도
-    const bulletCounts = [8, 12, 16, 20, 24]; // 가능한 총알 개수들
-    
-    // 랜덤하게 선택
-    const selectedBullets = bulletCounts[Math.floor(Math.random() * bulletCounts.length)];
-    
-    // 랜덤 시작 각도 (0~360도)
-    const startAngle = Math.random() * Math.PI * 2;
-    
-    // 선택된 설정으로 총알 발사
-    for (let i = 0; i < selectedBullets; i++) {
-        const angle = startAngle + (i * Math.PI * 2 / selectedBullets);
-        const bullet = createBossBullet(boss, angle, 'circle');
-    }
-    
-    // 보호막 헬리콥터와 동일한 총알 추가 발사
-    const px = player.x + player.width/2;
-    const py = player.y + player.height/2;
-    const ex = boss.x + boss.width/2;
-    const ey = boss.y + boss.height/2;
-    const angle = Math.atan2(py - ey, px - ex);
-    
-    // 헬리콥터 총알과 동일한 스타일로 발사
-    helicopterBullets.push({
-        x: ex,
-        y: ey,
-        angle: angle,
-        speed: 7,
-        width: 36,
-        height: 8,
-        isBossBullet: true
-    });
-}
-
-// 새로운 보스 패턴 함수들 추가
-function bossFireBurstShot(boss) {
-    if (!boss || typeof boss !== 'object' || boss.health <= 0) {
-        console.warn('bossFireBurstShot: 유효하지 않은 보스 객체', boss);
-        return;
-    }
-    
-    // 연발 패턴: 빠른 속도로 여러 발 연속 발사 (PC 버전용 개선)
-    const burstCount = 6; // 8에서 6으로 조정
-    const burstDelay = 100; // 100ms 간격
-    
-    for (let i = 0; i < burstCount; i++) {
-        setTimeout(() => {
-            const angle = Math.random() * Math.PI * 2;
-            createBossBullet(boss, angle, 'burst');
-        }, i * burstDelay);
-    }
-    
-    // 보호막 헬리콥터와 동일한 총알 추가 발사
-    const px = player.x + player.width/2;
-    const py = player.y + player.height/2;
-    const ex = boss.x + boss.width/2;
-    const ey = boss.y + boss.height/2;
-    const angle = Math.atan2(py - ey, px - ex);
-    
-    // 헬리콥터 총알과 동일한 스타일로 발사
-    helicopterBullets.push({
-        x: ex,
-        y: ey,
-        angle: angle,
-        speed: 7,
-        width: 36,
-        height: 8,
-        isBossBullet: true
-    });
-}
-
-// PC 버전용 개선된 보스 패턴 함수들
-function bossFireCrossShot(boss) {
-    if (!boss || typeof boss !== 'object' || boss.health <= 0) {
-        console.warn('bossFireCrossShot: 유효하지 않은 보스 객체', boss);
-        return;
-    }
-    
-    // 십자 발사 패턴: 유동적 위치에서 랜덤 방향과 개수로 총알 발사 (매번 다른 패턴)
-    console.log('십자 발사 패턴 실행 - 유동적 위치에서 랜덤 패턴');
-    
-    // 랜덤 설정: 방향 수, 총알 개수, 시작 각도
-    const directionCounts = [4, 6, 8, 10, 12]; // 가능한 방향 수들
-    const bulletCounts = [4, 6, 8, 10, 12];   // 가능한 총알 개수들
-    
-    // 랜덤하게 선택
-    const selectedDirections = directionCounts[Math.floor(Math.random() * directionCounts.length)];
-    const selectedBullets = bulletCounts[Math.floor(Math.random() * bulletCounts.length)];
-    
-    // 랜덤 시작 각도 (0~360도)
-    const startAngle = Math.random() * Math.PI * 2;
-    
-    // 선택된 설정으로 총알 발사
-    for (let i = 0; i < selectedBullets; i++) {
-        const angle = startAngle + (i * Math.PI * 2 / selectedBullets);
-        createBossBullet(boss, angle, 'cross');
-    }
-    
-    // 보호막 헬리콥터와 동일한 총알 추가 발사
-    const px = player.x + player.width/2;
-    const py = player.y + player.height/2;
-    const ex = boss.x + boss.width/2;
-    const ey = boss.y + boss.height/2;
-    const angle = Math.atan2(py - ey, px - ex);
-    
-    // 헬리콥터 총알과 동일한 스타일로 발사
-    helicopterBullets.push({
-        x: ex,
-        y: ey,
-        angle: angle,
-        speed: 7,
-        width: 36,
-        height: 8,
-        isBossBullet: true
-    });
-}
-
-function bossFireTrackingShot(boss) {
-    if (!boss || typeof boss !== 'object' || boss.health <= 0) {
-        console.warn('bossFireTrackingShot: 유효하지 않은 보스 객체', boss);
-        return;
-    }
-    
-    // 추적 발사 패턴: 플레이어 방향으로 정확히 발사 (PC 버전용)
+// 보스 특수무기 패턴 함수 추가
+function bossFireSpecialShot(boss) {
+    // 특수무기 패턴: 원형 방사형으로 360도 전체 방향에 발사 (확산탄과 유사하지만 더 강력)
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
-    const targetAngle = Math.atan2(player.y - bossY, player.x - bossX);
     
-    for (let i = -2; i <= 2; i++) {
-        const angle = targetAngle + (i * 0.2);
-        createBossBullet(boss, angle, 'tracking');
-    }
+    // 원형 방사형 설정: 25발을 360도 전체에 균등하게 배치
+    const bulletCount = 25;
+    const angleStep = (Math.PI * 2) / bulletCount; // 360도를 25등분
     
-    // 보호막 헬리콥터와 동일한 총알 추가 발사
-    const px = player.x + player.width/2;
-    const py = player.y + player.height/2;
-    const ex = boss.x + boss.width/2;
-    const ey = boss.y + boss.height/2;
-    const angle = Math.atan2(py - ey, px - ex);
-    
-    // 헬리콥터 총알과 동일한 스타일로 발사
-    helicopterBullets.push({
-        x: ex,
-        y: ey,
-        angle: angle,
-        speed: 7,
-        width: 36,
-        height: 8,
-        isBossBullet: true
-    });
-}
-
-function bossFireEnhancedSpiralShot(boss) {
-    if (!boss || typeof boss !== 'object' || boss.health <= 0) {
-        console.warn('bossFireEnhancedSpiralShot: 유효하지 않은 보스 객체', boss);
-        return;
-    }
-    
-    // 개선된 나선형 발사 패턴: 회전하면서 총알 발사 (PC 버전용)
-    for (let i = 0; i < 8; i++) {
-        const angle = (i * Math.PI / 4) + (boss.rotorAngle || 0);
-        createBossBullet(boss, angle, 'enhanced_spiral');
-    }
-    
-    // 보호막 헬리콥터와 동일한 총알 추가 발사
-    const px = player.x + player.width/2;
-    const py = player.y + player.height/2;
-    const ex = boss.x + boss.width/2;
-    const ey = boss.y + boss.height/2;
-    const angle = Math.atan2(py - ey, px - ex);
-    
-    // 헬리콥터 총알과 동일한 스타일로 발사
-    helicopterBullets.push({
-        x: ex,
-        y: ey,
-        angle: angle,
-        speed: 7,
-        width: 36,
-        height: 8,
-        isBossBullet: true
-    });
-}
-
-function bossFireEnhancedWaveShot(boss) {
-    if (!boss || typeof boss !== 'object' || boss.health <= 0) {
-        console.warn('bossFireEnhancedWaveShot: 유효하지 않은 보스 객체', boss);
-        return;
-    }
-    
-    // 개선된 파도형 발사 패턴: 사인파 형태로 총알 발사 (PC 버전용)
-    for (let i = 0; i < 12; i++) {
-        const baseAngle = (i * Math.PI / 6);
-        const waveOffset = Math.sin(i * 0.5) * 0.3;
-        const angle = baseAngle + waveOffset;
-        createBossBullet(boss, angle, 'enhanced_wave');
-    }
-    
-    // 보호막 헬리콥터와 동일한 총알 추가 발사
-    const px = player.x + player.width/2;
-    const py = player.y + player.height/2;
-    const ex = boss.x + boss.width/2;
-    const ey = boss.y + boss.height/2;
-    const angle = Math.atan2(py - ey, px - ex);
-    
-    // 헬리콥터 총알과 동일한 스타일로 발사
-    helicopterBullets.push({
-        x: ex,
-        y: ey,
-        angle: angle,
-        speed: 7,
-        width: 36,
-        height: 8,
-        isBossBullet: true
-    });
-}
-
-function bossFireHomingShot(boss) {
-    if (!boss || typeof boss !== 'object' || boss.health <= 0) {
-        console.warn('bossFireHomingShot: 유효하지 않은 보스 객체', boss);
-        return;
-    }
-    
-    // 유도 패턴: 플레이어 방향으로 발사
-    const px = player.x + player.width/2;
-    const py = player.y + player.height/2;
-    const bx = boss.x + boss.width/2;
-    const by = boss.y + boss.height/2;
-    const angle = Math.atan2(py - by, px - bx);
-    
-    createBossBullet(boss, angle, 'homing');
-    
-    // 보호막 헬리콥터와 동일한 총알 추가 발사
-    const ex = boss.x + boss.width/2;
-    const ey = boss.y + boss.height/2;
-    
-    // 헬리콥터 총알과 동일한 스타일로 발사
-    helicopterBullets.push({
-        x: ex,
-        y: ey,
-        angle: angle,
-        speed: 7,
-        width: 36,
-        height: 8,
-        isBossBullet: true
-    });
-}
-
-function bossFireChaoticShot(boss) {
-    if (!boss || typeof boss !== 'object' || boss.health <= 0) {
-        console.warn('bossFireChaoticShot: 유효하지 않은 보스 객체', boss);
-        return;
-    }
-    
-    // 혼돈 패턴: 랜덤한 방향으로 불규칙하게 발사
-    const bulletCount = 12;
+    // 360도 전체 방향에 원형으로 발사
     for (let i = 0; i < bulletCount; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = 3 + Math.random() * 4; // 속도도 랜덤
-        createBossBullet(boss, angle, 'chaotic', speed);
+        const angle = i * angleStep; // 0도부터 360도까지 균등하게
+        const bullet = createBossBullet(boss, angle, 'special');
+        if (bullet && bullet.speed) {
+            // 특수무기는 더 빠른 속도로 발사
+            bullet.speed = bullet.speed * 1.5;
+        }
     }
     
     // 보호막 헬리콥터와 동일한 총알 추가 발사
@@ -7705,44 +7156,9 @@ function bossFireChaoticShot(boss) {
         x: ex,
         y: ey,
         angle: angle,
-        speed: 7,
-        width: 36,
-        height: 8,
-        isBossBullet: true
-    });
-}
-
-function bossFireRainbowShot(boss) {
-    if (!boss || typeof boss !== 'object' || boss.health <= 0) {
-        console.warn('bossFireRainbowShot: 유효하지 않은 보스 객체', boss);
-        return;
-    }
-    
-    // 무지개 패턴: 다양한 색상의 총알을 원형으로 발사
-    const bulletCount = 12;
-    const colors = ['red', 'orange', 'yellow', 'green', 'blue', 'indigo', 'violet'];
-    
-    for (let i = 0; i < bulletCount; i++) {
-        const angle = (i * 30) * Math.PI / 180;
-        const colorIndex = i % colors.length;
-        createBossBullet(boss, angle, 'rainbow', 5, colors[colorIndex]);
-    }
-    
-    // 보호막 헬리콥터와 동일한 총알 추가 발사
-    const px = player.x + player.width/2;
-    const py = player.y + player.height/2;
-    const ex = boss.x + boss.width/2;
-    const ey = boss.y + boss.height/2;
-    const angle = Math.atan2(py - ey, px - ex);
-    
-    // 헬리콥터 총알과 동일한 스타일로 발사
-    helicopterBullets.push({
-        x: ex,
-        y: ey,
-        angle: angle,
-        speed: 7,
-        width: 36,
-        height: 8,
+        speed: 8, // 특수무기는 더 빠른 속도
+        width: 40, // 특수무기는 더 큰 크기
+        height: 10,
         isBossBullet: true
     });
 }
