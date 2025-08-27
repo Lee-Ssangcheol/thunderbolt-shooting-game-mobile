@@ -3456,18 +3456,18 @@ function checkEnemyCollisions(enemy) {
                     // 보호막 헬리콥터 파괴 카운터 증가
                     shieldedHelicopterDestroyed++;
                     
-                    // 4대 파괴할 때마다 목숨 1개 추가 (중복 방지)
-                    if (shieldedHelicopterDestroyed % 4 === 0) {
-                        // 이미 이번 4대 묶음에서 목숨을 추가했다면 스킵
+                    // 3대 파괴할 때마다 목숨 1개 추가 (중복 방지)
+                    if (shieldedHelicopterDestroyed % 3 === 0) { // 3대 파괴 마다 1개 추가
+                        // 이미 이번 3대 묶음에서 목숨을 추가했다면 스킵
                         const currentGroup = Math.floor((shieldedHelicopterDestroyed - 1) / 4);
                         if (!enemy.lifeAddedFromHelicopter || enemy.lifeAddedFromHelicopter < currentGroup) {
                             maxLives++;
                             livesAddedFromHelicopters++;
                             enemy.lifeAddedFromHelicopter = currentGroup; // 목숨 추가 플래그 설정
-                            console.log(`보호막 헬리콥터 4대 파괴! 목숨 1개 추가됨. (그룹: ${currentGroup})`);
+                            console.log(`보호막 헬리콥터 3대 파괴! 목숨 1개 추가됨. (그룹: ${currentGroup})`);
                             
                             // 목숨 추가 메시지 설정
-                            lifeAddedMessage = `🎉 보호막 헬리콥터 4대 파괴! 목숨 1개 추가됨! 🎉`;
+                            lifeAddedMessage = `🎉 보호막 헬리콥터 3대 파괴! 목숨 1개 추가됨! 🎉`;
                             lifeAddedMessageTimer = Date.now();
                             
                             // 목숨 추가 효과음 재생
