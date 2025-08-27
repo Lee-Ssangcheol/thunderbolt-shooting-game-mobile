@@ -692,7 +692,7 @@ let enemySpawnRate = 2000;  // 적 생성 주기 (ms)
 let enemySpeed = 2 * mobileSpeedMultiplier;  // 적 이동 속도
 
 // 보호막 헬리콥터 파괴 관련 변수 추가
-let shieldedHelicopterDestroyed = 0;  // 보호막 헬리콥터 파괴 수 (2대마다 목숨 추가)
+let shieldedHelicopterDestroyed = 0;  // 보호막 헬리콥터 파괴 수 (3대마다 목숨 추가)
 let livesAddedFromHelicopters = 0;    // 헬리콥터 파괴로 추가된 목숨 수
 
 // 목숨 추가 메시지 표시 관련 변수
@@ -3448,14 +3448,14 @@ function checkEnemyCollisions(enemy) {
                     // 보호막 헬리콥터 파괴 카운터 증가
                     shieldedHelicopterDestroyed++;
                     
-                    // 2대 파괴할 때마다 목숨 1개 추가
-                    if (shieldedHelicopterDestroyed % 2 === 0) {
+                    // 4대 파괴할 때마다 목숨 1개 추가
+                    if (shieldedHelicopterDestroyed % 4 === 0) {
                         maxLives++;
                         livesAddedFromHelicopters++;
-                        console.log(`보호막 헬리콥터 2대 파괴! 목숨 1개 추가됨.`);
+                        console.log(`보호막 헬리콥터 4대 파괴! 목숨 1개 추가됨.`);
                         
                         // 목숨 추가 메시지 설정
-                        lifeAddedMessage = `🎉 보호막 헬리콥터 2대 파괴! 목숨 1개 추가됨! 🎉`;
+                        lifeAddedMessage = `🎉 보호막 헬리콥터 4대 파괴! 목숨 1개 추가됨! 🎉`;
                         lifeAddedMessageTimer = Date.now();
                         
                         // 목숨 추가 효과음 재생
