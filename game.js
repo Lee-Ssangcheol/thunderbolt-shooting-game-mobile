@@ -3219,8 +3219,12 @@ function checkEnemyCollisions(enemy) {
                     enemy.isBeingHit = false; // 피격 상태 즉시 해제
                     updateScore(getBossScore());
                     
-                    // 보스 파괴 시 목숨 2개 추가
-                    maxLives += 2; // 최대 목숨 2 증가
+                    // 보스 파괴 시 목숨 2개 추가 (중복 방지)
+                    if (!enemy.lifeAdded) {
+                        maxLives += 2; // 최대 목숨 2 증가
+                        enemy.lifeAdded = true; // 목숨 추가 플래그 설정
+                        console.log('보스 파괴 시 목숨 2개 추가됨 (특수무기)');
+                    }
                     
                     // 큰 폭발 효과
                     explosions.push(new Explosion(
@@ -3315,9 +3319,11 @@ function checkEnemyCollisions(enemy) {
                     // 점수 추가
                     updateScore(getBossScore());
                     
-                    // 보스 파괴 시 목숨 2개 추가
-                    if (!bullet.isSpecial) {
+                    // 보스 파괴 시 목숨 2개 추가 (중복 방지)
+                    if (!bullet.isSpecial && !enemy.lifeAdded) {
                         maxLives += 2;
+                        enemy.lifeAdded = true; // 목숨 추가 플래그 설정
+                        console.log('보스 파괴 시 목숨 2개 추가됨 (hitCount 기반)');
                     }
                     
                     // 폭발 효과
@@ -3387,9 +3393,11 @@ function checkEnemyCollisions(enemy) {
                     // 점수 추가
                     updateScore(getBossScore());
                     
-                    // 보스 파괴 시 목숨 2개 추가
-                    if (!bullet.isSpecial) {
+                    // 보스 파괴 시 목숨 2개 추가 (중복 방지)
+                    if (!bullet.isSpecial && !enemy.lifeAdded) {
                         maxLives += 2;
+                        enemy.lifeAdded = true; // 목숨 추가 플래그 설정
+                        console.log('보스 파괴 시 목숨 2개 추가됨 (체력 기반)');
                     }
                     
                     // 폭발 효과
@@ -3448,18 +3456,23 @@ function checkEnemyCollisions(enemy) {
                     // 보호막 헬리콥터 파괴 카운터 증가
                     shieldedHelicopterDestroyed++;
                     
-                    // 4대 파괴할 때마다 목숨 1개 추가
+                    // 4대 파괴할 때마다 목숨 1개 추가 (중복 방지)
                     if (shieldedHelicopterDestroyed % 4 === 0) {
-                        maxLives++;
-                        livesAddedFromHelicopters++;
-                        console.log(`보호막 헬리콥터 4대 파괴! 목숨 1개 추가됨.`);
-                        
-                        // 목숨 추가 메시지 설정
-                        lifeAddedMessage = `🎉 보호막 헬리콥터 4대 파괴! 목숨 1개 추가됨! 🎉`;
-                        lifeAddedMessageTimer = Date.now();
-                        
-                        // 목숨 추가 효과음 재생
-                        safePlay(levelUpSound);
+                        // 이미 이번 4대 묶음에서 목숨을 추가했다면 스킵
+                        const currentGroup = Math.floor((shieldedHelicopterDestroyed - 1) / 4);
+                        if (!enemy.lifeAddedFromHelicopter || enemy.lifeAddedFromHelicopter < currentGroup) {
+                            maxLives++;
+                            livesAddedFromHelicopters++;
+                            enemy.lifeAddedFromHelicopter = currentGroup; // 목숨 추가 플래그 설정
+                            console.log(`보호막 헬리콥터 4대 파괴! 목숨 1개 추가됨. (그룹: ${currentGroup})`);
+                            
+                            // 목숨 추가 메시지 설정
+                            lifeAddedMessage = `🎉 보호막 헬리콥터 4대 파괴! 목숨 1개 추가됨! 🎉`;
+                            lifeAddedMessageTimer = Date.now();
+                            
+                            // 목숨 추가 효과음 재생
+                            safePlay(levelUpSound);
+                        }
                     }
                     
                     // 보호막 파괴 시 보스와 동일한 큰 폭발 효과
