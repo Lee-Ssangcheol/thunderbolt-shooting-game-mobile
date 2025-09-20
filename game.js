@@ -688,6 +688,7 @@ let bossHealth = 0;
 let bossPattern = 0;
 let specialWeaponCharged = false;
 let specialWeaponCharge = 0;
+let specialWeaponStock = 0;  // 특수무기 보유 개수
 let enemySpawnRate = 2000;  // 적 생성 주기 (ms)
 let enemySpeed = 2 * mobileSpeedMultiplier;  // 적 이동 속도
 
@@ -1505,6 +1506,7 @@ function restartGame() {
     // 특수무기 관련 상태 초기화
     specialWeaponCharged = false;
     specialWeaponCharge = 0;
+    specialWeaponStock = 0;  // 특수무기 보유 개수 초기화
     
     // 파워업 상태 초기화
     hasSpreadShot = false;
@@ -3733,7 +3735,7 @@ function handleBulletFiring() {
 
 // 특수 무기 처리 함수 수정
 function handleSpecialWeapon() {
-    if (specialWeaponCharged && keys.KeyB) {  // KeyN을 KeyB로 변경
+    if (specialWeaponCharged && keys.KeyB && specialWeaponStock > 0) {  // KeyN을 KeyB로 변경, 보유 개수 확인 추가
         // 특수 무기 발사 (90도 범위 내에서 24개 발사, 상단 전체 커버)
         // 상단 방향은 -135도(왼쪽 위)에서 -45도(오른쪽 위)까지
         const startAngle = -135 * (Math.PI / 180); // -135도 시작
@@ -3779,8 +3781,15 @@ function handleSpecialWeapon() {
             }
         }
         
-        specialWeaponCharged = false;
-        specialWeaponCharge = 0;
+        // 특수무기 사용 시 보유 개수 감소
+        specialWeaponStock--;
+        console.log(`특수무기 사용! 남은 보유 개수: ${specialWeaponStock}`);
+        
+        // 보유 개수가 0이 되면 충전 상태 해제
+        if (specialWeaponStock <= 0) {
+            specialWeaponCharged = false;
+            specialWeaponCharge = 0;
+        }
         
         // 특수 무기 발사 효과음 제거 (적기에 맞았을 때만 재생)
         // safePlay(shootSound);
@@ -4070,7 +4079,7 @@ function drawUI() {
         ctx.fillStyle = 'white';
         ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
-        const percentText = `특수 무기 : ${Math.floor((specialWeaponCharge / SPECIAL_WEAPON_MAX_CHARGE) * 100)}%`;
+        const percentText = `특수 무기 : ${Math.floor((specialWeaponCharge / SPECIAL_WEAPON_MAX_CHARGE) * 100)}% (보유: ${specialWeaponStock}개)`;
         ctx.fillText(percentText, 120, barY + 15);
         
         // 줄 간격 진행
@@ -4099,7 +4108,7 @@ function drawUI() {
         ctx.fillStyle = 'white';
         ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
-        const percentText = `특수 무기 : ${Math.floor((specialWeaponCharge / SPECIAL_WEAPON_MAX_CHARGE) * 100)}%`;
+        const percentText = `특수 무기 : ${Math.floor((specialWeaponCharge / SPECIAL_WEAPON_MAX_CHARGE) * 100)}% (보유: ${specialWeaponStock}개)`;
         ctx.fillText(percentText, 120, barY + 15);
         
         // 준비 완료 메시지 배경
@@ -4110,7 +4119,7 @@ function drawUI() {
         ctx.fillStyle = isRed ? 'red' : 'cyan';
         ctx.font = 'bold 20px Arial';
         ctx.textAlign = 'left';
-        ctx.fillText('특수 무기 준비 완료', 25, barY + 45);
+        ctx.fillText('특수무기 발사(알파벳 "B"키 클릭)', 25, barY + 45);
         
         // 줄 간격 진행
         y += lineHeight + 40;
@@ -4430,6 +4439,20 @@ function updateScore(points) {
         if (specialWeaponCharge >= SPECIAL_WEAPON_MAX_CHARGE) {
             specialWeaponCharged = true;
             specialWeaponCharge = SPECIAL_WEAPON_MAX_CHARGE;
+            specialWeaponStock++; // 특수무기 보유 개수 증가
+            console.log(`특수무기 충전 완료! 보유 개수: ${specialWeaponStock}`);
+        }
+    } else {
+        // 이미 충전된 상태에서는 추가 점수를 받아도 보유 개수 증가하지 않음
+        // 단, 사용 후 충전이 필요한 상태가 되면 다시 충전 시작
+        if (specialWeaponStock <= 0) {
+            specialWeaponCharge += points;
+            if (specialWeaponCharge >= SPECIAL_WEAPON_MAX_CHARGE) {
+                specialWeaponCharged = true;
+                specialWeaponCharge = SPECIAL_WEAPON_MAX_CHARGE;
+                specialWeaponStock++; // 특수무기 보유 개수 증가
+                console.log(`특수무기 재충전 완료! 보유 개수: ${specialWeaponStock}`);
+            }
         }
     }
 
