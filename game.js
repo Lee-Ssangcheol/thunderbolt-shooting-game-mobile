@@ -1355,6 +1355,11 @@ async function initializeGame() {
         lifeAddedMessage = '';
         lifeAddedMessageTimer = 0;
         
+        // 특수무기 관련 상태 초기화
+        specialWeaponCharged = false;
+        specialWeaponCharge = 0;
+        specialWeaponStock = 0;  // 특수무기 보유 개수 초기화
+        
         // 보스 관련 상태 초기화
         bossActive = false;
         isBossActive = false;
@@ -1418,6 +1423,11 @@ function restartGame() {
     isGameOver = false;
     hasSecondPlane = false;
     secondPlaneTimer = 0; // 두 번째 비행기 타이머 초기화
+    
+    // 특수무기 관련 상태 초기화
+    specialWeaponCharged = false;
+    specialWeaponCharge = 0;
+    specialWeaponStock = 0;  // 특수무기 보유 개수 초기화
     
     // 두 번째 비행기 관련 전역 변수도 초기화
     if (window.lastSecondPlaneScore) {
