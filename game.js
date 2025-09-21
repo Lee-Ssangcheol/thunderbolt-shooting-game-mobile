@@ -4137,15 +4137,6 @@ function drawUI() {
             ctx.fillText(`페이즈 ${currentPhase + 1}`, canvas.width/2, 60);
         }
         
-        // 체력 수치 상세 정보 (디버깅용, 동적으로 계산된 체력 기준)
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-        ctx.font = 'bold 12px Arial';
-        ctx.fillText(`체력: ${Math.ceil(bossHealth)}/${maxBossHealth} (${Math.round(healthPercentage * 100)}%)`, canvas.width/2, 80);
-        
-        // 디버깅 정보 화면에 표시 (동적으로 계산된 체력 기준)
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.font = 'bold 10px Arial';
-        ctx.fillText(`Debug: bossHealth=${bossHealth}, MaxHealth=${maxBossHealth}, Level=${gameLevel}`, canvas.width/2, 100);
     }
     
     // 데미지 텍스트 그리기
