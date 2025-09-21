@@ -668,7 +668,6 @@ let levelScore = 0;       // 레벨 점수
 let levelUpScore = 1500;  // 레벨업에 필요한 점수
 let score = 0;           // 현재 점수
 let highScore = 0;       // 최고 점수 (초기값 0으로 설정)
-let scoreForSpread = 0;   // 확산탄을 위한 점수
 let hasSecondPlane = false;  // 두 번째 비행기 보유 여부
 let secondPlaneTimer = 0;    // 두 번째 비행기 타이머
 let isPaused = false;     // 일시정지 상태
@@ -1378,9 +1377,6 @@ async function initializeGame() {
         lastHelicopterSpawnTime = 0;
         
         // 파워업 상태 초기화
-        hasSpreadShot = false;
-        isSpreadShotOnCooldown = false;
-        window.spreadShotCooldownStartTime = 0; // 확산탄 쿨다운 시작 시간 초기화
         window.cooldownCompletedTime = 0; // 추가 비행기 쿨다운 완료 시간 초기화
         hasShield = false;
         damageMultiplier = 1;
@@ -1455,10 +1451,6 @@ function restartGame() {
     isSecondPlaneOnCooldown = false;
     secondPlaneCooldownTimer = 0;
     
-    // 확산탄 누적 점수 초기화
-    if (window.pendingSpreadScore) {
-        window.pendingSpreadScore = 0;
-    }
     
     // 로그 타이머 초기화
     if (window.lastBlockLogTime) {
@@ -1520,9 +1512,6 @@ function restartGame() {
     specialWeaponStock = 0;  // 특수무기 보유 개수 초기화
     
     // 파워업 상태 초기화
-    hasSpreadShot = false;
-    isSpreadShotOnCooldown = false;
-    window.spreadShotCooldownStartTime = 0; // 확산탄 쿨다운 시작 시간 초기화
     window.cooldownCompletedTime = 0; // 추가 비행기 쿨다운 완료 시간 초기화
     hasShield = false;
     damageMultiplier = 1;
@@ -2360,12 +2349,11 @@ function checkCollision(rect1, rect2) {
 }
 
 // 데미지 텍스트 표시 함수
-function drawDamageText(x, y, damage, isSpread = false) {
+function drawDamageText(x, y, damage) {
     const damageText = {
         x: x,
         y: y,
         damage: damage,
-        isSpread: isSpread,
         life: 60, // 60프레임 동안 표시
         alpha: 1.0,
         offsetY: 0
@@ -2804,8 +2792,6 @@ function gameLoop() {
         // 총알 이동 및 충돌 체크
         handleBullets();
 
-        // 확산탄 처리
-        handleSpreadShot();
 
         // 두 번째 비행기 처리 (매 프레임마다 점수 조건 확인)
         handleSecondPlane();
@@ -3210,7 +3196,7 @@ function checkEnemyCollisions(enemy) {
 
         if (checkCollision(bullet, enemy)) {
             console.log('총알과 적 충돌 감지:', {
-                bulletType: bullet.isSpecial ? '특수무기' : (bullet.isSpread ? '확산탄' : '일반총알'),
+                bulletType: bullet.isSpecial ? '특수무기' : (bullet.isSpread && bullet.isBossBullet ? '보스 확산탄' : '일반총알'),
                 enemyType: enemy.type,
                 enemyHealth: enemy.health,
                 isBoss: enemy.isBoss
@@ -3267,14 +3253,8 @@ function checkEnemyCollisions(enemy) {
                     return false;
                 }
                 
-                // 확산탄인 경우 특별 처리 (hitCount 증가량 조정)
-                if (bullet.isSpread) {
-                    console.log('보스가 확산탄에 맞음 - 데미지:', bullet.damage);
-                    enemy.hitCount += 1; // 확산탄도 1회로 계산 (난이도 조정)
-                } else {
-                    // 일반 총알인 경우
-                    enemy.hitCount++;
-                }
+                // 일반 총알인 경우
+                enemy.hitCount++;
                 console.log('보스 총알 맞은 횟수:', enemy.hitCount);
                 
                 // 피격 상태 설정 (시간 기반 관리) - 보스 동작 방해 방지
@@ -3289,16 +3269,12 @@ function checkEnemyCollisions(enemy) {
                     false
                 ));
                 
-                // 체력 감소 (확산탄은 200, 일반 총알은 100의 데미지) - 동기화 보장
-                const damage = bullet.isSpread ? bullet.damage : 100;
+                // 체력 감소 (일반 총알은 100의 데미지) - 동기화 보장
+                const damage = 100;
                 const newHealth = Math.max(0, enemy.health - damage);
                 enemy.health = newHealth;
                 bossHealth = newHealth;
                 
-                // 보스 데미지 텍스트 표시 (확산탄만 표시)
-                if (bullet.isSpread) {
-                    drawDamageText(enemy.x + enemy.width/2, enemy.y + enemy.height/2, damage, true);
-                }
                 
                 // 보스 피격음 재생
                 safePlay(collisionSound);
@@ -3312,7 +3288,6 @@ function checkEnemyCollisions(enemy) {
                     requiredHitCount: requiredHitCount,
                     bossHealth: bossHealth,
                     gameLevel: gameLevel,
-                    isSpread: bullet.isSpread
                 });
                 
                 if (enemy.hitCount >= requiredHitCount) {
@@ -3517,21 +3492,20 @@ function checkEnemyCollisions(enemy) {
                     isHit = true;
                 }
             } else {
-                // 일반 적 처치 (특수무기와 확산탄 포함)
+                // 일반 적 처치 (특수무기 포함)
                 console.log('일반 적 파괴됨:', {
                     type: enemy.type,
                     isSpecial: bullet.isSpecial,
-                    isSpread: bullet.isSpread,
                     bulletSize: `${bullet.width}x${bullet.height}`
                 });
                 
-                // 특수무기나 확산탄인 경우 즉시 파괴 + 더 큰 폭발 효과
-                if (bullet.isSpecial || bullet.isSpread) {
-                    console.log(`${bullet.isSpecial ? '특수무기' : '확산탄'}로 적 즉시 파괴!`);
+                // 특수무기인 경우 즉시 파괴 + 더 큰 폭발 효과
+                if (bullet.isSpecial) {
+                    console.log(`특수무기로 적 즉시 파괴!`);
                     
                     // 데미지 텍스트 표시
-                    const damage = bullet.isSpread ? bullet.damage : 500; // 확산탄 200, 특수무기 500
-                    drawDamageText(enemy.x + enemy.width/2, enemy.y + enemy.height/2, damage, bullet.isSpread);
+                    const damage = 500; // 특수무기 500
+                    drawDamageText(enemy.x + enemy.width/2, enemy.y + enemy.height/2, damage);
                     
                     // 적 즉시 파괴
                     enemy.health = 0;
@@ -3543,7 +3517,7 @@ function checkEnemyCollisions(enemy) {
                         true // 큰 폭발
                     ));
                     
-                    // 추가 폭발 효과 (특수무기/확산탄용)
+                    // 추가 폭발 효과 (특수무기용)
                     for (let i = 0; i < 6; i++) {
                         const angle = (Math.PI * 2 / 6) * i;
                         const distance = 30;
@@ -3554,7 +3528,7 @@ function checkEnemyCollisions(enemy) {
                         ));
                     }
                     
-                    // 특수무기/확산탄 효과음
+                    // 특수무기 효과음
                     safePlay(explosionSound);
                 } else {
                     // 일반 총알인 경우 기본 폭발 효과
@@ -3659,31 +3633,27 @@ function handleBulletFiring() {
         lastFireTime = currentTime;
         canFire = false;  // 발사 후 즉시 발사 불가 상태로 변경
         
-        if (hasSpreadShot) {
-            // 확산탄 발사 (레벨 1 수준으로 제한 - 3발만 발사)
-            for (let i = -1; i <= 1; i++) { // -3~3에서 -1~1로 제한 (3발만)
-                const angle = (i * 15) * (Math.PI / 180); // 각도 간격을 12도에서 15도로 조정
-                const bullet = {
-                    x: player.x + player.width/2, // 기본값에서
-                    y: player.y,                  // 기본값에서
-                    width: currentBulletSize,
-                    height: currentBulletSize * 2,
-                    speed: bulletSpeed,
-                    angle: angle,
-                    damage: 100 * damageMultiplier,
-                    isBossBullet: false,
-                    isSpecial: false
-                };
-                // 머리 끝 중앙에서 발사되도록 조정
-                bullet.x = player.x + player.width/2;
-                bullet.y = player.y;
-                bullets.push(bullet);
-            }
-        } else {
-            // 일반 총알 발사 (한 발씩)
+        // 일반 총알 발사 (한 발씩)
+        const bullet = {
+            x: player.x + player.width/2, // 기본값에서
+            y: player.y,                  // 기본값에서
+            width: currentBulletSize,
+            height: currentBulletSize * 2,
+            speed: bulletSpeed,
+            damage: 100 * damageMultiplier,
+            isBossBullet: false,
+            isSpecial: false
+        };
+        // 머리 끝 중앙에서 발사되도록 조정
+        bullet.x = player.x + player.width/2;
+        bullet.y = player.y;
+        bullets.push(bullet);
+        
+        // 두 번째 비행기 발사
+        if (hasSecondPlane) {
             const bullet = {
-                x: player.x + player.width/2, // 기본값에서
-                y: player.y,                  // 기본값에서
+                x: secondPlane.x + secondPlane.width/2,
+                y: secondPlane.y,
                 width: currentBulletSize,
                 height: currentBulletSize * 2,
                 speed: bulletSpeed,
@@ -3691,44 +3661,7 @@ function handleBulletFiring() {
                 isBossBullet: false,
                 isSpecial: false
             };
-            // 머리 끝 중앙에서 발사되도록 조정
-            bullet.x = player.x + player.width/2;
-            bullet.y = player.y;
             bullets.push(bullet);
-        }
-        
-        // 두 번째 비행기 발사
-        if (hasSecondPlane) {
-            if (hasSpreadShot) {
-                // 두 번째 비행기 확산탄 발사 (레벨 1 수준으로 제한 - 3발만 발사)
-                for (let i = -1; i <= 1; i++) { // -3~3에서 -1~1로 제한 (3발만)
-                    const angle = (i * 15) * (Math.PI / 180); // 각도 간격을 12도에서 15도로 조정
-                    const bullet = {
-                        x: secondPlane.x + secondPlane.width/2,
-                        y: secondPlane.y,
-                        width: currentBulletSize,
-                        height: currentBulletSize * 2,
-                        speed: bulletSpeed,
-                        angle: angle,
-                        damage: 100 * damageMultiplier,
-                        isBossBullet: false,
-                        isSpecial: false
-                    };
-                    bullets.push(bullet);
-                }
-            } else {
-                const bullet = {
-                    x: secondPlane.x + secondPlane.width/2,
-                    y: secondPlane.y,
-                    width: currentBulletSize,
-                    height: currentBulletSize * 2,
-                    speed: bulletSpeed,
-                    damage: 100 * damageMultiplier,
-                    isBossBullet: false,
-                    isSpecial: false
-                };
-                bullets.push(bullet);
-            }
         }
         
         // 발사음 재생 (볼륨 조정)
@@ -3850,26 +3783,6 @@ function drawUI() {
     ctx.fillText(`(레벨${gameLevel}→${gameLevel + 1}: ${levelUpScore}점)`, 20, y); y += lineHeight;
     ctx.fillText(`최고 점수: ${highScore}`, 20, y); y += lineHeight;
     
-    // 확산탄 정보 (25px 간격으로 통일)
-    const remainingScore = Math.max(0, 1000 - scoreForSpread);
-    if (hasSpreadShot) {
-        if (isSpreadShotOnCooldown) {
-            ctx.fillStyle = '#FF0000';
-            // 쿨다운 남은 시간 계산
-            const cooldownElapsed = Date.now() - (window.spreadShotCooldownStartTime || 0);
-            const remainingCooldown = Math.max(0, Math.ceil((20000 - cooldownElapsed) / 1000));
-            ctx.fillText(`확산탄 쿨다운: ${remainingCooldown}초`, 20, y);
-            y += lineHeight;
-        } else {
-            ctx.fillStyle = '#00FF00';
-            ctx.fillText(`확산탄 사용 가능: ${scoreForSpread}/1000`, 20, y);
-            y += lineHeight;
-        }
-    } else {
-        ctx.fillStyle = 'white';
-        ctx.fillText(`다음 확산탄까지: ${remainingScore}점`, 20, y);
-        y += lineHeight;
-    }
     
     // 보호막 헬리콥터 관련 UI 안내 제거
     
@@ -4244,14 +4157,8 @@ function drawUI() {
             ctx.font = 'bold 20px Arial';
             ctx.textAlign = 'center';
             
-            if (damageText.isSpread) {
-                // 확산탄 데미지: 노란색, 더 크게
-                ctx.fillStyle = `rgba(255, 215, 0, ${damageText.alpha})`;
-                ctx.font = 'bold 24px Arial';
-            } else {
-                // 일반 총알 데미지: 흰색
-                ctx.fillStyle = `rgba(255, 255, 255, ${damageText.alpha})`;
-            }
+            // 일반 총알 데미지: 흰색
+            ctx.fillStyle = `rgba(255, 255, 255, ${damageText.alpha})`;
             
             // 데미지 텍스트 그리기
             ctx.fillText(`${damageText.damage}`, damageText.x, damageText.y - damageText.offsetY);
@@ -4471,17 +4378,6 @@ function updateScore(points) {
     const prevScore = score;
     score += points;
     
-    // 확산탄 쿨다운 중 점수 처리
-    if (isSpreadShotOnCooldown) {
-        // 쿨다운 중에는 점수를 누적 저장 (나중에 반영)
-        if (!window.pendingSpreadScore) {
-            window.pendingSpreadScore = 0;
-        }
-        window.pendingSpreadScore += points;
-    } else {
-        // 쿨다운이 아닐 때는 즉시 점수 증가
-        scoreForSpread += points;
-    }
     
     levelScore += points;
 
@@ -4802,77 +4698,6 @@ function showSecondPlaneMessage(message, color) {
 
 
 
-// 확산탄 처리 함수 추가
-function handleSpreadShot() {
-    // 확산탄 자동 활성화: 500점에 도달하면 자동으로 활성화
-            if (scoreForSpread >= 1000 && !hasSpreadShot) {
-        hasSpreadShot = true;
-        console.log('확산탄 자동 활성화!');
-    }
-    
-    // 확산탄 발사 조건: 활성화되어 있고, 충분한 점수가 있으며, 쿨다운이 아닐 때
-    if (hasSpreadShot && scoreForSpread >= 1000 && !isSpreadShotOnCooldown) {
-        // 발사 쿨다운 설정 (20초)
-        isSpreadShotOnCooldown = true;
-        window.spreadShotCooldownStartTime = Date.now(); // 쿨다운 시작 시간 기록
-        setTimeout(() => {
-            isSpreadShotOnCooldown = false;
-            // 쿨다운 완료 시 누적된 점수 반영
-            if (window.pendingSpreadScore && window.pendingSpreadScore > 0) {
-                scoreForSpread += window.pendingSpreadScore;
-                console.log('확산탄 쿨다운 완료 - 누적 점수 반영:', window.pendingSpreadScore);
-                window.pendingSpreadScore = 0;
-            }
-        }, 20000);
-        
-        // 24발의 확산탄을 90도 범위 내에서 부채꼴 모양으로 발사 (상단 전체 커버)
-        // 상단 방향은 -135도(왼쪽 위)에서 -45도(오른쪽 위)까지
-        const startAngle = -135 * (Math.PI / 180); // -135도 시작
-        const endAngle = -45 * (Math.PI / 180);    // -45도 끝 (총 90도 범위)
-        const angleStep = (endAngle - startAngle) / 23; // 24개 총알을 위한 각도 간격
-        
-        for (let i = 0; i < 24; i++) { // 24발 발사
-            const angle = startAngle + (i * angleStep);
-            const missile = {
-                x: player.x + player.width/2,  // 비행기 중앙 X좌표
-                y: player.y - player.height/2,  // 비행기 앞부분 Y좌표
-                width: 12,  // 크기 2배 증가 (6에서 12로)
-                height: 32, // 크기 2배 증가 (16에서 32로)
-                speed: 8,   // 속도 최적화
-                angle: angle,
-                isSpread: true,
-                damage: 200, // 확산탄 데미지 (일반 총알의 2배)
-                isBossBullet: false,
-                isSpecial: false
-            };
-            bullets.push(missile);
-
-            // 두 번째 비행기가 있으면 확산탄 발사
-            if (hasSecondPlane) {
-                const secondMissile = {
-                    x: secondPlane.x + secondPlane.width/2,  // 두 번째 비행기 중앙 X좌표
-                    y: secondPlane.y - secondPlane.height/2,  // 두 번째 비행기 앞부분 Y좌표
-                    width: 12,  // 크기 2배 증가 (6에서 12로)
-                    height: 32, // 크기 2배 증가 (16에서 32로)
-                    speed: 8,   // 속도 최적화
-                    angle: angle,
-                    isSpread: true,
-                    damage: 200, // 확산탄 데미지 (일반 총알의 2배)
-                    isBossBullet: false,
-                    isSpecial: false
-                };
-                bullets.push(secondMissile);
-            }
-        }
-        // 확산탄 발사음 재생
-        safePlay(shootSound);
-        
-        // 발사 후 점수 초기화
-        scoreForSpread = 0;
-        
-        console.log('확산탄 발사 완료 - 쿨다운 시작');
-    }
-}
 
 // 총알 이동 및 충돌 체크 함수 수정
 function handleBullets() {
@@ -5089,33 +4914,6 @@ function handleBullets() {
             if (bullet.life <= 0) return false;
             
             // 특수무기 충돌 감지는 기존 충돌 감지 시스템에서 처리됨
-            // 여기서는 총알만 제거하지 않고 계속 이동하도록 함
-        } else if (bullet.isSpread) {
-            // 확산탄 이동 (각도 계산 수정)
-            bullet.x += Math.cos(bullet.angle) * bullet.speed;
-            bullet.y += Math.sin(bullet.angle) * bullet.speed;
-            
-            // 확산탄 그리기 (노란색 원형, 더 큰 크기로 시각적 효과 향상)
-            ctx.fillStyle = '#FFD700'; // 노란색으로 변경
-            
-            // 원형 확산탄 그리기
-            ctx.beginPath();
-            ctx.arc(bullet.x, bullet.y, bullet.width/2, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // 확산탄 주변에 빛나는 효과 (노란색 원형)
-            const gradient = ctx.createRadialGradient(
-                bullet.x, bullet.y, 0,
-                bullet.x, bullet.y, bullet.width
-            );
-            gradient.addColorStop(0, 'rgba(255, 215, 0, 0.3)'); // 노란색
-            gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');   // 노란색
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.arc(bullet.x, bullet.y, bullet.width, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // 확산탄 충돌 감지는 기존 충돌 감지 시스템에서 처리됨
             // 여기서는 총알만 제거하지 않고 계속 이동하도록 함
         } else {
             // 일반 총알 이동
@@ -6190,10 +5988,6 @@ function applyPowerUp(type) {
             player.speed *= 1.5;
             setTimeout(() => player.speed /= 1.5, 10000);
             break;
-        case POWERUP_TYPES.SPREAD_SHOT:
-            hasSpreadShot = true;
-            setTimeout(() => hasSpreadShot = false, 10000);
-            break;
         case POWERUP_TYPES.SHIELD:
             hasShield = true;
             setTimeout(() => hasShield = false, 10000);
@@ -6211,8 +6005,6 @@ function applyPowerUp(type) {
 
 // 게임 상태 변수에 추가
 let powerUps = [];
-let hasSpreadShot = false;
-let isSpreadShotOnCooldown = false; // 확산탄 발사 쿨다운 상태
 let hasShield = false;
 let damageMultiplier = 1;
 let fireRateMultiplier = 1;
@@ -7778,33 +7570,24 @@ let gameLoopRunning = false;
 
 // 통합된 총알 생성 함수 (PC/모바일 공통)
 function createUnifiedBullet() {
-    // 확산탄 발사 (90도 범위 내에서 24개 발사, 상단 전체 커버)
-    if (hasSpreadShot) {
-        const startAngle = -135 * (Math.PI / 180); // -135도 시작
-        const endAngle = -45 * (Math.PI / 180);    // -45도 끝 (총 90도 범위)
-        const angleStep = (endAngle - startAngle) / 23; // 24개 총알을 위한 각도 간격
-        
-        for (let i = 0; i < 24; i++) { // 24발 발사
-            const angle = startAngle + (i * angleStep);
-            const bullet = {
-                x: player.x + player.width / 2,
-                y: player.y,
-                width: 8,   // 크기 2배 증가 (4에서 8로)
-                height: 16, // 크기 2배 증가 (8에서 16으로)
-                speed: 6,   // 통일된 속도
-                angle: angle,
-                damage: 200, // 확산탄 데미지 (일반 총알의 2배)
-                isBossBullet: false,
-                isSpecial: false,
-                isSpread: true
-            };
-            bullets.push(bullet);
-        }
-    } else {
-        // 일반 총알 발사 (레벨 1 수준으로 제한)
+    // 일반 총알 발사 (레벨 1 수준으로 제한)
+    const bullet = {
+        x: player.x + player.width / 2,
+        y: player.y,
+        width: 4,   // 통일된 크기
+        height: 8,  // 통일된 크기
+        speed: 6,   // 통일된 속도
+        damage: 100,
+        isBossBullet: false,
+        isSpecial: false
+    };
+    bullets.push(bullet);
+    
+    // 두 번째 비행기 발사 (레벨 1 수준으로 제한)
+    if (hasSecondPlane) {
         const bullet = {
-            x: player.x + player.width / 2,
-            y: player.y,
+            x: secondPlane.x + secondPlane.width / 2,
+            y: secondPlane.y,
             width: 4,   // 통일된 크기
             height: 8,  // 통일된 크기
             speed: 6,   // 통일된 속도
@@ -7813,45 +7596,6 @@ function createUnifiedBullet() {
             isSpecial: false
         };
         bullets.push(bullet);
-    }
-    
-            // 두 번째 비행기 발사 (레벨 1 수준으로 제한)
-        if (hasSecondPlane) {
-            if (hasSpreadShot) {
-                // 두 번째 비행기 확산탄 발사 (90도 범위 내에서 24개 발사, 상단 전체 커버)
-                const startAngle = -135 * (Math.PI / 180); // -135도 시작
-                const endAngle = -45 * (Math.PI / 180);    // -45도 끝 (총 90도 범위)
-                const angleStep = (endAngle - startAngle) / 23; // 24개 총알을 위한 각도 간격
-                
-                for (let i = 0; i < 24; i++) { // 24발 발사
-                    const angle = startAngle + (i * angleStep);
-                    const bullet = {
-                        x: secondPlane.x + secondPlane.width / 2,
-                        y: secondPlane.y,
-                        width: 8,   // 크기 2배 증가 (4에서 8로)
-                        height: 16, // 크기 2배 증가 (8에서 16으로)
-                        speed: 6,   // 통일된 속도
-                        angle: angle,
-                        damage: 200, // 확산탄 데미지 (일반 총알의 2배)
-                        isBossBullet: false,
-                        isSpecial: false,
-                        isSpread: true
-                    };
-                    bullets.push(bullet);
-                }
-            } else {
-            const bullet = {
-                x: secondPlane.x + secondPlane.width / 2,
-                y: secondPlane.y,
-                width: 4,   // 통일된 크기
-                height: 8,  // 통일된 크기
-                speed: 6,   // 통일된 속도
-                damage: 100,
-                isBossBullet: false,
-                isSpecial: false
-            };
-            bullets.push(bullet);
-        }
     }
 }
 
