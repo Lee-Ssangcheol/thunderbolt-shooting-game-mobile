@@ -2127,6 +2127,15 @@ function updateEnemyPosition(enemy, options = {}) {
     const currentTime = Date.now();
     const deltaTime = currentTime - enemy.lastUpdateTime;
     enemy.lastUpdateTime = currentTime;
+    
+    // 레벨 5 이상일 때는 레벨 5의 난이도로 고정 (모든 속성 증가 제한)
+    let currentDifficulty;
+    if (gameLevel <= 4) {
+        currentDifficulty = difficultySettings[gameLevel] || difficultySettings[1];
+    } else {
+        // 레벨 5 이상: 모든 속성을 레벨 5와 동일하게 고정 (증가 제한)
+        currentDifficulty = difficultySettings[5];
+    }
 
     // 헬리콥터 처리 (보스 포함)
     if (enemy.type === ENEMY_TYPES.HELICOPTER || enemy.type === ENEMY_TYPES.HELICOPTER2) {
@@ -2164,8 +2173,8 @@ function updateEnemyPosition(enemy, options = {}) {
         
         // 헬리콥터 총알 발사 (보스가 아닌 경우에만)
         if (!enemy.isBoss) {
-            if (!enemy.fireCooldown) enemy.fireCooldown = 2500 + Math.random()*1000;
-            if (!enemy.lastFireTime) enemy.lastFireTime = 0;
+            if (!enemy.fireCooldown) enemy.fireCooldown = gameLevel <= 10 ? currentDifficulty.fireInterval * 0.5 : currentDifficulty.fireInterval; // 헬리콥터 전용 발사 간격
+            if (!enemy.lastFireTime) enemy.lastFireTime = Date.now() - enemy.fireCooldown; // 즉시 발사 가능하도록 설정
             if (!options.helicopterFiredThisFrame && currentTime - enemy.lastFireTime > enemy.fireCooldown) {
                 // 플레이어 방향 각도 계산
                 const px = player.x + player.width/2;
@@ -2183,7 +2192,7 @@ function updateEnemyPosition(enemy, options = {}) {
                     isBossBullet: false
                 });
                 enemy.lastFireTime = currentTime;
-                enemy.fireCooldown = 2500 + Math.random()*1000;
+                enemy.fireCooldown = gameLevel <= 10 ? currentDifficulty.fireInterval * 0.5 : currentDifficulty.fireInterval; // 헬리콥터 전용 발사 간격으로 재설정
                 if (options) options.helicopterFiredThisFrame = true;
             }
         }
