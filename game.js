@@ -1648,7 +1648,7 @@ function createEnemy(forceType = null) {
                     bombDropInterval: 3000,
                     lastUpdateTime: Date.now(),
                     canFire: true,
-                    lastFireTime: 0,
+                    lastFireTime: Date.now() - (gameLevel <= 10 ? currentDifficulty.fireInterval * 0.5 : currentDifficulty.fireInterval), // 즉시 발사 가능하도록 설정
                     fireInterval: gameLevel <= 10 ? currentDifficulty.fireInterval * 0.5 : currentDifficulty.fireInterval, // 레벨 10 이상에서는 기본 발사 간격 유지
                     bulletSpeed: currentDifficulty.bulletSpeed,
                     health: currentDifficulty.enemyHealth,
@@ -1700,7 +1700,7 @@ function createEnemy(forceType = null) {
                     bombDropInterval: 2000 + Math.random() * 3000,
                     lastUpdateTime: Date.now(),
                     canFire: true,
-                    lastFireTime: 0,
+                    lastFireTime: Date.now() - (gameLevel <= 10 ? currentDifficulty.fireInterval * 0.5 : currentDifficulty.fireInterval), // 즉시 발사 가능하도록 설정
                     fireInterval: gameLevel <= 10 ? currentDifficulty.fireInterval * 0.5 : currentDifficulty.fireInterval, // 레벨 10 이상에서는 기본 발사 간격 유지
                     bulletSpeed: currentDifficulty.bulletSpeed,
                     health: currentDifficulty.enemyHealth,
