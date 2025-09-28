@@ -1564,7 +1564,7 @@ function createEnemy(forceType = null) {
                 specialAbility: Math.random() < (gameLevel <= 4 ? (0.1 + (gameLevel * 0.03)) : 0.25) ? getRandomSpecialAbility() : null, // 레벨 5 이상에서는 특수 능력 확률 제한
                 hasShield: false, // 일반 비행기는 보호막 없음
                 canFire: false, // 초기에는 발사 불가능
-                lastFireTime: 0,
+                    lastFireTime: Date.now() - (gameLevel <= 10 ? currentDifficulty.fireInterval * 0.5 : currentDifficulty.fireInterval), // 즉시 발사 가능하도록 설정
                 fireInterval: currentDifficulty.fireInterval,
                 entryStartTime: Date.now(), // 진입 시작 시간 추가
                 entryDelay: 1000 + Math.random() * 2000,
@@ -1650,6 +1650,7 @@ function createEnemy(forceType = null) {
                     canFire: true,
                     lastFireTime: Date.now() - (gameLevel <= 10 ? currentDifficulty.fireInterval * 0.5 : currentDifficulty.fireInterval), // 즉시 발사 가능하도록 설정
                     fireInterval: gameLevel <= 10 ? currentDifficulty.fireInterval * 0.5 : currentDifficulty.fireInterval, // 레벨 10 이상에서는 기본 발사 간격 유지
+                    fireCooldown: gameLevel <= 10 ? currentDifficulty.fireInterval * 0.5 : currentDifficulty.fireInterval, // 헬리콥터 전용 발사 간격
                     bulletSpeed: currentDifficulty.bulletSpeed,
                     health: currentDifficulty.enemyHealth,
                     score: gameLevel <= 10 ? 20 : 25, // 헬리콥터2: 레벨 10 이하 20점, 레벨 10 이상 25점
@@ -1702,6 +1703,7 @@ function createEnemy(forceType = null) {
                     canFire: true,
                     lastFireTime: Date.now() - (gameLevel <= 10 ? currentDifficulty.fireInterval * 0.5 : currentDifficulty.fireInterval), // 즉시 발사 가능하도록 설정
                     fireInterval: gameLevel <= 10 ? currentDifficulty.fireInterval * 0.5 : currentDifficulty.fireInterval, // 레벨 10 이상에서는 기본 발사 간격 유지
+                    fireCooldown: gameLevel <= 10 ? currentDifficulty.fireInterval * 0.5 : currentDifficulty.fireInterval, // 헬리콥터 전용 발사 간격
                     bulletSpeed: currentDifficulty.bulletSpeed,
                     health: currentDifficulty.enemyHealth,
                     score: gameLevel <= 10 ? 20 : 25, // 헬리콥터1: 레벨 10 이하 20점, 레벨 10 이상 25점
@@ -1797,7 +1799,7 @@ function createEnemy(forceType = null) {
                 bombDropInterval: 3000,
                 lastUpdateTime: Date.now(),
                 canFire: true,
-                lastFireTime: 0,
+                    lastFireTime: Date.now() - (gameLevel <= 10 ? currentDifficulty.fireInterval * 0.5 : currentDifficulty.fireInterval), // 즉시 발사 가능하도록 설정
                 fireInterval: gameLevel <= 10 ? currentDifficulty.fireInterval * 0.5 : currentDifficulty.fireInterval, // 레벨 10 이상에서는 기본 발사 간격 유지
                 bulletSpeed: currentDifficulty.bulletSpeed,
                 health: currentDifficulty.enemyHealth,
@@ -1849,7 +1851,7 @@ function createEnemy(forceType = null) {
                 bombDropInterval: 2000 + Math.random() * 3000,
                 lastUpdateTime: Date.now(),
                 canFire: true,
-                lastFireTime: 0,
+                    lastFireTime: Date.now() - (gameLevel <= 10 ? currentDifficulty.fireInterval * 0.5 : currentDifficulty.fireInterval), // 즉시 발사 가능하도록 설정
                 fireInterval: gameLevel <= 10 ? currentDifficulty.fireInterval * 0.5 : currentDifficulty.fireInterval,
                 bulletSpeed: currentDifficulty.bulletSpeed,
                 health: currentDifficulty.enemyHealth,
@@ -1903,7 +1905,7 @@ function createEnemy(forceType = null) {
         type: ENEMY_TYPES.PLANE,
         lastUpdateTime: Date.now(),
         canFire: false, // 초기에는 발사 불가능
-        lastFireTime: 0,
+                    lastFireTime: Date.now() - (gameLevel <= 10 ? currentDifficulty.fireInterval * 0.5 : currentDifficulty.fireInterval), // 즉시 발사 가능하도록 설정
         fireInterval: currentDifficulty.fireInterval,
         entryStartTime: Date.now(), // 진입 시작 시간 추가
         entryDelay: 1000 + Math.random() * 2000,
@@ -6498,7 +6500,7 @@ function createHelicopter() {
         bombDropInterval: 2000 + Math.random() * 3000,
         // 헬리콥터 총알 발사를 위한 속성 추가
         canFire: true,
-        lastFireTime: 0,
+                    lastFireTime: Date.now() - (gameLevel <= 10 ? currentDifficulty.fireInterval * 0.5 : currentDifficulty.fireInterval), // 즉시 발사 가능하도록 설정
         fireInterval: 2000 + Math.random() * 2000, // 2-4초 간격으로 총알 발사
         bulletSpeed: 3,
         health: 100 * healthMultiplier,
