@@ -4992,7 +4992,7 @@ const BOSS_SETTINGS = {
     BULLET_SPEED: 4,    // 보스 총알 속도를 3에서 4로 증가
     PATTERN_INTERVAL: 1000, // 1초(1000ms)로 단축 (더 빠른 패턴 발사)
     SPAWN_INTERVAL: 10000,  // 보스 출현 간격 기본 10초
-    MIN_STAY_TIME: 20000,   // 보스 최소 체류 시간 20초로 증가 (더 오래 머물기)
+    MIN_STAY_TIME: 15000,   // 보스 최소 체류 시간 15초로 설정
     // 페이즈 임계값은 동적으로 계산됨
 };
 
@@ -5527,53 +5527,71 @@ function handleBossPattern(boss) {
             console.log('🎯 보스 중앙 도달 - 자동 발사 없이 대기');
         }
         
-        // 🚨 움직임 활성화 조건 개선
+        // 🚨 움직임 활성화 조건 개선 - 화면 내에서 활발한 움직임
         if (boss.movePhase === 1 && !boss.staticMode) {
-            // 🚁 보스 부드러운 움직임 - 떨림 현상 제거 + 자연스러운 움직임
-            // 경계선을 벗어나도 자유롭게 움직임
+            // 🚁 보스 활발한 움직임 - 화면 좌우 여백을 모두 사용하여 지속적으로 움직임
             
             if (typeof boss.centerX !== 'undefined' && typeof boss.hoverHeight !== 'undefined') {
                 const centerX = boss.centerX;
                 const centerY = boss.hoverHeight;
                 
-                // 🚨 떨림 방지를 위한 부드러운 움직임 패턴
+                // 🚨 화면 전체를 활용한 활발한 움직임 패턴
                 const timeFactor = (currentTime - boss.timer) / 1000;
-                const radius = 50;
-                const speed = 0.05;
+                const horizontalRadius = Math.min(200, canvas.width / 2 - boss.width / 2 - 20); // 화면 여백 고려
+                const verticalRadius = 40;
+                const speed = 0.08; // 더 빠른 움직임
                 
-                // 부드러운 원형 움직임 (떨림 없는 자연스러운 패턴)
-                const xOffset = Math.sin(timeFactor * speed) * radius;
-                const yOffset = Math.cos(timeFactor * speed) * (radius * 0.3);
+                // 좌우로 넓게 움직이는 패턴 (화면 여백 최대 활용)
+                const xOffset = Math.sin(timeFactor * speed) * horizontalRadius;
+                const yOffset = Math.cos(timeFactor * speed * 0.5) * verticalRadius;
                 
-                boss.x = centerX + xOffset;
-                boss.y = centerY + yOffset;
+                // 화면 경계 체크 - 화면 밖으로 벗어나지 않도록 제한
+                const newX = centerX + xOffset;
+                const newY = centerY + yOffset;
+                
+                boss.x = Math.max(20, Math.min(canvas.width - boss.width - 20, newX));
+                boss.y = Math.max(50, Math.min(canvas.height - boss.height - 100, newY));
                 
                 boss.x = Math.round(boss.x * 1000) / 1000;
                 boss.y = Math.round(boss.y * 1000) / 1000;
                 
                 if (!boss.lastDebugLog || currentTime - boss.lastDebugLog > 2000) {
-                    console.log('🔍 보스 움직임 디버깅 (부드러운 움직임):', {
+                    console.log('🔍 보스 활발한 움직임 디버깅:', {
                         centerX: Math.round(boss.centerX),
                         hoverHeight: Math.round(boss.hoverHeight),
                         currentX: Math.round(boss.x),
                         currentY: Math.round(boss.y),
                         xOffset: Math.round(xOffset),
                         yOffset: Math.round(yOffset),
+                        horizontalRadius: horizontalRadius,
+                        verticalRadius: verticalRadius,
                         staticMode: boss.staticMode,
-                        movementStatus: '부드러운 원형 움직임',
-                        radius: radius,
+                        movementStatus: '화면 전체 활용 활발한 움직임',
                         speed: speed,
                         timeFactor: Math.round(timeFactor * 100) / 100,
-                        note: '정밀도 향상'
+                        note: '화면 경계 내에서 최대한 넓게 움직임'
                     });
                     boss.lastDebugLog = currentTime;
                 }
             }
         }
         
-        // 화면 경계 체크 단순화
-        const centerX = canvas.width / 2 - boss.width / 2;
-        // 보스 위치는 생성 시 설정값 유지
+        // 추가 움직임 패턴 - 보스가 가만히 있지 않도록 지속적인 움직임
+        if (boss.movePhase === 1) {
+            // 랜덤한 방향 전환으로 더욱 활발한 움직임
+            if (!boss.lastDirectionChange || currentTime - boss.lastDirectionChange > 3000) {
+                boss.movementDirection = Math.random() < 0.5 ? 1 : -1;
+                boss.lastDirectionChange = currentTime;
+                console.log('🔄 보스 움직임 방향 전환:', boss.movementDirection);
+            }
+            
+            // 미세한 추가 움직임으로 정적인 상태 방지
+            const microMovement = Math.sin(currentTime * 0.003) * 2;
+            boss.x += microMovement * (boss.movementDirection || 1);
+            
+            // 화면 경계 재체크
+            boss.x = Math.max(20, Math.min(canvas.width - boss.width - 20, boss.x));
+        }
         
         // 보스 위치 모니터링 및 안전장치 (5초마다)
         if (!boss.lastPositionLog || currentTime - boss.lastPositionLog > 5000) {
