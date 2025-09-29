@@ -5535,22 +5535,29 @@ function handleBossPattern(boss) {
                 const centerX = boss.centerX;
                 const centerY = boss.hoverHeight;
                 
-                // 🚨 화면 전체를 활용한 활발한 움직임 패턴
+                // 🚨 화면 전체를 활용한 활발한 움직임 패턴 (경계 체크 강화)
                 const timeFactor = (currentTime - boss.timer) / 1000;
-                const horizontalRadius = Math.min(200, canvas.width / 2 - boss.width / 2 - 20); // 화면 여백 고려
-                const verticalRadius = 40;
-                const speed = 0.08; // 더 빠른 움직임
+                const maxHorizontalRadius = Math.min(150, (canvas.width - boss.width - 40) / 2); // 안전한 범위로 제한
+                const horizontalRadius = Math.min(maxHorizontalRadius, Math.abs(centerX - (canvas.width / 2 - boss.width / 2)) + 100);
+                const verticalRadius = 30; // 수직 움직임 범위 축소
+                const speed = 0.06; // 안정적인 속도로 조정
                 
                 // 좌우로 넓게 움직이는 패턴 (화면 여백 최대 활용)
                 const xOffset = Math.sin(timeFactor * speed) * horizontalRadius;
                 const yOffset = Math.cos(timeFactor * speed * 0.5) * verticalRadius;
                 
-                // 화면 경계 체크 - 화면 밖으로 벗어나지 않도록 제한
+                // 화면 경계 체크 강화 - 화면 밖으로 벗어나지 않도록 엄격한 제한
                 const newX = centerX + xOffset;
                 const newY = centerY + yOffset;
                 
-                boss.x = Math.max(20, Math.min(canvas.width - boss.width - 20, newX));
-                boss.y = Math.max(50, Math.min(canvas.height - boss.height - 100, newY));
+                // 더 엄격한 경계 체크
+                const minX = 30; // 왼쪽 여백 증가
+                const maxX = canvas.width - boss.width - 30; // 오른쪽 여백 증가
+                const minY = 80; // 상단 여백 증가
+                const maxY = canvas.height - boss.height - 150; // 하단 여백 증가
+                
+                boss.x = Math.max(minX, Math.min(maxX, newX));
+                boss.y = Math.max(minY, Math.min(maxY, newY));
                 
                 boss.x = Math.round(boss.x * 1000) / 1000;
                 boss.y = Math.round(boss.y * 1000) / 1000;
@@ -5576,7 +5583,7 @@ function handleBossPattern(boss) {
             }
         }
         
-        // 추가 움직임 패턴 - 보스가 가만히 있지 않도록 지속적인 움직임
+        // 추가 움직임 패턴 - 보스가 가만히 있지 않도록 지속적인 움직임 (경계 체크 강화)
         if (boss.movePhase === 1) {
             // 랜덤한 방향 전환으로 더욱 활발한 움직임
             if (!boss.lastDirectionChange || currentTime - boss.lastDirectionChange > 3000) {
@@ -5585,24 +5592,52 @@ function handleBossPattern(boss) {
                 console.log('🔄 보스 움직임 방향 전환:', boss.movementDirection);
             }
             
-            // 미세한 추가 움직임으로 정적인 상태 방지
-            const microMovement = Math.sin(currentTime * 0.003) * 2;
-            boss.x += microMovement * (boss.movementDirection || 1);
+            // 미세한 추가 움직임으로 정적인 상태 방지 (경계 체크 포함)
+            const microMovement = Math.sin(currentTime * 0.003) * 1; // 움직임 범위 축소
+            const newX = boss.x + microMovement * (boss.movementDirection || 1);
             
-            // 화면 경계 재체크
-            boss.x = Math.max(20, Math.min(canvas.width - boss.width - 20, boss.x));
+            // 엄격한 화면 경계 재체크
+            const minX = 30;
+            const maxX = canvas.width - boss.width - 30;
+            boss.x = Math.max(minX, Math.min(maxX, newX));
+            
+            // 경계를 벗어났을 때 방향 전환
+            if (boss.x <= minX || boss.x >= maxX) {
+                boss.movementDirection *= -1;
+                console.log('🚫 보스 경계 도달 - 방향 전환:', boss.movementDirection);
+            }
         }
         
-        // 보스 위치 모니터링 및 안전장치 (5초마다)
+        // 보스 위치 모니터링 및 안전장치 (5초마다) - 경계 체크 강화
         if (!boss.lastPositionLog || currentTime - boss.lastPositionLog > 5000) {
-            console.log('📍 보스 위치 모니터링:', {
+            const isOutOfBounds = boss.x < 30 || boss.x > canvas.width - boss.width - 30 || 
+                                 boss.y < 80 || boss.y > canvas.height - boss.height - 150;
+            
+            console.log('📍 보스 위치 모니터링 (경계 체크 강화):', {
                 x: Math.round(boss.x),
                 y: Math.round(boss.y),
                 centerX: Math.round(boss.centerX || 0),
                 hoverHeight: Math.round(boss.hoverHeight || 0),
                 phase: boss.phase,
-                movePhase: boss.movePhase
+                movePhase: boss.movementDirection || 0,
+                isOutOfBounds: isOutOfBounds,
+                canvasWidth: canvas.width,
+                canvasHeight: canvas.height,
+                bossWidth: boss.width,
+                bossHeight: boss.height,
+                minX: 30,
+                maxX: canvas.width - boss.width - 30,
+                minY: 80,
+                maxY: canvas.height - boss.height - 150
             });
+            
+            // 경계를 벗어났을 때 강제로 화면 내로 이동
+            if (isOutOfBounds) {
+                console.log('⚠️ 보스가 화면을 벗어남 - 강제 복구 실행');
+                boss.x = Math.max(30, Math.min(canvas.width - boss.width - 30, boss.x));
+                boss.y = Math.max(80, Math.min(canvas.height - boss.height - 150, boss.y));
+            }
+            
             boss.lastPositionLog = currentTime;
         }
         
