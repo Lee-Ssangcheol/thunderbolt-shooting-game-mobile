@@ -7615,8 +7615,8 @@ function bossFireSpreadShot(boss) {
             break;
         }
         case 'aimed_burst': {
-            // 플레이어 조준 중심의 좁은 확산
-            const halfSpread = Math.max(Math.PI / 12, Math.PI / (10 - Math.min(clampedLevel, 8))); // 레벨 높을수록 좁아짐
+            // 플레이어 조준 중심의 좁은 확산 (레벨 제한 해제)
+            const halfSpread = Math.PI / 8; // 고정된 확산 각도
             const localCount = Math.min(bulletCount, 20);
             for (let i = 0; i < localCount; i++) {
                 const t = localCount === 1 ? 0 : (i / (localCount - 1));
@@ -7631,8 +7631,8 @@ function bossFireSpreadShot(boss) {
             break;
         }
         case 'multi_ring': {
-            // 2~3개 링으로 동시 발사 (속도/오프셋 차등)
-            const rings = clampedLevel >= 8 ? 3 : 2;
+            // 3개 링으로 동시 발사 (속도/오프셋 차등) - 레벨 제한 해제
+            const rings = 3; // 고정된 링 수
             for (let r = 0; r < rings; r++) {
                 const ringCount = Math.floor(bulletCount / (r === 0 ? 2 : 3));
                 const ringOffset = startAngle + (r * (Math.PI / rings));
@@ -7649,8 +7649,8 @@ function bossFireSpreadShot(boss) {
             break;
         }
         case 'arc_sweep': {
-            // 큰 호(arc) 형태로 촘촘하게 발사
-            const arcWidth = Math.min(twoPI * 0.75, Math.PI * (0.4 + clampedLevel * 0.05)); // 레벨↑ -> 더 넓은 호
+            // 큰 호(arc) 형태로 촘촘하게 발사 (레벨 제한 해제)
+            const arcWidth = Math.PI * 0.6; // 고정된 호 폭
             const localCount = Math.min(bulletCount + 6, 40);
             for (let i = 0; i < localCount; i++) {
                 const t = localCount === 1 ? 0 : (i / (localCount - 1));
@@ -7665,9 +7665,9 @@ function bossFireSpreadShot(boss) {
             break;
         }
         case 'spiral_burst': {
-            // 스파이럴 성분을 섞은 확산 (한 번에 회전 편향)
+            // 스파이럴 성분을 섞은 확산 (한 번에 회전 편향) - 레벨 제한 해제
             const angleStep = twoPI / bulletCount;
-            const spiralBias = 0.08 + Math.min(0.18, clampedLevel * 0.01);
+            const spiralBias = 0.15; // 고정된 스파이럴 편향
             for (let i = 0; i < bulletCount; i++) {
                 const angle = startAngle + i * angleStep + i * spiralBias;
                 const b = createBossBullet(boss, angle, 'spiral');
@@ -7703,7 +7703,7 @@ function bossFireSpreadShot(boss) {
         }
     }
     
-    // 추가: 플레이어 조준 탄 1발 (가시성 강화)
+    // 추가: 플레이어 조준 탄 1발 (가시성 강화) - 레벨 제한 해제
     {
         const ex = bossX;
         const ey = bossY;
@@ -7712,7 +7712,7 @@ function bossFireSpreadShot(boss) {
             x: ex,
             y: ey,
             angle: ha,
-            speed: 7 + Math.min(3, clampedLevel * 0.2),
+            speed: 8, // 고정된 속도
             width: 36,
             height: 8,
             isBossBullet: true
