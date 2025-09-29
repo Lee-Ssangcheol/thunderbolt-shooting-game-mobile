@@ -7722,42 +7722,28 @@ function bossFireSpreadShot(boss) {
 
 // 원형 샷 패턴
 function bossFireCircleShot(boss) {
-    const currentTime = Date.now();
-    if (currentTime - boss.lastShot >= 1000) {  // 1초마다 발사
-        // 원형으로 발사 (8개 총알)
-        for (let i = 0; i < 8; i++) {
-            const angle = (Math.PI * 2 / 8) * i;
-            createBossBullet(boss, angle, 'circle_shot');
-        }
-        boss.lastShot = currentTime;
+    // 원형으로 발사 (8개 총알)
+    for (let i = 0; i < 8; i++) {
+        const angle = (Math.PI * 2 / 8) * i;
+        createBossBullet(boss, angle, 'circle_shot');
     }
 }
 
 // 십자 샷 패턴
 function bossFireCrossShot(boss) {
-    const currentTime = Date.now();
-    if (currentTime - boss.lastShot >= 1200) {  // 1.2초마다 발사
-        // 십자 모양으로 발사 (4개 총알)
-        const crossAngles = [0, Math.PI/2, Math.PI, Math.PI*3/2];
-        crossAngles.forEach(angle => {
-            createBossBullet(boss, angle, 'cross_shot');
-        });
-        boss.lastShot = currentTime;
-    }
+    // 십자 모양으로 발사 (4개 총알)
+    const crossAngles = [0, Math.PI/2, Math.PI, Math.PI*3/2];
+    crossAngles.forEach(angle => {
+        createBossBullet(boss, angle, 'cross_shot');
+    });
 }
 
 // 나선 샷 패턴
 function bossFireSpiralShot(boss) {
-    const currentTime = Date.now();
-    if (currentTime - boss.lastShot >= 300) {  // 0.3초마다 발사
-        createBossBullet(boss, boss.patternAngle || 0, 'spiral_shot');
-        boss.patternAngle = (boss.patternAngle || 0) + Math.PI / 6;  // 30도씩 회전
-        boss.lastShot = currentTime;
-        
-        // 나선 패턴이 한 바퀴 완료되면 초기화
-        if (boss.patternAngle >= Math.PI * 2) {
-            boss.patternAngle = 0;
-        }
+    // 나선 모양으로 발사 (12개 총알)
+    for (let i = 0; i < 12; i++) {
+        const angle = (Math.PI * 2 / 12) * i;
+        createBossBullet(boss, angle, 'spiral_shot');
     }
 }
 
@@ -7776,27 +7762,19 @@ function bossFireWaveShot(boss) {
 
 // 다이아몬드 샷 패턴
 function bossFireDiamondShot(boss) {
-    const currentTime = Date.now();
-    if (currentTime - boss.lastShot >= 1000) {  // 1초마다 발사
-        // 다이아몬드 모양으로 발사 (4개 총알)
-        const diamondAngles = [Math.PI/4, Math.PI*3/4, Math.PI*5/4, Math.PI*7/4];
-        diamondAngles.forEach(angle => {
-            createBossBullet(boss, angle, 'diamond_shot');
-        });
-        boss.lastShot = currentTime;
-    }
+    // 다이아몬드 모양으로 발사 (4개 총알)
+    const diamondAngles = [Math.PI/4, Math.PI*3/4, Math.PI*5/4, Math.PI*7/4];
+    diamondAngles.forEach(angle => {
+        createBossBullet(boss, angle, 'diamond_shot');
+    });
 }
 
 // 랜덤 확산 패턴
 function bossFireRandomSpreadShot(boss) {
-    const currentTime = Date.now();
-    if (currentTime - boss.lastShot >= 600) {  // 0.6초마다 발사
-        // 랜덤 각도로 발사 (6개 총알)
-        for (let i = 0; i < 6; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            createBossBullet(boss, angle, 'random_spread');
-        }
-        boss.lastShot = currentTime;
+    // 랜덤 각도로 발사 (6개 총알)
+    for (let i = 0; i < 6; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        createBossBullet(boss, angle, 'random_spread');
     }
 }
 
@@ -7819,16 +7797,12 @@ function bossFireDoubleSpiralShot(boss) {
 
 // 삼중 파도 패턴
 function bossFireTripleWaveShot(boss) {
-    const currentTime = Date.now();
-    if (currentTime - boss.lastShot >= 900) {  // 0.9초마다 발사
-        // 세 개의 파도로 발사 (각각 3개 총알)
-        for (let wave = 0; wave < 3; wave++) {
-            for (let i = 0; i < 3; i++) {
-                const angle = (Math.PI / 6) * i + (wave * Math.PI / 3);
-                createBossBullet(boss, angle, 'triple_wave');
-            }
+    // 세 개의 파도로 발사 (각각 3개 총알)
+    for (let wave = 0; wave < 3; wave++) {
+        for (let i = 0; i < 3; i++) {
+            const angle = (Math.PI / 6) * i + (wave * Math.PI / 3);
+            createBossBullet(boss, angle, 'triple_wave');
         }
-        boss.lastShot = currentTime;
     }
 }
 
@@ -7849,65 +7823,49 @@ function bossFireTargetedShot(boss) {
 
 // 폭발 샷 패턴
 function bossFireBurstShot(boss) {
-    const currentTime = Date.now();
-    if (currentTime - boss.lastShot >= 2000) {  // 2초마다 발사
-        // 폭발 모양으로 발사 (16개 총알)
-        for (let i = 0; i < 16; i++) {
-            const angle = (Math.PI * 2 / 16) * i;
-            createBossBullet(boss, angle, 'burst_shot');
-        }
-        boss.lastShot = currentTime;
+    // 폭발 모양으로 발사 (16개 총알)
+    for (let i = 0; i < 16; i++) {
+        const angle = (Math.PI * 2 / 16) * i;
+        createBossBullet(boss, angle, 'burst_shot');
     }
 }
 
 // 하트 샷 패턴
 function bossFireHeartShot(boss) {
-    const currentTime = Date.now();
-    if (currentTime - boss.lastShot >= 800) {  // 0.8초마다 발사
-        // 하트 모양으로 발사 (8개 총알)
-        const heartAngles = [
-            Math.PI / 2,           // 위
-            Math.PI / 2 + Math.PI / 6,  // 위-오른쪽
-            Math.PI / 2 - Math.PI / 6,  // 위-왼쪽
-            Math.PI / 3,           // 오른쪽-위
-            Math.PI - Math.PI / 3, // 왼쪽-위
-            Math.PI / 4,           // 오른쪽
-            Math.PI - Math.PI / 4, // 왼쪽
-            Math.PI / 2 + Math.PI / 4  // 아래-오른쪽
-        ];
-        heartAngles.forEach(angle => {
-            createBossBullet(boss, angle, 'heart_shot');
-        });
-        boss.lastShot = currentTime;
-    }
+    // 하트 모양으로 발사 (8개 총알)
+    const heartAngles = [
+        Math.PI / 2,           // 위
+        Math.PI / 2 + Math.PI / 6,  // 위-오른쪽
+        Math.PI / 2 - Math.PI / 6,  // 위-왼쪽
+        Math.PI / 3,           // 오른쪽-위
+        Math.PI - Math.PI / 3, // 왼쪽-위
+        Math.PI / 4,           // 오른쪽
+        Math.PI - Math.PI / 4, // 왼쪽
+        Math.PI / 2 + Math.PI / 4  // 아래-오른쪽
+    ];
+    heartAngles.forEach(angle => {
+        createBossBullet(boss, angle, 'heart_shot');
+    });
 }
 
 // 별 샷 패턴
 function bossFireStarShot(boss) {
-    const currentTime = Date.now();
-    if (currentTime - boss.lastShot >= 600) {  // 0.6초마다 발사
-        // 별 모양으로 발사 (5개 총알)
-        for (let i = 0; i < 5; i++) {
-            const angle = (Math.PI * 2 / 5) * i + Math.PI / 2;
-            createBossBullet(boss, angle, 'star_shot');
-        }
-        boss.lastShot = currentTime;
+    // 별 모양으로 발사 (5개 총알)
+    for (let i = 0; i < 5; i++) {
+        const angle = (Math.PI * 2 / 5) * i + Math.PI / 2;
+        createBossBullet(boss, angle, 'star_shot');
     }
 }
 
 // 꽃 샷 패턴
 function bossFireFlowerShot(boss) {
-    const currentTime = Date.now();
-    if (currentTime - boss.lastShot >= 500) {  // 0.5초마다 발사
-        // 꽃 모양으로 발사 (6개 총알)
-        for (let i = 0; i < 6; i++) {
-            const angle = (Math.PI * 2 / 6) * i;
-            createBossBullet(boss, angle, 'flower_shot');
-        }
-        // 중앙에 추가 발사
-        createBossBullet(boss, Math.PI / 2, 'flower_shot');
-        boss.lastShot = currentTime;
+    // 꽃 모양으로 발사 (6개 총알)
+    for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI * 2 / 6) * i;
+        createBossBullet(boss, angle, 'flower_shot');
     }
+    // 중앙에 추가 발사
+    createBossBullet(boss, Math.PI / 2, 'flower_shot');
 }
 
 // 나비 샷 패턴
