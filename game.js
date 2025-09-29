@@ -3005,8 +3005,8 @@ function handleEnemies() {
         resetBossState();
     }
     
-    // 보스 생성 조건 추가 - 게임이 시작된 후에만 보스 생성
-    if (gameStarted && score >= 2000 * gameLevel && !isBossActive && !bossExists) {
+    // 보스 생성 조건 추가 - 게임이 시작된 후에만 보스 생성 (점수 제한 해제)
+    if (gameStarted && !isBossActive && !bossExists) {
         console.log('보스 생성 조건 충족, 보스 생성 시도');
         createBoss();
     }
@@ -5070,14 +5070,14 @@ const BOSS_PATTERNS = {
 // 게임 상태 변수에 추가
 let lastBossSpawnTime = Date.now();  // 마지막 보스 출현 시간을 현재 시간으로 초기화
 
-// 보스 체력을 5000으로 고정하는 함수
+// 보스 체력을 3000으로 고정하는 함수
 function calculateBossHealth() {
-    const fixedHealth = 5000; // 보스 체력을 5000으로 고정
+    const fixedHealth = 3000; // 보스 체력을 3000으로 고정
     
     console.log('보스 체력 고정:', {
         gameLevel: gameLevel,
         fixedHealth: fixedHealth,
-        note: '모든 레벨에서 보스 체력 5000으로 고정'
+        note: '모든 레벨에서 보스 체력 3000으로 고정'
     });
     
     return fixedHealth;
@@ -5092,62 +5092,18 @@ function calculateBossPhaseThresholds(bossHealth) {
     ];
 }
 
-// 보스 파괴에 필요한 hitCount를 동적으로 계산하는 함수
+// 보스 파괴에 필요한 hitCount를 고정하는 함수 (레벨 제한 해제)
 function calculateBossHitCount(bossHealth) {
-    // 게임 레벨에 따른 비선형적 난이도 증가 적용
-    const baseHitCount = 60; // 기본 60발로 증가 (레벨 1에서도 도전적)
+    // 고정된 hitCount 설정 (레벨 제한 해제)
+    const fixedHitCount = 80; // 모든 레벨에서 고정된 hitCount
     
-    // 레벨별 난이도 계수 (비선형적 증가)
-    let levelMultiplier;
-    if (gameLevel <= 1) {
-        levelMultiplier = 1.0; // 레벨 1: 기본 난이도
-    } else if (gameLevel <= 3) {
-        levelMultiplier = 1.5 + (gameLevel - 1) * 0.3; // 레벨 2-3: 점진적 증가
-    } else if (gameLevel <= 5) {
-        levelMultiplier = 2.2 + (gameLevel - 3) * 0.4; // 레벨 4-5: 급격한 증가
-    } else {
-        levelMultiplier = 3.0 + (gameLevel - 5) * 0.5; // 레벨 6+: 극한 난이도
-    }
-    
-    // 체력과 레벨을 모두 고려한 hitCount 계산
-    const healthMultiplier = bossHealth / BOSS_SETTINGS.BASE_HEALTH; // 체력 비율
-    const calculatedHitCount = Math.floor(baseHitCount * levelMultiplier * healthMultiplier);
-    
-    // 최소 60발, 최대 150발로 제한 (극한 난이도 지원)
-    const finalHitCount = Math.max(60, Math.min(150, calculatedHitCount));
-    
-    // 패턴 발사 보장을 위한 초기 지연 시간 적용
-    const bossSpawnTime = Date.now();
-    const timeSinceSpawn = bossSpawnTime - lastBossSpawnTime;
-    const minPatternTime = 5000; // 최소 5초간 패턴 발사 보장
-    
-    // 초기 5초 동안은 hit 카운트 요구량을 50% 증가시켜 패턴 발사 시간 확보
-    let adjustedHitCount = finalHitCount;
-    if (timeSinceSpawn < minPatternTime) {
-        const timeBonus = 1.0 + (minPatternTime - timeSinceSpawn) / minPatternTime * 0.5;
-        adjustedHitCount = Math.floor(finalHitCount * timeBonus);
-        console.log('⏰ 초기 패턴 발사 보장을 위한 hit 카운트 조정:', {
-            timeSinceSpawn: timeSinceSpawn,
-            minPatternTime: minPatternTime,
-            originalHitCount: finalHitCount,
-            adjustedHitCount: adjustedHitCount,
-            timeBonus: timeBonus
-        });
-    }
-    
-    console.log('보스 hitCount 계산 (비선형적 난이도 증가 + 패턴 발사 보장):', {
-        bossHealth: bossHealth,
+    console.log('보스 hitCount 고정:', {
         gameLevel: gameLevel,
-        baseHitCount: baseHitCount,
-        levelMultiplier: levelMultiplier,
-        healthMultiplier: healthMultiplier,
-        calculatedHitCount: calculatedHitCount,
-        finalHitCount: finalHitCount,
-        adjustedHitCount: adjustedHitCount,
-        timeSinceSpawn: timeSinceSpawn
+        fixedHitCount: fixedHitCount,
+        note: '모든 레벨에서 보스 hitCount 80으로 고정'
     });
     
-    return adjustedHitCount;
+    return fixedHitCount;
 }
 
 // 보스 생성 함수 수정
@@ -7619,19 +7575,17 @@ function hexToRgb(hex) {
 
 // 보스 발사 패턴 함수들
 function bossFireSpreadShot(boss) {
-    // 확산탄 패턴: 레벨에 따라 난이도/다양성 증가
+    // 확산탄 패턴: 레벨 제한 해제 - 모든 레벨에서 동일한 난이도
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     const px = player.x + player.width/2;
     const py = player.y + player.height/2;
     const aimAngle = Math.atan2(py - bossY, px - bossX);
     
-    // 난이도/가중치 계산
-    const clampedLevel = Math.max(1, Math.min(gameLevel || 1, 20));
-    const levelFactor = 1 + (clampedLevel - 1) * 0.12; // 1.0 ~ 2.28
-    const baseCount = 10 + Math.floor(clampedLevel * 1.2); // 11~34
-    const bulletCount = Math.max(12, Math.min(36, baseCount));
-    const baseSpeedScale = 0.9 + (clampedLevel * 0.05); // 0.95~1.9
+    // 고정된 난이도 설정 (레벨 제한 해제)
+    const levelFactor = 1.0; // 모든 레벨에서 동일한 난이도
+    const bulletCount = 20; // 고정된 총알 수
+    const baseSpeedScale = 1.0; // 고정된 속도
     
     // 서브 패턴 선택 (최근 서브패턴과 중복 최소화)
     const variants = ['random_ring','aimed_burst','multi_ring','arc_sweep','spiral_burst','alternating_speed'];
