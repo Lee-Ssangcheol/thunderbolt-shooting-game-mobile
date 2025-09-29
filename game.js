@@ -5039,7 +5039,7 @@ const BOSS_SETTINGS = {
     DAMAGE: 50,          // 보스 총알 데미지
     SPEED: 2.0,         // 보스 이동 속도를 2.0으로 조정 (적당한 속도)
     BULLET_SPEED: 4,    // 보스 총알 속도를 3에서 4로 증가
-    PATTERN_INTERVAL: 1000, // 1초(1000ms)로 단축 (더 빠른 패턴 발사)
+    PATTERN_INTERVAL: 800, // 0.8초(800ms)로 단축 (더 빠른 패턴 발사)
     SPAWN_INTERVAL: 10000,  // 보스 출현 간격 기본 10초
     MIN_STAY_TIME: 15000,   // 보스 최소 체류 시간 15초로 설정
     // 페이즈 임계값은 동적으로 계산됨
@@ -5261,32 +5261,28 @@ function createBoss() {
             status: '단순하고 확실한 움직임 - 매 프레임 움직임'
         });
     
-    // 스폰 즉시 1회 패턴 발사 (랜덤/비중복 규칙 준수)
+    // 스폰 즉시 1회 패턴 발사 (개선된 비중복 규칙)
     try {
-        if (!Array.isArray(boss.patternBag)) {
-            boss.patternBag = [];
-        }
         const availablePatterns = [
             'basic', 'circle_shot', 'cross_shot', 'spiral_shot', 'diamond_shot', 'random_spread',
             'triple_wave', 'windmill_shot', 'gear_shot', 'heart_shot', 'star_shot', 'flower_shot',
             'ice_shot', 'burst_shot', 'snowflake_shot', 'moon_shot', 'rectangle_shot', 'pentagon_shot'
         ];
-        if (boss.patternBag.length === 0) {
-            const bag = availablePatterns.slice();
-            for (let i = bag.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                const temp = bag[i];
-                bag[i] = bag[j];
-                bag[j] = temp;
-            }
-            if (boss.lastPattern && bag[0] === boss.lastPattern && bag.length > 1) {
-                const first = bag.shift();
-                bag.push(first);
-            }
-            boss.patternBag = bag;
-        }
-        const selectedPattern = boss.patternBag.shift();
+        
+        // 첫 패턴은 랜덤 선택
+        const selectedPattern = availablePatterns[Math.floor(Math.random() * availablePatterns.length)];
         boss.lastPattern = selectedPattern;
+        
+        // 최근 패턴 기록 초기화
+        boss.recentPatterns = [selectedPattern];
+        
+        // 패턴 사용 횟수 초기화
+        boss.patternUsageCount = {};
+        availablePatterns.forEach(pattern => {
+            boss.patternUsageCount[pattern] = 0;
+        });
+        boss.patternUsageCount[selectedPattern] = 1; // 첫 패턴 사용 횟수 설정
+        
         console.log('🚀 보스 스폰 즉시 패턴 발사:', { selectedPattern });
         switch (selectedPattern) {
             case 'basic':
@@ -5656,32 +5652,80 @@ function handleBossPattern(boss) {
     
     if (currentTime - boss.patternTimer >= adjustedInterval) {
         boss.patternTimer = currentTime;
-        // 1초 간격 랜덤 비중복(셔플백) 패턴 실행
+        // 1초 간격 랜덤 비중복 패턴 실행 - 개선된 로직
         const availablePatterns = [
             'basic', 'circle_shot', 'cross_shot', 'spiral_shot', 'diamond_shot', 'random_spread',
             'triple_wave', 'windmill_shot', 'gear_shot', 'heart_shot', 'star_shot', 'flower_shot',
             'ice_shot', 'burst_shot', 'snowflake_shot', 'moon_shot', 'rectangle_shot', 'pentagon_shot'
         ];
-        if (!Array.isArray(boss.patternBag)) {
-            boss.patternBag = [];
+        
+        // 패턴 선택 개선: 가중치 기반 선택으로 더욱 골고루 분산
+        let selectedPattern;
+        let attempts = 0;
+        const maxAttempts = 100; // 무한 루프 방지
+        
+        // 패턴 사용 횟수 초기화
+        if (!boss.patternUsageCount) {
+            boss.patternUsageCount = {};
+            availablePatterns.forEach(pattern => {
+                boss.patternUsageCount[pattern] = 0;
+            });
         }
-        if (boss.patternBag.length === 0) {
-            const bag = availablePatterns.slice();
-            for (let i = bag.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                const temp = bag[i];
-                bag[i] = bag[j];
-                bag[j] = temp;
+        
+        do {
+            // 가중치 기반 선택: 사용 횟수가 적을수록 높은 가중치
+            const weights = availablePatterns.map(pattern => {
+                const usageCount = boss.patternUsageCount[pattern] || 0;
+                const minUsage = Math.min(...Object.values(boss.patternUsageCount));
+                return Math.max(1, 10 - (usageCount - minUsage)); // 사용 횟수가 적을수록 높은 가중치
+            });
+            
+            // 가중치 합계 계산
+            const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+            let randomValue = Math.random() * totalWeight;
+            
+            // 가중치에 따라 패턴 선택
+            for (let i = 0; i < availablePatterns.length; i++) {
+                randomValue -= weights[i];
+                if (randomValue <= 0) {
+                    selectedPattern = availablePatterns[i];
+                    break;
+                }
             }
-            if (boss.lastPattern && bag[0] === boss.lastPattern && bag.length > 1) {
-                const first = bag.shift();
-                bag.push(first);
+            
+            attempts++;
+            
+            // 최근 패턴과 중복되지 않으면 선택
+            if (!boss.recentPatterns || !boss.recentPatterns.includes(selectedPattern)) {
+                break;
             }
-            boss.patternBag = bag;
+            
+            // 최대 시도 횟수에 도달하면 강제로 선택
+            if (attempts >= maxAttempts) {
+                console.log('⚠️ 패턴 선택 최대 시도 횟수 도달, 강제 선택:', selectedPattern);
+                break;
+            }
+        } while (attempts < maxAttempts);
+        
+        // 선택된 패턴의 사용 횟수 증가
+        boss.patternUsageCount[selectedPattern]++;
+        
+        // 최근 패턴 기록 업데이트 (최근 5개만 유지)
+        if (!boss.recentPatterns) {
+            boss.recentPatterns = [];
         }
-        const selectedPattern = boss.patternBag.shift();
+        boss.recentPatterns.push(selectedPattern);
+        if (boss.recentPatterns.length > 5) {
+            boss.recentPatterns.shift(); // 가장 오래된 패턴 제거
+        }
+        
         boss.lastPattern = selectedPattern;
-        console.log('🎲 보스 패턴 선택(1초 랜덤/비중복):', { selectedPattern, bagSize: boss.patternBag.length });
+        console.log('🎲 보스 패턴 선택(가중치 기반 비중복):', { 
+            selectedPattern, 
+            recentPatterns: boss.recentPatterns,
+            usageCount: boss.patternUsageCount[selectedPattern],
+            attempts: attempts 
+        });
 
         try {
             switch (selectedPattern) {
