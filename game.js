@@ -5305,11 +5305,12 @@ function createBoss() {
             status: '단순하고 확실한 움직임 - 매 프레임 움직임'
         });
     
-    // 스폰 즉시 1회 패턴 발사 (강화된 중복 방지)
+    // 스폰 즉시 1회 패턴 발사 (그룹 기반 다양성 보장)
     try {
         // 패턴 백 및 최근 패턴 기록 초기화
         boss.patternBag = [];
         boss.recentPatterns = [];
+        boss.recentGroups = [];
         boss.lastPattern = null;
         
         const availablePatterns = [
@@ -5318,15 +5319,39 @@ function createBoss() {
             'ice_shot', 'burst_shot', 'snowflake_shot', 'moon_shot', 'rectangle_shot', 'pentagon_shot'
         ];
         
-        // 첫 패턴은 완전 랜덤 선택
-        const selectedPattern = availablePatterns[Math.floor(Math.random() * availablePatterns.length)];
+        // 패턴 그룹 정의
+        const patternGroups = {
+            'basic_patterns': ['basic', 'circle_shot', 'random_spread'],
+            'geometric_patterns': ['cross_shot', 'diamond_shot', 'rectangle_shot', 'pentagon_shot'],
+            'spiral_patterns': ['spiral_shot', 'windmill_shot', 'gear_shot'],
+            'organic_patterns': ['heart_shot', 'star_shot', 'flower_shot'],
+            'special_patterns': ['triple_wave', 'ice_shot', 'burst_shot', 'snowflake_shot', 'moon_shot']
+        };
+        
+        // 첫 패턴은 모든 그룹에서 랜덤 선택
+        const allGroups = Object.values(patternGroups).flat();
+        const selectedPattern = allGroups[Math.floor(Math.random() * allGroups.length)];
+        
+        // 선택된 패턴의 그룹 찾기
+        let selectedGroup = null;
+        for (const [groupKey, patterns] of Object.entries(patternGroups)) {
+            if (patterns.includes(selectedPattern)) {
+                selectedGroup = groupKey;
+                break;
+            }
+        }
+        
         boss.lastPattern = selectedPattern;
         boss.recentPatterns.push(selectedPattern);
+        if (selectedGroup) {
+            boss.recentGroups.push(selectedGroup);
+        }
         
-        console.log('🚀 보스 스폰 즉시 패턴 발사 (완전 랜덤):', { 
+        console.log('🚀 보스 스폰 즉시 패턴 발사 (그룹 기반):', { 
             selectedPattern,
+            selectedGroup: selectedGroup,
             totalPatterns: availablePatterns.length,
-            note: '첫 패턴은 완전 랜덤 선택'
+            note: '첫 패턴은 모든 그룹에서 랜덤 선택'
         });
         switch (selectedPattern) {
             case 'basic':
@@ -5666,8 +5691,8 @@ function handleBossPattern(boss) {
         }
     }
     
-    // 공격 패턴 - 0.8초 간격으로 단축 (더 빠른 패턴 변화)
-    const baseInterval = 800;
+    // 공격 패턴 - 0.6초 간격으로 더욱 단축 (매우 빠른 패턴 변화)
+    const baseInterval = 600;
     const adjustedInterval = baseInterval;
     
     // 패턴 타이머 초기화 보장
@@ -5696,12 +5721,21 @@ function handleBossPattern(boss) {
     
     if (currentTime - boss.patternTimer >= adjustedInterval) {
         boss.patternTimer = currentTime;
-        // 1초 간격 랜덤 비중복 패턴 실행 - 강화된 중복 방지
+        // 0.8초 간격 랜덤 비중복 패턴 실행 - 패턴 그룹 기반 다양성 보장
         const availablePatterns = [
             'basic', 'circle_shot', 'cross_shot', 'spiral_shot', 'diamond_shot', 'random_spread',
             'triple_wave', 'windmill_shot', 'gear_shot', 'heart_shot', 'star_shot', 'flower_shot',
             'ice_shot', 'burst_shot', 'snowflake_shot', 'moon_shot', 'rectangle_shot', 'pentagon_shot'
         ];
+        
+        // 패턴 그룹 정의 (유사한 패턴들을 그룹화)
+        const patternGroups = {
+            'basic_patterns': ['basic', 'circle_shot', 'random_spread'],
+            'geometric_patterns': ['cross_shot', 'diamond_shot', 'rectangle_shot', 'pentagon_shot'],
+            'spiral_patterns': ['spiral_shot', 'windmill_shot', 'gear_shot'],
+            'organic_patterns': ['heart_shot', 'star_shot', 'flower_shot'],
+            'special_patterns': ['triple_wave', 'ice_shot', 'burst_shot', 'snowflake_shot', 'moon_shot']
+        };
         
         // 패턴 백 초기화 및 관리
         if (!Array.isArray(boss.patternBag)) {
@@ -5710,34 +5744,45 @@ function handleBossPattern(boss) {
         if (!Array.isArray(boss.recentPatterns)) {
             boss.recentPatterns = [];
         }
+        if (!Array.isArray(boss.recentGroups)) {
+            boss.recentGroups = [];
+        }
         
         // 패턴 백이 비어있으면 새로 생성
         if (boss.patternBag.length === 0) {
-            // 최근 사용된 패턴들을 제외한 패턴들로 새 백 생성
-            const recentCount = Math.min(3, availablePatterns.length - 1); // 최근 3개 패턴 제외
-            const excludedPatterns = boss.recentPatterns.slice(-recentCount);
-            const availableForBag = availablePatterns.filter(pattern => !excludedPatterns.includes(pattern));
+            // 최근 사용된 그룹들을 제외한 그룹들 선택
+            const recentGroupCount = Math.min(2, Object.keys(patternGroups).length - 1);
+            const excludedGroups = boss.recentGroups.slice(-recentGroupCount);
             
-            // 사용 가능한 패턴이 부족하면 전체 패턴 사용
-            const patternsToUse = availableForBag.length >= 5 ? availableForBag : availablePatterns;
+            // 각 그룹에서 최소 1개씩 패턴 선택
+            const selectedPatterns = [];
+            const groupKeys = Object.keys(patternGroups);
             
-            // Fisher-Yates 셔플 알고리즘
-            const bag = patternsToUse.slice();
-            for (let i = bag.length - 1; i > 0; i--) {
+            for (const groupKey of groupKeys) {
+                if (!excludedGroups.includes(groupKey)) {
+                    const groupPatterns = patternGroups[groupKey];
+                    const randomPattern = groupPatterns[Math.floor(Math.random() * groupPatterns.length)];
+                    selectedPatterns.push(randomPattern);
+                }
+            }
+            
+            // 남은 패턴들로 백 채우기
+            const remainingPatterns = availablePatterns.filter(pattern => !selectedPatterns.includes(pattern));
+            const shuffledRemaining = [...remainingPatterns];
+            
+            // Fisher-Yates 셔플
+            for (let i = shuffledRemaining.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
-                [bag[i], bag[j]] = [bag[j], bag[i]];
+                [shuffledRemaining[i], shuffledRemaining[j]] = [shuffledRemaining[j], shuffledRemaining[i]];
             }
             
-            // 마지막 패턴과 첫 번째 패턴이 같으면 순서 조정
-            if (boss.lastPattern && bag[0] === boss.lastPattern && bag.length > 1) {
-                const firstPattern = bag.shift();
-                bag.push(firstPattern);
-            }
+            // 선택된 패턴들을 앞에 배치하고 나머지 패턴들 추가
+            boss.patternBag = [...selectedPatterns, ...shuffledRemaining];
             
-            boss.patternBag = bag;
-            console.log('🎲 새로운 패턴 백 생성:', {
+            console.log('🎲 패턴 그룹 기반 백 생성:', {
+                selectedPatterns: selectedPatterns,
+                excludedGroups: excludedGroups,
                 bagSize: boss.patternBag.length,
-                excludedPatterns: excludedPatterns,
                 bagContents: boss.patternBag
             });
         }
@@ -5745,18 +5790,35 @@ function handleBossPattern(boss) {
         // 패턴 선택
         const selectedPattern = boss.patternBag.shift();
         
-        // 최근 패턴 기록 업데이트
+        // 선택된 패턴의 그룹 찾기
+        let selectedGroup = null;
+        for (const [groupKey, patterns] of Object.entries(patternGroups)) {
+            if (patterns.includes(selectedPattern)) {
+                selectedGroup = groupKey;
+                break;
+            }
+        }
+        
+        // 최근 패턴 및 그룹 기록 업데이트
         boss.recentPatterns.push(selectedPattern);
-        if (boss.recentPatterns.length > 5) { // 최근 5개만 유지
+        if (boss.recentPatterns.length > 8) { // 최근 8개만 유지
             boss.recentPatterns.shift();
         }
         
+        if (selectedGroup) {
+            boss.recentGroups.push(selectedGroup);
+            if (boss.recentGroups.length > 4) { // 최근 4개 그룹만 유지
+                boss.recentGroups.shift();
+            }
+        }
+        
         boss.lastPattern = selectedPattern;
-        console.log('🎲 보스 패턴 선택(강화된 중복 방지):', { 
+        console.log('🎲 보스 패턴 선택(그룹 기반 다양성):', { 
             selectedPattern, 
+            selectedGroup: selectedGroup,
             bagSize: boss.patternBag.length,
-            recentPatterns: boss.recentPatterns,
-            lastPattern: boss.lastPattern
+            recentPatterns: boss.recentPatterns.slice(-3),
+            recentGroups: boss.recentGroups.slice(-2)
         });
 
         try {
