@@ -2125,6 +2125,15 @@ function handleEnemyMissiles() {
 // 적 위치 업데이트 함수 수정
 function updateEnemyPosition(enemy, options = {}) {
     if (!enemy) return;
+    
+    // 🚨 보스는 별도의 움직임 로직을 사용하므로 여기서는 위치 변경하지 않음
+    if (enemy.isBoss) {
+        // 보스의 경우 로터 회전만 업데이트하고 위치는 변경하지 않음
+        if (typeof enemy.rotorAngle !== 'undefined' && typeof enemy.rotorSpeed !== 'undefined') {
+            enemy.rotorAngle += enemy.rotorSpeed;
+        }
+        return; // 보스의 위치 변경은 별도 로직에서 처리
+    }
 
     const currentTime = Date.now();
     const deltaTime = currentTime - enemy.lastUpdateTime;
@@ -2721,9 +2730,49 @@ function gameLoop() {
             // 보스가 존재하는 경우 보스 패턴 처리 (호출 빈도 제한)
             const boss = enemies.find(enemy => enemy.isBoss);
             if (boss && boss.health > 0 && typeof boss === 'object' && !bossDestroyed) {
+                // 🚨 보스 활발한 움직임 로직 - 보호막 헬리콥터 수준의 활발한 움직임
+                if (!boss.moveTimer) boss.moveTimer = currentTime;
+                if (!boss.hoverTimer) boss.hoverTimer = 0;
+                if (!boss.hoverDirection) boss.hoverDirection = 1;
+                if (!boss.hoverHeight) boss.hoverHeight = 150;
+                
+                // 보호막 헬리콥터와 동일한 움직임 패턴 적용
+                boss.hoverTimer += 16; // 약 60fps 기준 deltaTime
+                
+                // 호버링 효과 (보호막 헬리콥터와 동일)
+                const hoverOffset = Math.sin(boss.hoverTimer * 0.002) * 40; // 진폭 증가 (30 → 40)
+                
+                // 좌우 움직임 (보호막 헬리콥터와 동일)
+                const horizontalSpeed = Math.sin(boss.hoverTimer * 0.001) * 4; // 속도 증가 (3 → 4)
+                boss.x += horizontalSpeed;
+                
+                // 상하 움직임 (보호막 헬리콥터와 동일)
+                if (boss.y < boss.hoverHeight) {
+                    boss.y += 2 * 1.2; // 상승 속도 증가
+                } else {
+                    // 호버링 중 고도 변화
+                    const verticalSpeed = Math.cos(boss.hoverTimer * 0.001) * 3; // 속도 증가 (2 → 3)
+                    boss.y = boss.hoverHeight + hoverOffset + verticalSpeed;
+                }
+                
+                // 급격한 방향 전환 (보호막 헬리콥터와 동일)
+                if (Math.random() < 0.008) { // 확률 증가 (0.005 → 0.008)
+                    boss.hoverDirection *= -1;
+                    boss.hoverHeight = Math.random() * 200 + 100;
+                }
+                
+                // 화면 경계 체크 및 안전한 위치 설정
+                const minX = 50;
+                const maxX = canvas.width - boss.width - 50;
+                const minY = 120;
+                const maxY = canvas.height - boss.height - 200;
+                
+                boss.x = Math.max(minX, Math.min(maxX, boss.x));
+                boss.y = Math.max(minY, Math.min(maxY, boss.y));
+                
                 // 보스 객체가 유효한지 추가 검증
                 try {
-                    // 호출 빈도 제한: 100ms마다만 실행 (10fps로 제한)
+                    // 호출 빈도 제한: 100ms마다만 실행 (10fps로 제한) - 패턴만 제한
                     if (!boss.lastPatternCheck || currentTime - boss.lastPatternCheck >= 100) {
                         boss.lastPatternCheck = currentTime;
                         handleBossPattern(boss);
@@ -5018,27 +5067,17 @@ const BOSS_PATTERNS = {
 // 게임 상태 변수에 추가
 let lastBossSpawnTime = Date.now();  // 마지막 보스 출현 시간을 현재 시간으로 초기화
 
-// 보스 체력을 레벨에 따라 동적으로 계산하는 함수
+// 보스 체력을 5000으로 고정하는 함수
 function calculateBossHealth() {
-    const baseHealth = BOSS_SETTINGS.BASE_HEALTH;
-    const healthPerLevel = BOSS_SETTINGS.HEALTH_PER_LEVEL;
-    const maxHealth = BOSS_SETTINGS.MAX_HEALTH;
+    const fixedHealth = 5000; // 보스 체력을 5000으로 고정
     
-    // 레벨 1부터 시작하여 체력 계산
-    const calculatedHealth = Math.min(
-        baseHealth + (Math.max(0, gameLevel - 1) * healthPerLevel),
-        maxHealth
-    );
-    
-    console.log('보스 체력 계산 (레벨당 1000 증가):', {
+    console.log('보스 체력 고정:', {
         gameLevel: gameLevel,
-        baseHealth: baseHealth,
-        healthPerLevel: healthPerLevel,
-        calculatedHealth: calculatedHealth,
-        maxHealth: maxHealth
+        fixedHealth: fixedHealth,
+        note: '모든 레벨에서 보스 체력 5000으로 고정'
     });
     
-    return calculatedHealth;
+    return fixedHealth;
 }
 
 // 보스 페이즈 임계값을 동적으로 계산하는 함수
@@ -5238,24 +5277,29 @@ function createBoss() {
     // 보스 추가
     enemies.push(boss);
     
-            // 🚨 보스 생성 직후 완벽하게 중앙에 고정 (떨림 현상 근본 해결)
-        boss.x = canvas.width / 2 - boss.width / 2;
-        boss.y = 150;
+            // 🚨 보스 생성 직후 완벽하게 중앙에 고정 (더욱 엄격한 안전한 위치 설정)
+        const safeMinX = 40;
+        const safeMaxX = canvas.width - boss.width - 40;
+        const safeMinY = 100;
+        const safeMaxY = canvas.height - boss.height - 200;
+        
+        boss.x = Math.max(safeMinX, Math.min(safeMaxX, canvas.width / 2 - boss.width / 2));
+        boss.y = Math.max(safeMinY, Math.min(safeMaxY, 150));
         boss.centerX = boss.x;  // 중앙 기준점 설정
         boss.hoverHeight = boss.y;  // 호버 높이 설정
         
-        // 🚨 추가 안전장치: 부드러운 움직임 속성 설정
-        boss.speed = 0.5;  // 부드러운 움직임 속도 설정
-        boss.staticMode = false;  // 움직임 모드 활성화
+        // 🚨 단순한 움직임 설정 - 즉시 움직임 시작
+        boss.moveTimer = currentTime;  // 움직임 타이머 즉시 시작
+        boss.moveDirection = 1;  // 움직임 방향 설정
+        boss.moveSpeed = 2;  // 움직임 속도 설정
     
-            console.log('🎯 보스 완벽하게 중앙에 고정됨 (부드러운 움직임):', {
+            console.log('🎯 보스 단순 움직임 모드로 생성됨:', {
             x: Math.round(boss.x),
             y: Math.round(boss.y),
-            centerX: Math.round(boss.centerX),
-            hoverHeight: Math.round(boss.hoverHeight),
-            speed: boss.speed,
-            staticMode: boss.staticMode,
-            status: '완벽한 중앙 고정 + 부드러운 움직임 - 떨림 현상 제거 + 자연스러운 움직임'
+            moveTimer: boss.moveTimer,
+            moveDirection: boss.moveDirection,
+            moveSpeed: boss.moveSpeed,
+            status: '단순하고 확실한 움직임 - 매 프레임 움직임'
         });
     
     // 스폰 즉시 1회 패턴 발사 (랜덤/비중복 규칙 준수)
@@ -5500,142 +5544,122 @@ function handleBossPattern(boss) {
         boss.rotorAngle += boss.rotorSpeed;
     }
     
-    // 보스 이동 패턴 (화면 중앙 체공 및 역동적 움직임)
-    if (boss.movePhase === 0) {
-        // 초기 진입 - 화면 중앙으로 진입
-        if (typeof boss.speed !== 'undefined') {
-            boss.y += boss.speed * 0.6; // 진입 속도 조정
+    // 🚨 보스 안전한 위치 설정 함수 (절대 화면을 벗어나지 않음) - 강화된 안전장치
+    function setBossSafePosition(boss, newX, newY) {
+        // 더욱 엄격한 경계 설정
+        const minX = 40;  // 여백 증가
+        const maxX = canvas.width - boss.width - 40;
+        const minY = 100; // 여백 증가
+        const maxY = canvas.height - boss.height - 200;
+        
+        // 이전 위치 저장 (복구용)
+        const prevX = boss.x;
+        const prevY = boss.y;
+        
+        // 안전한 위치로 설정
+        boss.x = Math.max(minX, Math.min(maxX, newX));
+        boss.y = Math.max(minY, Math.min(maxY, newY));
+        
+        // 정밀도 조정
+        boss.x = Math.round(boss.x * 1000) / 1000;
+        boss.y = Math.round(boss.y * 1000) / 1000;
+        
+        // 위치 변경 로그 (디버깅용)
+        if (Math.abs(boss.x - prevX) > 0.1 || Math.abs(boss.y - prevY) > 0.1) {
+            console.log('🔧 보스 위치 변경:', {
+                prevX: Math.round(prevX),
+                prevY: Math.round(prevY),
+                newX: Math.round(newX),
+                newY: Math.round(newY),
+                finalX: Math.round(boss.x),
+                finalY: Math.round(boss.y),
+                minX: minX,
+                maxX: maxX,
+                minY: minY,
+                maxY: maxY,
+                canvasWidth: canvas.width,
+                canvasHeight: canvas.height
+            });
         }
-        // 화면 중앙으로 수렴하는 진입 경로
+        
+        return { x: boss.x, y: boss.y };
+    }
+    
+    // 보스 이동 패턴 (완전히 안전한 화면 내 움직임)
+    if (boss.movePhase === 0) {
+        // 초기 진입 - 화면 중앙으로 진입 (안전한 위치 설정 함수 사용)
+        if (typeof boss.speed !== 'undefined') {
+            const newY = boss.y + boss.speed * 0.6;
+            setBossSafePosition(boss, boss.x, newY);
+        }
+        
+        // 화면 중앙으로 수렴하는 진입 경로 (안전한 위치 설정 함수 사용)
         const targetX = canvas.width / 2 - boss.width / 2;
         const dx = targetX - boss.x;
-        boss.x += dx * 0.02; // 부드럽게 중앙으로 이동
+        const newX = boss.x + dx * 0.02;
+        setBossSafePosition(boss, newX, boss.y);
         
         if (typeof boss.hoverHeight !== 'undefined' && boss.y >= boss.hoverHeight) {
             boss.movePhase = 1;
             boss.timer = currentTime;
-            boss.centerX = canvas.width / 2 - boss.width / 2; // 중앙 기준점 설정
-            console.log('🚁 보스 중앙 호버링 시작 - 역동적 패턴 준비', {
+            boss.centerX = Math.max(40, Math.min(canvas.width - boss.width - 40, canvas.width / 2 - boss.width / 2)); // 안전한 중앙 기준점 설정
+            console.log('🚁 보스 중앙 호버링 시작 - 활발한 역동적 패턴 준비', {
                 centerX: boss.centerX,
                 hoverHeight: boss.hoverHeight,
                 currentX: boss.x,
-                currentY: boss.y
+                currentY: boss.y,
+                canvasWidth: canvas.width,
+                canvasHeight: canvas.height,
+                movePhase: boss.movePhase,
+                staticMode: boss.staticMode
             });
             
             // 중앙 도달 후 자동 발사 비활성화 (랜덤 스케줄러로만 발사)
             boss.patternTimer = currentTime;
-            console.log('🎯 보스 중앙 도달 - 자동 발사 없이 대기');
+            console.log('🎯 보스 중앙 도달 - 활발한 움직임 시작');
         }
         
-        // 🚨 움직임 활성화 조건 개선 - 화면 내에서 활발한 움직임
-        if (boss.movePhase === 1 && !boss.staticMode) {
-            // 🚁 보스 활발한 움직임 - 화면 좌우 여백을 모두 사용하여 지속적으로 움직임
-            
-            if (typeof boss.centerX !== 'undefined' && typeof boss.hoverHeight !== 'undefined') {
-                const centerX = boss.centerX;
-                const centerY = boss.hoverHeight;
-                
-                // 🚨 화면 전체를 활용한 활발한 움직임 패턴 (경계 체크 강화)
-                const timeFactor = (currentTime - boss.timer) / 1000;
-                const maxHorizontalRadius = Math.min(150, (canvas.width - boss.width - 40) / 2); // 안전한 범위로 제한
-                const horizontalRadius = Math.min(maxHorizontalRadius, Math.abs(centerX - (canvas.width / 2 - boss.width / 2)) + 100);
-                const verticalRadius = 30; // 수직 움직임 범위 축소
-                const speed = 0.06; // 안정적인 속도로 조정
-                
-                // 좌우로 넓게 움직이는 패턴 (화면 여백 최대 활용)
-                const xOffset = Math.sin(timeFactor * speed) * horizontalRadius;
-                const yOffset = Math.cos(timeFactor * speed * 0.5) * verticalRadius;
-                
-                // 화면 경계 체크 강화 - 화면 밖으로 벗어나지 않도록 엄격한 제한
-                const newX = centerX + xOffset;
-                const newY = centerY + yOffset;
-                
-                // 더 엄격한 경계 체크
-                const minX = 30; // 왼쪽 여백 증가
-                const maxX = canvas.width - boss.width - 30; // 오른쪽 여백 증가
-                const minY = 80; // 상단 여백 증가
-                const maxY = canvas.height - boss.height - 150; // 하단 여백 증가
-                
-                boss.x = Math.max(minX, Math.min(maxX, newX));
-                boss.y = Math.max(minY, Math.min(maxY, newY));
-                
-                boss.x = Math.round(boss.x * 1000) / 1000;
-                boss.y = Math.round(boss.y * 1000) / 1000;
-                
-                if (!boss.lastDebugLog || currentTime - boss.lastDebugLog > 2000) {
-                    console.log('🔍 보스 활발한 움직임 디버깅:', {
-                        centerX: Math.round(boss.centerX),
-                        hoverHeight: Math.round(boss.hoverHeight),
-                        currentX: Math.round(boss.x),
-                        currentY: Math.round(boss.y),
-                        xOffset: Math.round(xOffset),
-                        yOffset: Math.round(yOffset),
-                        horizontalRadius: horizontalRadius,
-                        verticalRadius: verticalRadius,
-                        staticMode: boss.staticMode,
-                        movementStatus: '화면 전체 활용 활발한 움직임',
-                        speed: speed,
-                        timeFactor: Math.round(timeFactor * 100) / 100,
-                        note: '화면 경계 내에서 최대한 넓게 움직임'
-                    });
-                    boss.lastDebugLog = currentTime;
-                }
-            }
-        }
+        // 기존 복잡한 움직임 로직 제거됨 - 단순한 움직임만 사용
         
-        // 추가 움직임 패턴 - 보스가 가만히 있지 않도록 지속적인 움직임 (경계 체크 강화)
-        if (boss.movePhase === 1) {
-            // 랜덤한 방향 전환으로 더욱 활발한 움직임
-            if (!boss.lastDirectionChange || currentTime - boss.lastDirectionChange > 3000) {
-                boss.movementDirection = Math.random() < 0.5 ? 1 : -1;
-                boss.lastDirectionChange = currentTime;
-                console.log('🔄 보스 움직임 방향 전환:', boss.movementDirection);
-            }
-            
-            // 미세한 추가 움직임으로 정적인 상태 방지 (경계 체크 포함)
-            const microMovement = Math.sin(currentTime * 0.003) * 1; // 움직임 범위 축소
-            const newX = boss.x + microMovement * (boss.movementDirection || 1);
-            
-            // 엄격한 화면 경계 재체크
-            const minX = 30;
-            const maxX = canvas.width - boss.width - 30;
-            boss.x = Math.max(minX, Math.min(maxX, newX));
-            
-            // 경계를 벗어났을 때 방향 전환
-            if (boss.x <= minX || boss.x >= maxX) {
-                boss.movementDirection *= -1;
-                console.log('🚫 보스 경계 도달 - 방향 전환:', boss.movementDirection);
-            }
-        }
+        // 보스 움직임 로직은 메인 게임 루프로 이동됨 (매 프레임 실행)
         
-        // 보스 위치 모니터링 및 안전장치 (5초마다) - 경계 체크 강화
-        if (!boss.lastPositionLog || currentTime - boss.lastPositionLog > 5000) {
-            const isOutOfBounds = boss.x < 30 || boss.x > canvas.width - boss.width - 30 || 
-                                 boss.y < 80 || boss.y > canvas.height - boss.height - 150;
+        // 기존 복잡한 움직임 패턴 제거됨 - 단순한 움직임 로직만 사용
+        
+        // 보스 위치 모니터링 및 안전장치 (1초마다) - 실시간 경계 체크 강화
+        if (!boss.lastPositionLog || currentTime - boss.lastPositionLog > 1000) {
+            const isOutOfBounds = boss.x < 40 || boss.x > canvas.width - boss.width - 40 || 
+                                 boss.y < 100 || boss.y > canvas.height - boss.height - 200;
             
-            console.log('📍 보스 위치 모니터링 (경계 체크 강화):', {
+            console.log('📍 보스 실시간 위치 모니터링 (1초마다):', {
                 x: Math.round(boss.x),
                 y: Math.round(boss.y),
                 centerX: Math.round(boss.centerX || 0),
                 hoverHeight: Math.round(boss.hoverHeight || 0),
                 phase: boss.phase,
-                movePhase: boss.movementDirection || 0,
+                movePhase: boss.movePhase,
+                movementDirection: boss.movementDirection || 0,
                 isOutOfBounds: isOutOfBounds,
                 canvasWidth: canvas.width,
                 canvasHeight: canvas.height,
                 bossWidth: boss.width,
                 bossHeight: boss.height,
-                minX: 30,
-                maxX: canvas.width - boss.width - 30,
-                minY: 80,
-                maxY: canvas.height - boss.height - 150
+                minX: 40,
+                maxX: canvas.width - boss.width - 40,
+                minY: 100,
+                maxY: canvas.height - boss.height - 200,
+                safetyStatus: isOutOfBounds ? '⚠️ 경계 벗어남' : '✅ 안전'
             });
             
-            // 경계를 벗어났을 때 강제로 화면 내로 이동
+            // 경계를 벗어났을 때 즉시 강제로 화면 내로 이동 (안전한 위치 설정 함수 사용)
             if (isOutOfBounds) {
-                console.log('⚠️ 보스가 화면을 벗어남 - 강제 복구 실행');
-                boss.x = Math.max(30, Math.min(canvas.width - boss.width - 30, boss.x));
-                boss.y = Math.max(80, Math.min(canvas.height - boss.height - 150, boss.y));
+                console.log('🚨 보스가 화면을 벗어남 - 즉시 강제 복구 실행');
+                setBossSafePosition(boss, boss.x, boss.y);
+                
+                // 복구 후 로그
+                console.log('✅ 보스 위치 복구 완료:', {
+                    recoveredX: Math.round(boss.x),
+                    recoveredY: Math.round(boss.y)
+                });
             }
             
             boss.lastPositionLog = currentTime;
