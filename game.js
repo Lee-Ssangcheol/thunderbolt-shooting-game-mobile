@@ -5033,7 +5033,7 @@ function getBossScore() {
 
 // 보스 관련 상수 추가
 const BOSS_SETTINGS = {
-    BASE_HEALTH: 3000,     // 기본 체력 3000에서 시작
+    BASE_HEALTH: 1000,     // 기본 체력 1000에서 시작
     HEALTH_PER_LEVEL: 1000, // 레벨당 체력 증가량 1000
     MAX_HEALTH: 7000,      // 최대 체력 7000
     DAMAGE: 50,          // 보스 총알 데미지
@@ -5070,14 +5070,14 @@ const BOSS_PATTERNS = {
 // 게임 상태 변수에 추가
 let lastBossSpawnTime = Date.now();  // 마지막 보스 출현 시간을 현재 시간으로 초기화
 
-// 보스 체력을 3000으로 고정하는 함수
+// 보스 체력을 1000으로 고정하는 함수
 function calculateBossHealth() {
-    const fixedHealth = 3000; // 보스 체력을 3000으로 고정
+    const fixedHealth = 1000; // 보스 체력을 1000으로 고정
     
     console.log('보스 체력 고정:', {
         gameLevel: gameLevel,
         fixedHealth: fixedHealth,
-        note: '모든 레벨에서 보스 체력 3000으로 고정'
+        note: '모든 레벨에서 보스 체력 1000으로 고정'
     });
     
     return fixedHealth;
