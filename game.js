@@ -5045,23 +5045,26 @@ const BOSS_SETTINGS = {
     // 페이즈 임계값은 동적으로 계산됨
 };
 
-// PC 버전용 보스 패턴 상수 추가 (모든 패턴 포함)
+// 보스 패턴 상수 - 요청된 패턴만 포함
 const BOSS_PATTERNS = {
-    CIRCLE_SHOT: 'circle_shot',      // 원형 발사
-    CROSS_SHOT: 'cross_shot',        // 십자 발사
-    SPIRAL_SHOT: 'spiral_shot',      // 나선형 발사
-    WAVE_SHOT: 'wave_shot',          // 파도형 발사
-    SPREAD_SHOT: 'spread_shot',      // 확산 발사
-    RANDOM_SHOT: 'random_shot',      // 랜덤 발사
-    TRACKING_SHOT: 'tracking_shot',  // 추적 발사
-    BURST_SHOT: 'burst_shot',        // 연발 발사
-    VORTEX_SHOT: 'vortex_shot',      // 소용돌이 발사
-    PULSE_SHOT: 'pulse_shot',        // 맥박형 발사
-    RAPID_FIRE: 'rapid_fire',        // 연발 발사 (기존)
-    HOMING_SHOT: 'homing_shot',      // 유도 발사 (기존)
-    CHAOTIC_SHOT: 'chaotic_shot',    // 혼돈형 발사 (기존)
-    RAINBOW_SHOT: 'rainbow_shot',    // 무지개 발사 (기존)
-    METEOR_SHOT: 'meteor_shot'       // 유성 발사 (기존)
+    BASIC: 'basic',                    // 기본 원형
+    CIRCLE_SHOT: 'circle_shot',        // 원형 (테두리 있음)
+    CROSS_SHOT: 'cross_shot',          // 십자형
+    SPIRAL_SHOT: 'spiral_shot',        // 나선형
+    DIAMOND_SHOT: 'diamond_shot',      // 다이아몬드형
+    RANDOM_SPREAD: 'random_spread',    // 원형 (이중)
+    TRIPLE_WAVE: 'triple_wave',        // 삼각형
+    WINDMILL_SHOT: 'windmill_shot',    // 바람개비 (흰색)
+    GEAR_SHOT: 'gear_shot',            // 톱니바퀴 (청녹색)
+    HEART_SHOT: 'heart_shot',          // 하트형
+    STAR_SHOT: 'star_shot',            // 별형
+    FLOWER_SHOT: 'flower_shot',        // 꽃형
+    ICE_SHOT: 'ice_shot',              // 육각형
+    BURST_SHOT: 'burst_shot',          // 팔각형
+    SNOWFLAKE_SHOT: 'snowflake_shot',  // 눈 결정체
+    MOON_SHOT: 'moon_shot',            // 달
+    RECTANGLE_SHOT: 'rectangle_shot',  // 정사각형
+    PENTAGON_SHOT: 'pentagon_shot'     // 오각형
 };
 
 // 게임 상태 변수에 추가
@@ -5308,11 +5311,9 @@ function createBoss() {
             boss.patternBag = [];
         }
         const availablePatterns = [
-            'circle_shot', 'cross_shot', 'spiral_shot', 'wave_shot', 'diamond_shot', 'random_spread',
-            'double_spiral', 'triple_wave', 'targeted_shot', 'burst_shot',
-            'heart_shot', 'star_shot', 'flower_shot', 'butterfly_shot',
-            'spiral_wave', 'concentric_circles', 'firework_shot', 'chaos_shot',
-            'special', 'meteor'
+            'basic', 'circle_shot', 'cross_shot', 'spiral_shot', 'diamond_shot', 'random_spread',
+            'triple_wave', 'windmill_shot', 'gear_shot', 'heart_shot', 'star_shot', 'flower_shot',
+            'ice_shot', 'burst_shot', 'snowflake_shot', 'moon_shot', 'rectangle_shot', 'pentagon_shot'
         ];
         if (boss.patternBag.length === 0) {
             const bag = availablePatterns.slice();
@@ -5332,6 +5333,9 @@ function createBoss() {
         boss.lastPattern = selectedPattern;
         console.log('🚀 보스 스폰 즉시 패턴 발사:', { selectedPattern });
         switch (selectedPattern) {
+            case 'basic':
+                bossFireBasicShot(boss);
+                break;
             case 'circle_shot':
                 bossFireCircleShot(boss);
                 break;
@@ -5341,26 +5345,20 @@ function createBoss() {
             case 'spiral_shot':
                 bossFireSpiralShot(boss);
                 break;
-            case 'wave_shot':
-                bossFireWaveShot(boss);
-                break;
             case 'diamond_shot':
                 bossFireDiamondShot(boss);
                 break;
             case 'random_spread':
                 bossFireRandomSpreadShot(boss);
                 break;
-            case 'double_spiral':
-                bossFireDoubleSpiralShot(boss);
-                break;
             case 'triple_wave':
                 bossFireTripleWaveShot(boss);
                 break;
-            case 'targeted_shot':
-                bossFireTargetedShot(boss);
+            case 'windmill_shot':
+                bossFireWindmillShot(boss);
                 break;
-            case 'burst_shot':
-                bossFireBurstShot(boss);
+            case 'gear_shot':
+                bossFireGearShot(boss);
                 break;
             case 'heart_shot':
                 bossFireHeartShot(boss);
@@ -5371,29 +5369,26 @@ function createBoss() {
             case 'flower_shot':
                 bossFireFlowerShot(boss);
                 break;
-            case 'butterfly_shot':
-                bossFireButterflyShot(boss);
+            case 'ice_shot':
+                bossFireIceShot(boss);
                 break;
-            case 'spiral_wave':
-                bossFireSpiralWaveShot(boss);
+            case 'burst_shot':
+                bossFireBurstShot(boss);
                 break;
-            case 'concentric_circles':
-                bossFireConcentricCirclesShot(boss);
+            case 'snowflake_shot':
+                bossFireSnowflakeShot(boss);
                 break;
-            case 'firework_shot':
-                bossFireFireworkShot(boss);
+            case 'moon_shot':
+                bossFireMoonShot(boss);
                 break;
-            case 'chaos_shot':
-                bossFireChaosShot(boss);
+            case 'rectangle_shot':
+                bossFireRectangleShot(boss);
                 break;
-            case 'special':
-                bossFireSpecialShot(boss);
-                break;
-            case 'meteor':
-                bossFireMeteorShot(boss);
+            case 'pentagon_shot':
+                bossFirePentagonShot(boss);
                 break;
             default:
-                bossFireCircleShot(boss);
+                bossFireBasicShot(boss);
                 break;
         }
         // 다음 1초 주기를 위해 타이머 리셋
@@ -5707,11 +5702,9 @@ function handleBossPattern(boss) {
         boss.patternTimer = currentTime;
         // 1초 간격 랜덤 비중복(셔플백) 패턴 실행
         const availablePatterns = [
-            'circle_shot', 'cross_shot', 'spiral_shot', 'wave_shot', 'diamond_shot', 'random_spread',
-            'double_spiral', 'triple_wave', 'targeted_shot', 'burst_shot',
-            'heart_shot', 'star_shot', 'flower_shot', 'butterfly_shot',
-            'spiral_wave', 'concentric_circles', 'firework_shot', 'chaos_shot',
-            'special', 'meteor', 'circle', 'spiral'
+            'basic', 'circle_shot', 'cross_shot', 'spiral_shot', 'diamond_shot', 'random_spread',
+            'triple_wave', 'windmill_shot', 'gear_shot', 'heart_shot', 'star_shot', 'flower_shot',
+            'ice_shot', 'burst_shot', 'snowflake_shot', 'moon_shot', 'rectangle_shot', 'pentagon_shot'
         ];
         if (!Array.isArray(boss.patternBag)) {
             boss.patternBag = [];
@@ -5736,6 +5729,9 @@ function handleBossPattern(boss) {
 
         try {
             switch (selectedPattern) {
+                case 'basic':
+                    bossFireBasicShot(boss);
+                    break;
                 case 'circle_shot':
                     bossFireCircleShot(boss);
                     break;
@@ -5745,26 +5741,20 @@ function handleBossPattern(boss) {
                 case 'spiral_shot':
                     bossFireSpiralShot(boss);
                     break;
-                case 'wave_shot':
-                    bossFireWaveShot(boss);
-                    break;
                 case 'diamond_shot':
                     bossFireDiamondShot(boss);
                     break;
                 case 'random_spread':
                     bossFireRandomSpreadShot(boss);
                     break;
-                case 'double_spiral':
-                    bossFireDoubleSpiralShot(boss);
-                    break;
                 case 'triple_wave':
                     bossFireTripleWaveShot(boss);
                     break;
-                case 'targeted_shot':
-                    bossFireTargetedShot(boss);
+                case 'windmill_shot':
+                    bossFireWindmillShot(boss);
                     break;
-                case 'burst_shot':
-                    bossFireBurstShot(boss);
+                case 'gear_shot':
+                    bossFireGearShot(boss);
                     break;
                 case 'heart_shot':
                     bossFireHeartShot(boss);
@@ -5775,35 +5765,26 @@ function handleBossPattern(boss) {
                 case 'flower_shot':
                     bossFireFlowerShot(boss);
                     break;
-                case 'butterfly_shot':
-                    bossFireButterflyShot(boss);
+                case 'ice_shot':
+                    bossFireIceShot(boss);
                     break;
-                case 'spiral_wave':
-                    bossFireSpiralWaveShot(boss);
+                case 'burst_shot':
+                    bossFireBurstShot(boss);
                     break;
-                case 'concentric_circles':
-                    bossFireConcentricCirclesShot(boss);
+                case 'snowflake_shot':
+                    bossFireSnowflakeShot(boss);
                     break;
-                case 'firework_shot':
-                    bossFireFireworkShot(boss);
+                case 'moon_shot':
+                    bossFireMoonShot(boss);
                     break;
-                case 'chaos_shot':
-                    bossFireChaosShot(boss);
+                case 'rectangle_shot':
+                    bossFireRectangleShot(boss);
                     break;
-                case 'special':
-                    bossFireSpecialShot(boss);
-                    break;
-                case 'meteor':
-                    bossFireMeteorShot(boss);
-                    break;
-                case 'circle':
-                    bossFireCircleShot(boss);
-                    break;
-                case 'spiral':
-                    bossFireSpiralShot(boss);
+                case 'pentagon_shot':
+                    bossFirePentagonShot(boss);
                     break;
                 default:
-                    bossFireCircleShot(boss);
+                    bossFireBasicShot(boss);
                     break;
             }
         } catch (error) {
@@ -5976,73 +5957,81 @@ function createBossBullet(boss, angle, patternType = 'spread', customSpeed = nul
     let bulletSize = 12;
     
     switch(patternType) {
-        case 'spread':
-            bulletColor = '#00FFFF'; // 시안색(밝은 청록색) - 확산탄 (검은 배경과 구분 잘됨)
+        case 'basic':
+            bulletColor = '#FFFFFF'; // 흰색 - 기본 원형
+            bulletSize = 10;
+            break;
+        case 'circle_shot':
+            bulletColor = '#20B2AA'; // 청녹색 - 원형 (테두리 있음)
+            bulletSize = 10;
+            break;
+        case 'cross_shot':
+            bulletColor = '#FF4500'; // 밝은 빨간색 - 십자형
             bulletSize = 12;
             break;
-        case 'special':
-            bulletColor = '#FF1493'; // 딥핑크 - 특수무기 (검은 배경과 구분 잘됨)
-            bulletSize = 16;
+        case 'spiral_shot':
+            bulletColor = '#FFFF00'; // 노란색 - 나선형
+            bulletSize = 8;
             break;
-        case 'cross':
-            bulletColor = '#00FF00'; // 초록색 - 십자형
+        case 'diamond_shot':
+            bulletColor = '#32CD32'; // 밝은 라임그린 - 다이아몬드형
+            bulletSize = 11;
+            break;
+        case 'random_spread':
+            bulletColor = '#20B2AA'; // 청녹색 - 원형 (이중)
+            bulletSize = 9;
+            break;
+        case 'triple_wave':
+            bulletColor = '#32CD32'; // 밝은 라임그린 - 삼각형
+            bulletSize = 10;
+            break;
+        case 'windmill_shot':
+            bulletColor = '#90EE90'; // 청녹색 - 바람개비
+            bulletSize = 12;
+            break;
+        case 'gear_shot':
+            bulletColor = '#90EE90'; // 청녹색 - 톱니바퀴
+            bulletSize = 11;
+            break;
+        case 'heart_shot':
+            bulletColor = '#FF69B4'; // 밝은 핫핑크 - 하트형
+            bulletSize = 13;
+            break;
+        case 'star_shot':
+            bulletColor = '#FFFF00'; // 노란색 - 별형
+            bulletSize = 12;
+            break;
+        case 'flower_shot':
+            bulletColor = '#FF1493'; // 밝은 딥핑크 - 꽃형
             bulletSize = 14;
             break;
-        case 'spiral':
-            bulletColor = '#00BFFF'; // 밝은 파란색(하늘색) - 나선형 (검은 배경과 구분 잘됨)
+        case 'ice_shot':
+            bulletColor = '#D3D3D3'; // 밝은 회색 - 육각형
             bulletSize = 10;
             break;
-        case 'wave':
-            bulletColor = '#FFFF00'; // 노란색 - 파도형
-            bulletSize = 13;
-            break;
-        case 'targeted':
-            bulletColor = '#FF00FF'; // 마젠타 - 추적형
-            bulletSize = 15;
-            break;
-        case 'random':
-            bulletColor = '#00FFFF'; // 시안 - 랜덤형
+        case 'burst_shot':
+            bulletColor = '#FFD700'; // 밝은 골드 - 팔각형
             bulletSize = 11;
             break;
-        case 'rapid':
-            bulletColor = '#FFB347'; // 밝은 주황색(골든로드) - 연발형 (검은 배경과 구분 잘됨)
-            bulletSize = 9;
-            break;
-        case 'vortex':
-            bulletColor = '#DDA0DD'; // 밝은 보라색(연보라색) - 소용돌이형 (검은 배경과 구분 잘됨)
-            bulletSize = 13;
-            break;
-        case 'pulse':
-            bulletColor = '#FF0088'; // 핑크 - 맥박형
-            bulletSize = 16;
-            break;
-        case 'circle':
-            bulletColor = '#FFFFFF'; // 흰색 - 원형
+        case 'snowflake_shot':
+            bulletColor = '#FFFFFF'; // 흰색 - 눈 결정체
             bulletSize = 12;
             break;
-        case 'burst':
-            bulletColor = '#FFA500'; // 밝은 주황색(오렌지) - 연발형 (검은 배경과 구분 잘됨)
-            bulletSize = 10;
-            break;
-        case 'homing':
-            bulletColor = '#FF00FF'; // 마젠타 - 유도형
+        case 'moon_shot':
+            bulletColor = '#FFD700'; // 노란색 - 달
             bulletSize = 13;
             break;
-        case 'chaotic':
-            bulletColor = '#FF69B4'; // 밝은 핑크(핫핑크) - 혼돈형 (검은 배경과 구분 잘됨)
-            bulletSize = 9;
+        case 'rectangle_shot':
+            bulletColor = '#ADFF2F'; // 연두색 - 정사각형
+            bulletSize = 10;
             break;
-        case 'rainbow':
-            bulletColor = customColor || '#FF6B6B'; // 밝은 빨간색(라이트코랄) - 커스텀 색상 또는 기본 (검은 배경과 구분 잘됨)
+        case 'pentagon_shot':
+            bulletColor = '#FFFF00'; // 노란색 - 오각형
             bulletSize = 11;
-            break;
-        case 'meteor':
-            bulletColor = '#FF8C00'; // 밝은 주황색(다크오렌지) - 유성형 (검은 배경과 구분 잘됨)
-            bulletSize = 16;
             break;
         default:
-            bulletColor = '#FF6B6B'; // 밝은 빨간색(라이트코랄) - 기본 (검은 배경과 구분 잘됨)
-            bulletSize = 12;
+            bulletColor = '#FFFFFF'; // 기본 흰색
+            bulletSize = 10;
     }
     
     const bullet = {
@@ -8685,4 +8674,93 @@ function showResetConfirmModal(onResult) {
     modal.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
     // Focus default
     yesBtn.focus();
+}
+
+// 새로운 보스 패턴 함수들 추가
+function bossFireBasicShot(boss) {
+    // 기본 원형 패턴
+    const bossX = boss.x + boss.width/2;
+    const bossY = boss.y + boss.height/2;
+    
+    for (let i = 0; i < 8; i++) {
+        const angle = (Math.PI * 2 * i) / 8;
+        createBossBullet(boss, angle, 'basic');
+    }
+}
+
+function bossFireWindmillShot(boss) {
+    // 바람개비 패턴
+    const bossX = boss.x + boss.width/2;
+    const bossY = boss.y + boss.height/2;
+    
+    for (let i = 0; i < 4; i++) {
+        const angle = (Math.PI * 2 * i) / 4;
+        createBossBullet(boss, angle, 'windmill_shot');
+    }
+}
+
+function bossFireGearShot(boss) {
+    // 톱니바퀴 패턴
+    const bossX = boss.x + boss.width/2;
+    const bossY = boss.y + boss.height/2;
+    
+    for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI * 2 * i) / 6;
+        createBossBullet(boss, angle, 'gear_shot');
+    }
+}
+
+function bossFireIceShot(boss) {
+    // 육각형 패턴
+    const bossX = boss.x + boss.width/2;
+    const bossY = boss.y + boss.height/2;
+    
+    for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI * 2 * i) / 6;
+        createBossBullet(boss, angle, 'ice_shot');
+    }
+}
+
+function bossFireSnowflakeShot(boss) {
+    // 눈 결정체 패턴
+    const bossX = boss.x + boss.width/2;
+    const bossY = boss.y + boss.height/2;
+    
+    for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI * 2 * i) / 6;
+        createBossBullet(boss, angle, 'snowflake_shot');
+    }
+}
+
+function bossFireMoonShot(boss) {
+    // 달 패턴
+    const bossX = boss.x + boss.width/2;
+    const bossY = boss.y + boss.height/2;
+    
+    for (let i = 0; i < 8; i++) {
+        const angle = (Math.PI * 2 * i) / 8;
+        createBossBullet(boss, angle, 'moon_shot');
+    }
+}
+
+function bossFireRectangleShot(boss) {
+    // 정사각형 패턴
+    const bossX = boss.x + boss.width/2;
+    const bossY = boss.y + boss.height/2;
+    
+    for (let i = 0; i < 4; i++) {
+        const angle = (Math.PI * 2 * i) / 4;
+        createBossBullet(boss, angle, 'rectangle_shot');
+    }
+}
+
+function bossFirePentagonShot(boss) {
+    // 오각형 패턴
+    const bossX = boss.x + boss.width/2;
+    const bossY = boss.y + boss.height/2;
+    
+    for (let i = 0; i < 5; i++) {
+        const angle = (Math.PI * 2 * i) / 5;
+        createBossBullet(boss, angle, 'pentagon_shot');
+    }
 }
