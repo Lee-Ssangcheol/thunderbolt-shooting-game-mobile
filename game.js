@@ -5039,7 +5039,7 @@ const BOSS_SETTINGS = {
     DAMAGE: 50,          // 보스 총알 데미지
     SPEED: 2.0,         // 보스 이동 속도를 2.0으로 조정 (적당한 속도)
     BULLET_SPEED: 4,    // 보스 총알 속도를 3에서 4로 증가
-    PATTERN_INTERVAL: 800, // 0.8초(800ms)로 단축 (더 빠른 패턴 발사)
+    PATTERN_INTERVAL: 600, // 0.6초(600ms)로 더욱 단축 (더 빠른 패턴 발사)
     SPAWN_INTERVAL: 10000,  // 보스 출현 간격 기본 10초
     MIN_STAY_TIME: 15000,   // 보스 최소 체류 시간 15초로 설정
     // 페이즈 임계값은 동적으로 계산됨
@@ -5273,15 +5273,14 @@ function createBoss() {
         const selectedPattern = availablePatterns[Math.floor(Math.random() * availablePatterns.length)];
         boss.lastPattern = selectedPattern;
         
+        // 패턴 인덱스 초기화
+        boss.patternIndex = Math.floor(Math.random() * availablePatterns.length);
+        
+        // 사용된 패턴 추적 초기화
+        boss.usedPatterns = new Set([selectedPattern]);
+        
         // 최근 패턴 기록 초기화
         boss.recentPatterns = [selectedPattern];
-        
-        // 패턴 사용 횟수 초기화
-        boss.patternUsageCount = {};
-        availablePatterns.forEach(pattern => {
-            boss.patternUsageCount[pattern] = 0;
-        });
-        boss.patternUsageCount[selectedPattern] = 1; // 첫 패턴 사용 횟수 설정
         
         console.log('🚀 보스 스폰 즉시 패턴 발사:', { selectedPattern });
         switch (selectedPattern) {
@@ -5659,72 +5658,63 @@ function handleBossPattern(boss) {
             'ice_shot', 'burst_shot', 'snowflake_shot', 'moon_shot', 'rectangle_shot', 'pentagon_shot'
         ];
         
-        // 패턴 선택 개선: 가중치 기반 선택으로 더욱 골고루 분산
+        // 패턴 선택 개선: 완전한 순환 보장 + 강화된 중복 방지
         let selectedPattern;
-        let attempts = 0;
-        const maxAttempts = 100; // 무한 루프 방지
         
-        // 패턴 사용 횟수 초기화
-        if (!boss.patternUsageCount) {
-            boss.patternUsageCount = {};
-            availablePatterns.forEach(pattern => {
-                boss.patternUsageCount[pattern] = 0;
-            });
+        // 패턴 인덱스 초기화
+        if (!boss.patternIndex) {
+            boss.patternIndex = 0;
         }
         
-        do {
-            // 가중치 기반 선택: 사용 횟수가 적을수록 높은 가중치
-            const weights = availablePatterns.map(pattern => {
-                const usageCount = boss.patternUsageCount[pattern] || 0;
-                const minUsage = Math.min(...Object.values(boss.patternUsageCount));
-                return Math.max(1, 10 - (usageCount - minUsage)); // 사용 횟수가 적을수록 높은 가중치
-            });
-            
-            // 가중치 합계 계산
-            const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
-            let randomValue = Math.random() * totalWeight;
-            
-            // 가중치에 따라 패턴 선택
-            for (let i = 0; i < availablePatterns.length; i++) {
-                randomValue -= weights[i];
-                if (randomValue <= 0) {
-                    selectedPattern = availablePatterns[i];
-                    break;
-                }
-            }
-            
-            attempts++;
-            
-            // 최근 패턴과 중복되지 않으면 선택
-            if (!boss.recentPatterns || !boss.recentPatterns.includes(selectedPattern)) {
-                break;
-            }
-            
-            // 최대 시도 횟수에 도달하면 강제로 선택
-            if (attempts >= maxAttempts) {
-                console.log('⚠️ 패턴 선택 최대 시도 횟수 도달, 강제 선택:', selectedPattern);
-                break;
-            }
-        } while (attempts < maxAttempts);
+        // 사용되지 않은 패턴 추적
+        if (!boss.usedPatterns) {
+            boss.usedPatterns = new Set();
+        }
         
-        // 선택된 패턴의 사용 횟수 증가
-        boss.patternUsageCount[selectedPattern]++;
+        // 모든 패턴을 사용했으면 초기화
+        if (boss.usedPatterns.size >= availablePatterns.length) {
+            boss.usedPatterns.clear();
+            console.log('🔄 모든 패턴 사용 완료, 패턴 세트 초기화');
+        }
         
-        // 최근 패턴 기록 업데이트 (최근 5개만 유지)
+        // 사용되지 않은 패턴들 중에서 선택
+        const unusedPatterns = availablePatterns.filter(p => !boss.usedPatterns.has(p));
+        
+        if (unusedPatterns.length > 0) {
+            // 사용되지 않은 패턴 중에서 랜덤 선택
+            selectedPattern = unusedPatterns[Math.floor(Math.random() * unusedPatterns.length)];
+        } else {
+            // 모든 패턴이 사용되었으면 랜덤 선택
+            selectedPattern = availablePatterns[Math.floor(Math.random() * availablePatterns.length)];
+        }
+        
+        // 선택된 패턴을 사용된 패턴에 추가
+        boss.usedPatterns.add(selectedPattern);
+        
+        // 최근 패턴과 중복 방지 (추가 안전장치)
+        if (boss.recentPatterns && boss.recentPatterns.includes(selectedPattern)) {
+            // 최근 패턴과 중복되면 다른 패턴 선택
+            const nonRecentPatterns = availablePatterns.filter(p => !boss.recentPatterns.includes(p));
+            if (nonRecentPatterns.length > 0) {
+                selectedPattern = nonRecentPatterns[Math.floor(Math.random() * nonRecentPatterns.length)];
+            }
+        }
+        
+        // 최근 패턴 기록 업데이트 (최근 2개만 유지)
         if (!boss.recentPatterns) {
             boss.recentPatterns = [];
         }
         boss.recentPatterns.push(selectedPattern);
-        if (boss.recentPatterns.length > 5) {
+        if (boss.recentPatterns.length > 2) {
             boss.recentPatterns.shift(); // 가장 오래된 패턴 제거
         }
         
         boss.lastPattern = selectedPattern;
-        console.log('🎲 보스 패턴 선택(가중치 기반 비중복):', { 
+        console.log('🎲 보스 패턴 선택(완전한 순환):', { 
             selectedPattern, 
-            recentPatterns: boss.recentPatterns,
-            usageCount: boss.patternUsageCount[selectedPattern],
-            attempts: attempts 
+            usedPatterns: boss.usedPatterns.size,
+            totalPatterns: availablePatterns.length,
+            recentPatterns: boss.recentPatterns
         });
 
         try {
