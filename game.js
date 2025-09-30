@@ -8449,58 +8449,116 @@ function createHelicopterBullet(boss, angle) {
 // 새로운 보스 패턴 함수들 - 지정된 14개 패턴만 유지
 function bossFireSnowflakeShot(boss) {
     console.log('❄️ 눈 결정체 패턴 발사:', { bossId: boss.id, color: '#FFFFFF' });
-    // 눈 결정체 패턴 - 흰색
+    // 눈 결정체 패턴 - 흰색 (다층 발사)
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
+    // 첫 번째 층 - 기본 확산
     for (let i = 0; i < 6; i++) {
         const angle = (Math.PI * 2 * i) / 6;
-        createBossBullet(boss, angle, 'snowflake_shot');
+        createBossBullet(boss, angle, 'snowflake_shot', 4);
     }
+    
+    // 두 번째 층 - 지연 발사 (0.2초 후)
+    setTimeout(() => {
+        for (let i = 0; i < 6; i++) {
+            const angle = (Math.PI * 2 * i) / 6 + Math.PI / 6; // 30도 회전
+            createBossBullet(boss, angle, 'snowflake_shot', 6);
+        }
+    }, 200);
+    
+    // 세 번째 층 - 지연 발사 (0.4초 후)
+    setTimeout(() => {
+        for (let i = 0; i < 6; i++) {
+            const angle = (Math.PI * 2 * i) / 6 + Math.PI / 3; // 60도 회전
+            createBossBullet(boss, angle, 'snowflake_shot', 8);
+        }
+    }, 400);
 }
 
 function bossFirePinwheelShot(boss) {
-    // 바람개비 패턴 - 청녹색 (#90EE90)
+    console.log('🌀 바람개비 패턴 발사:', { bossId: boss.id, color: '#90EE90' });
+    // 바람개비 패턴 - 청녹색 (#90EE90) (나선형 발사)
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
-    for (let i = 0; i < 4; i++) {
-        const angle = (Math.PI * 2 * i) / 4;
-        createBossBullet(boss, angle, 'pinwheel_shot');
+    // 나선형 패턴 - 8개 총알을 나선으로 발사
+    for (let i = 0; i < 8; i++) {
+        const baseAngle = (Math.PI * 2 * i) / 8;
+        const spiralOffset = (i * Math.PI) / 4; // 나선 회전
+        const angle = baseAngle + spiralOffset;
+        
+        // 속도도 점진적으로 증가
+        const speed = 3 + (i * 0.5);
+        
+        createBossBullet(boss, angle, 'pinwheel_shot', speed);
     }
 }
 
 function bossFireTriangleShot(boss) {
-    // 삼각형 패턴 - 밝은 라임그린 (#32CD32)
+    console.log('🔺 삼각형 패턴 발사:', { bossId: boss.id, color: '#32CD32' });
+    // 삼각형 패턴 - 밝은 라임그린 (#32CD32) (파동형 발사)
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
-    for (let i = 0; i < 3; i++) {
-        const angle = (Math.PI * 2 * i) / 3;
-        createBossBullet(boss, angle, 'triangle_shot');
+    // 파동형 패턴 - 3개 방향으로 파동 효과
+    for (let wave = 0; wave < 3; wave++) {
+        setTimeout(() => {
+            for (let i = 0; i < 3; i++) {
+                const baseAngle = (Math.PI * 2 * i) / 3;
+                const waveOffset = Math.sin(wave * Math.PI / 3) * 0.5; // 파동 효과
+                const angle = baseAngle + waveOffset;
+                
+                // 각 파동마다 다른 속도
+                const speed = 4 + wave;
+                
+                createBossBullet(boss, angle, 'triangle_shot', speed);
+            }
+        }, wave * 150); // 150ms 간격으로 파동 발사
     }
 }
 
 function bossFireRectangleShot(boss) {
-    // 정사각형 패턴 - 연두색 (#ADFF2F)
+    console.log('🟩 정사각형 패턴 발사:', { bossId: boss.id, color: '#ADFF2F' });
+    // 정사각형 패턴 - 연두색 (#ADFF2F) (회전형 발사)
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
-    for (let i = 0; i < 4; i++) {
-        const angle = (Math.PI * 2 * i) / 4;
-        createBossBullet(boss, angle, 'rectangle_shot');
+    // 회전형 패턴 - 4개 방향으로 회전하면서 발사
+    for (let rotation = 0; rotation < 4; rotation++) {
+        setTimeout(() => {
+            for (let i = 0; i < 4; i++) {
+                const baseAngle = (Math.PI * 2 * i) / 4;
+                const rotationOffset = (rotation * Math.PI) / 8; // 점진적 회전
+                const angle = baseAngle + rotationOffset;
+                
+                // 회전마다 속도 증가
+                const speed = 3 + (rotation * 0.8);
+                
+                createBossBullet(boss, angle, 'rectangle_shot', speed);
+            }
+        }, rotation * 100); // 100ms 간격으로 회전 발사
     }
 }
 
 function bossFirePentagonShot(boss) {
     console.log('🟠 오각형 패턴 발사:', { bossId: boss.id, color: '#FFA500' });
-    // 오각형 패턴 - 주황색 (#FFA500)
+    // 오각형 패턴 - 주황색 (#FFA500) (폭발형 발사)
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
-    for (let i = 0; i < 5; i++) {
-        const angle = (Math.PI * 2 * i) / 5;
-        createBossBullet(boss, angle, 'pentagon_shot');
+    // 폭발형 패턴 - 중심에서 바깥으로 확산
+    for (let ring = 0; ring < 3; ring++) {
+        setTimeout(() => {
+            for (let i = 0; i < 5; i++) {
+                const angle = (Math.PI * 2 * i) / 5;
+                
+                // 각 링마다 다른 속도와 크기
+                const speed = 2 + (ring * 2);
+                
+                createBossBullet(boss, angle, 'pentagon_shot', speed);
+            }
+        }, ring * 80); // 80ms 간격으로 링 발사
     }
 }
 
@@ -8538,35 +8596,76 @@ function bossFireCircleShot(boss) {
 }
 
 function bossFireCrossShot(boss) {
-    // 십자 패턴 - 밝은 빨간색 (#FF4500)
+    console.log('❌ 십자 패턴 발사:', { bossId: boss.id, color: '#FF4500' });
+    // 십자 패턴 - 밝은 빨간색 (#FF4500) (교차 확산형 발사)
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
-    for (let i = 0; i < 4; i++) {
-        const angle = (Math.PI * 2 * i) / 4;
-        createBossBullet(boss, angle, 'cross_shot');
+    // 교차 확산형 패턴 - 십자 모양으로 확산
+    for (let burst = 0; burst < 2; burst++) {
+        setTimeout(() => {
+            // 십자 방향으로 발사
+            for (let i = 0; i < 4; i++) {
+                const angle = (Math.PI * 2 * i) / 4;
+                
+                // 각 방향으로 3개씩 연속 발사
+                for (let j = 0; j < 3; j++) {
+                    setTimeout(() => {
+                        const speed = 5 + (j * 1.5); // 점진적 속도 증가
+                        createBossBullet(boss, angle, 'cross_shot', speed);
+                    }, j * 50); // 50ms 간격으로 연속 발사
+                }
+            }
+        }, burst * 200); // 200ms 간격으로 버스트 발사
     }
 }
 
 function bossFireHeartShot(boss) {
-    // 하트 패턴 - 밝은 핫핑크 (#FF69B4)
+    console.log('💖 하트 패턴 발사:', { bossId: boss.id, color: '#FF69B4' });
+    // 하트 패턴 - 밝은 핫핑크 (#FF69B4) (하트 모양 확산)
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
-    for (let i = 0; i < 6; i++) {
-        const angle = (Math.PI * 2 * i) / 6;
-        createBossBullet(boss, angle, 'heart_shot');
+    // 하트 모양으로 확산 - 3단계로 발사
+    for (let layer = 0; layer < 3; layer++) {
+        setTimeout(() => {
+            for (let i = 0; i < 6; i++) {
+                const baseAngle = (Math.PI * 2 * i) / 6;
+                // 하트 모양을 위한 각도 조정
+                const heartOffset = Math.sin(layer * Math.PI / 3) * 0.3;
+                const angle = baseAngle + heartOffset;
+                
+                // 각 층마다 다른 속도
+                const speed = 3 + (layer * 1.2);
+                
+                createBossBullet(boss, angle, 'heart_shot', speed);
+            }
+        }, layer * 120); // 120ms 간격으로 층 발사
     }
 }
 
 function bossFireStarShot(boss) {
-    // 별 패턴 - 노란색
+    console.log('⭐ 별 패턴 발사:', { bossId: boss.id, color: '#FFFF00' });
+    // 별 패턴 - 노란색 (별 모양 확산)
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
-    for (let i = 0; i < 5; i++) {
-        const angle = (Math.PI * 2 * i) / 5;
-        createBossBullet(boss, angle, 'star_shot');
+    // 별 모양으로 확산 - 5방향으로 점진적 발사
+    for (let star = 0; star < 5; star++) {
+        setTimeout(() => {
+            // 별의 각 꼭짓점 방향으로 발사
+            for (let i = 0; i < 5; i++) {
+                const angle = (Math.PI * 2 * i) / 5;
+                
+                // 별의 내부와 외부 총알 발사
+                for (let j = 0; j < 2; j++) {
+                    const offsetAngle = angle + (j === 1 ? Math.PI / 5 : 0); // 내부/외부
+                    const speed = 4 + (star * 0.5) + (j * 1.5);
+                    
+                    createBossBullet(boss, offsetAngle, 'star_shot', speed);
+                }
+            }
+        }, star * 100); // 100ms 간격으로 별 발사
     }
 }
 
