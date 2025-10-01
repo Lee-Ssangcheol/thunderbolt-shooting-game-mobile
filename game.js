@@ -7882,7 +7882,7 @@ function hexToRgb(hex) {
     } : {r: 255, g: 0, b: 0}; // 기본값: 빨간색
 }
 
-
+ 
 
 // 충돌 이펙트 배열 추가
 let collisionEffects = [];
@@ -8453,27 +8453,24 @@ function bossFireSnowflakeShot(boss) {
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
-    // 첫 번째 층 - 기본 확산 (총알 수 증가, 속도 원래대로)
-    for (let i = 0; i < 8; i++) {
-        const angle = (Math.PI * 2 * i) / 8;
+    // 첫 번째 층 - 기본 확산 (방향 변화 추가)
+    for (let i = 0; i < 6; i++) {
+        const baseAngle = (Math.PI * 2 * i) / 6;
+        const directionOffset = Math.sin(i * Math.PI / 3) * 0.3; // 방향 변화
+        const angle = baseAngle + directionOffset;
         createBossBullet(boss, angle, 'snowflake_shot', 4);
     }
     
-    // 두 번째 층 - 지연 발사 (0.2초 후)
+    // 두 번째 층 - 지연 발사 (0.3초 후, 방향 변화 추가)
     setTimeout(() => {
-        for (let i = 0; i < 8; i++) {
-            const angle = (Math.PI * 2 * i) / 8 + Math.PI / 8; // 22.5도 회전
+        for (let i = 0; i < 6; i++) {
+            const baseAngle = (Math.PI * 2 * i) / 6;
+            const rotationOffset = Math.PI / 6; // 30도 회전
+            const directionOffset = Math.cos(i * Math.PI / 3) * 0.3; // 방향 변화
+            const angle = baseAngle + rotationOffset + directionOffset;
             createBossBullet(boss, angle, 'snowflake_shot', 5);
         }
-    }, 200);
-    
-    // 세 번째 층 - 지연 발사 (0.4초 후)
-    setTimeout(() => {
-        for (let i = 0; i < 8; i++) {
-            const angle = (Math.PI * 2 * i) / 8 + Math.PI / 4; // 45도 회전
-            createBossBullet(boss, angle, 'snowflake_shot', 6);
-        }
-    }, 400);
+    }, 300);
 }
 
 function bossFirePinwheelShot(boss) {
@@ -8482,14 +8479,15 @@ function bossFirePinwheelShot(boss) {
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
-    // 나선형 패턴 - 10개 총알을 나선으로 발사 (총알 수 증가, 속도 원래대로)
-    for (let i = 0; i < 10; i++) {
-        const baseAngle = (Math.PI * 2 * i) / 10;
-        const spiralOffset = (i * Math.PI) / 5; // 나선 회전
-        const angle = baseAngle + spiralOffset;
+    // 나선형 패턴 - 방향 변화가 있는 나선 발사
+    for (let i = 0; i < 6; i++) {
+        const baseAngle = (Math.PI * 2 * i) / 6;
+        const spiralOffset = (i * Math.PI) / 6; // 나선 회전
+        const directionOffset = Math.sin(i * Math.PI / 2) * 0.4; // 방향 변화
+        const angle = baseAngle + spiralOffset + directionOffset;
         
-        // 속도도 점진적으로 증가 (속도 원래대로)
-        const speed = 3 + (i * 0.4);
+        // 단순화된 속도
+        const speed = 3 + (i * 0.3);
         
         createBossBullet(boss, angle, 'pinwheel_shot', speed);
     }
@@ -8501,20 +8499,21 @@ function bossFireTriangleShot(boss) {
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
-    // 파동형 패턴 - 4개 방향으로 파동 효과 (총알 수 증가, 속도 원래대로)
-    for (let wave = 0; wave < 4; wave++) {
+    // 파동형 패턴 - 방향 변화가 있는 파동 효과
+    for (let wave = 0; wave < 2; wave++) {
         setTimeout(() => {
-            for (let i = 0; i < 4; i++) {
-                const baseAngle = (Math.PI * 2 * i) / 4;
-                const waveOffset = Math.sin(wave * Math.PI / 4) * 0.6; // 파동 효과 증가
-                const angle = baseAngle + waveOffset;
+            for (let i = 0; i < 3; i++) {
+                const baseAngle = (Math.PI * 2 * i) / 3;
+                const waveOffset = Math.sin(wave * Math.PI / 2) * 0.3; // 파동 효과
+                const directionOffset = Math.cos(i * Math.PI / 1.5) * 0.4; // 방향 변화
+                const angle = baseAngle + waveOffset + directionOffset;
                 
-                // 각 파동마다 다른 속도 (속도 원래대로)
+                // 단순화된 속도
                 const speed = 4 + wave;
                 
                 createBossBullet(boss, angle, 'triangle_shot', speed);
             }
-        }, wave * 120); // 120ms 간격으로 파동 발사
+        }, wave * 200); // 200ms 간격으로 파동 발사
     }
 }
 
@@ -8524,20 +8523,21 @@ function bossFireRectangleShot(boss) {
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
-    // 회전형 패턴 - 5개 방향으로 회전하면서 발사 (총알 수 증가, 속도 원래대로)
-    for (let rotation = 0; rotation < 5; rotation++) {
+    // 회전형 패턴 - 방향 변화가 있는 회전 발사
+    for (let rotation = 0; rotation < 2; rotation++) {
         setTimeout(() => {
-            for (let i = 0; i < 5; i++) {
-                const baseAngle = (Math.PI * 2 * i) / 5;
-                const rotationOffset = (rotation * Math.PI) / 10; // 점진적 회전
-                const angle = baseAngle + rotationOffset;
+            for (let i = 0; i < 4; i++) {
+                const baseAngle = (Math.PI * 2 * i) / 4;
+                const rotationOffset = (rotation * Math.PI) / 8; // 점진적 회전
+                const directionOffset = Math.sin(i * Math.PI / 2) * 0.3; // 방향 변화
+                const angle = baseAngle + rotationOffset + directionOffset;
                 
-                // 회전마다 속도 증가 (속도 원래대로)
-                const speed = 3 + (rotation * 0.6);
+                // 단순화된 속도
+                const speed = 3 + (rotation * 0.5);
                 
                 createBossBullet(boss, angle, 'rectangle_shot', speed);
             }
-        }, rotation * 80); // 80ms 간격으로 회전 발사
+        }, rotation * 150); // 150ms 간격으로 회전 발사
     }
 }
 
@@ -8547,21 +8547,22 @@ function bossFirePentagonShot(boss) {
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
-    // 폭발형 패턴 - 중심에서 바깥으로 확산 (방향 변화 추가, 속도 원래대로)
-    for (let ring = 0; ring < 4; ring++) {
+    // 폭발형 패턴 - 방향 변화가 있는 폭발 발사
+    for (let ring = 0; ring < 2; ring++) {
         setTimeout(() => {
-            for (let i = 0; i < 6; i++) {
-                const baseAngle = (Math.PI * 2 * i) / 6;
-                // 각 링마다 다른 방향 오프셋 추가
-                const directionOffset = Math.sin(ring * Math.PI / 2) * 0.4;
-                const angle = baseAngle + directionOffset;
+            for (let i = 0; i < 5; i++) {
+                const baseAngle = (Math.PI * 2 * i) / 5;
+                // 방향 오프셋과 추가 방향 변화
+                const directionOffset = Math.sin(ring * Math.PI / 2) * 0.2;
+                const additionalOffset = Math.cos(i * Math.PI / 2.5) * 0.4; // 방향 변화
+                const angle = baseAngle + directionOffset + additionalOffset;
                 
-                // 각 링마다 다른 속도와 크기 (속도 원래대로)
-                const speed = 2 + (ring * 1.2);
+                // 단순화된 속도
+                const speed = 2 + (ring * 1.0);
                 
                 createBossBullet(boss, angle, 'pentagon_shot', speed);
             }
-        }, ring * 70); // 70ms 간격으로 링 발사
+        }, ring * 100); // 100ms 간격으로 링 발사
     }
 }
 
@@ -8571,22 +8572,22 @@ function bossFireHexagonShot(boss) {
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
-    // 회전 확산형 패턴 - 3단계로 회전하면서 발사 (속도 원래대로)
-    for (let rotation = 0; rotation < 3; rotation++) {
+    // 회전 확산형 패턴 - 방향 변화가 있는 회전 발사
+    for (let rotation = 0; rotation < 2; rotation++) {
         setTimeout(() => {
-            for (let i = 0; i < 7; i++) {
-                const baseAngle = (Math.PI * 2 * i) / 7;
-                // 각 회전마다 다른 방향 변화
-                const rotationOffset = (rotation * Math.PI) / 6;
-                const waveOffset = Math.sin(i * Math.PI / 3.5) * 0.3;
-                const angle = baseAngle + rotationOffset + waveOffset;
+            for (let i = 0; i < 6; i++) {
+                const baseAngle = (Math.PI * 2 * i) / 6;
+                // 회전 오프셋과 방향 변화
+                const rotationOffset = (rotation * Math.PI) / 8;
+                const directionOffset = Math.sin(i * Math.PI / 3) * 0.4; // 방향 변화
+                const angle = baseAngle + rotationOffset + directionOffset;
                 
-                // 속도도 점진적으로 증가 (속도 원래대로)
-                const speed = 3 + (rotation * 0.8);
+                // 단순화된 속도
+                const speed = 3 + (rotation * 0.5);
                 
                 createBossBullet(boss, angle, 'hexagon_shot', speed);
             }
-        }, rotation * 100);
+        }, rotation * 150);
     }
 }
 
@@ -8596,22 +8597,22 @@ function bossFireOctagonShot(boss) {
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
-    // 나선 회전형 패턴 - 4단계로 나선 회전 (속도 원래대로)
-    for (let spiral = 0; spiral < 4; spiral++) {
+    // 나선 회전형 패턴 - 방향 변화가 있는 나선 발사
+    for (let spiral = 0; spiral < 2; spiral++) {
         setTimeout(() => {
-            for (let i = 0; i < 9; i++) {
-                const baseAngle = (Math.PI * 2 * i) / 9;
-                // 나선 회전과 방향 변화 결합
-                const spiralOffset = (spiral * Math.PI) / 4;
-                const directionWave = Math.cos(i * Math.PI / 4.5) * 0.4;
-                const angle = baseAngle + spiralOffset + directionWave;
+            for (let i = 0; i < 8; i++) {
+                const baseAngle = (Math.PI * 2 * i) / 8;
+                // 나선 회전과 방향 변화
+                const spiralOffset = (spiral * Math.PI) / 8;
+                const directionOffset = Math.cos(i * Math.PI / 4) * 0.3; // 방향 변화
+                const angle = baseAngle + spiralOffset + directionOffset;
                 
-                // 속도도 나선에 따라 변화 (속도 원래대로)
-                const speed = 2 + (spiral * 0.8) + (i * 0.2);
+                // 단순화된 속도
+                const speed = 2 + (spiral * 0.5) + (i * 0.1);
                 
                 createBossBullet(boss, angle, 'octagon_shot', speed);
             }
-        }, spiral * 90);
+        }, spiral * 120);
     }
 }
 
@@ -8621,22 +8622,22 @@ function bossFireCircleShot(boss) {
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
-    // 원형 파동형 패턴 - 5단계로 원형 파동 (속도 원래대로)
-    for (let wave = 0; wave < 5; wave++) {
+    // 원형 파동형 패턴 - 방향 변화가 있는 원형 발사
+    for (let wave = 0; wave < 2; wave++) {
         setTimeout(() => {
-            for (let i = 0; i < 10; i++) {
-                const baseAngle = (Math.PI * 2 * i) / 10;
+            for (let i = 0; i < 8; i++) {
+                const baseAngle = (Math.PI * 2 * i) / 8;
                 // 원형 파동과 방향 변화
-                const waveOffset = Math.sin(wave * Math.PI / 2.5) * 0.5;
-                const radialOffset = Math.cos(i * Math.PI / 5) * 0.2;
-                const angle = baseAngle + waveOffset + radialOffset;
+                const waveOffset = Math.sin(wave * Math.PI / 2) * 0.3;
+                const directionOffset = Math.sin(i * Math.PI / 4) * 0.4; // 방향 변화
+                const angle = baseAngle + waveOffset + directionOffset;
                 
-                // 속도도 파동에 따라 변화 (속도 원래대로)
-                const speed = 3 + (wave * 0.6) + Math.abs(Math.sin(i * Math.PI / 5)) * 1.0;
+                // 단순화된 속도
+                const speed = 3 + (wave * 0.5);
                 
                 createBossBullet(boss, angle, 'circle_shot', speed);
             }
-        }, wave * 80);
+        }, wave * 150);
     }
 }
 
@@ -8646,27 +8647,28 @@ function bossFireCrossShot(boss) {
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
-    // 교차 확산형 패턴 - 십자 모양으로 확산 (방향 변화 추가, 속도 원래대로)
-    for (let burst = 0; burst < 3; burst++) {
+    // 교차 확산형 패턴 - 방향 변화가 있는 십자 발사
+    for (let burst = 0; burst < 2; burst++) {
         setTimeout(() => {
             // 십자 방향으로 발사
-            for (let i = 0; i < 5; i++) {
-                const baseAngle = (Math.PI * 2 * i) / 5;
+            for (let i = 0; i < 4; i++) {
+                const baseAngle = (Math.PI * 2 * i) / 4;
                 
-                // 각 방향으로 4개씩 연속 발사 (총알 수 증가)
-                for (let j = 0; j < 4; j++) {
+                // 각 방향으로 2개씩 연속 발사
+                for (let j = 0; j < 2; j++) {
                     setTimeout(() => {
-                        // 방향 변화 추가
-                        const directionOffset = Math.sin(burst * Math.PI / 3) * 0.3;
-                        const spreadOffset = (j - 1.5) * 0.2; // 확산 효과
-                        const angle = baseAngle + directionOffset + spreadOffset;
+                        // 방향 변화와 확산 효과
+                        const directionOffset = Math.sin(burst * Math.PI / 2) * 0.2;
+                        const spreadOffset = (j - 0.5) * 0.1; // 확산 효과
+                        const additionalOffset = Math.cos(i * Math.PI / 2) * 0.3; // 방향 변화
+                        const angle = baseAngle + directionOffset + spreadOffset + additionalOffset;
                         
-                        const speed = 4 + (j * 1.2) + (burst * 0.3); // 점진적 속도 증가 (속도 원래대로)
+                        const speed = 4 + (j * 1.0) + (burst * 0.2); // 단순화된 속도
                         createBossBullet(boss, angle, 'cross_shot', speed);
-                    }, j * 40); // 40ms 간격으로 연속 발사
+                    }, j * 60); // 60ms 간격으로 연속 발사
                 }
             }
-        }, burst * 150); // 150ms 간격으로 버스트 발사
+        }, burst * 200); // 200ms 간격으로 버스트 발사
     }
 }
 
@@ -8676,22 +8678,22 @@ function bossFireHeartShot(boss) {
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
-    // 하트 모양으로 확산 - 4단계로 발사 (방향 변화 추가, 속도 원래대로)
-    for (let layer = 0; layer < 4; layer++) {
+    // 하트 모양으로 확산 - 방향 변화가 있는 하트 발사
+    for (let layer = 0; layer < 2; layer++) {
         setTimeout(() => {
-            for (let i = 0; i < 8; i++) {
-                const baseAngle = (Math.PI * 2 * i) / 8;
-                // 하트 모양을 위한 각도 조정과 방향 변화
-                const heartOffset = Math.sin(layer * Math.PI / 4) * 0.4;
-                const directionWave = Math.cos(i * Math.PI / 4) * 0.3;
-                const angle = baseAngle + heartOffset + directionWave;
+            for (let i = 0; i < 6; i++) {
+                const baseAngle = (Math.PI * 2 * i) / 6;
+                // 하트 모양 각도 조정과 방향 변화
+                const heartOffset = Math.sin(layer * Math.PI / 2) * 0.2;
+                const directionOffset = Math.cos(i * Math.PI / 3) * 0.4; // 방향 변화
+                const angle = baseAngle + heartOffset + directionOffset;
                 
-                // 각 층마다 다른 속도 (속도 원래대로)
-                const speed = 3 + (layer * 1.0) + Math.abs(Math.sin(i * Math.PI / 4)) * 0.8;
+                // 단순화된 속도
+                const speed = 3 + (layer * 0.5);
                 
                 createBossBullet(boss, angle, 'heart_shot', speed);
             }
-        }, layer * 100); // 100ms 간격으로 층 발사
+        }, layer * 150); // 150ms 간격으로 층 발사
     }
 }
 
@@ -8701,27 +8703,27 @@ function bossFireStarShot(boss) {
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
-    // 별 모양으로 확산 - 6방향으로 점진적 발사 (방향 변화 추가, 속도 원래대로)
-    for (let star = 0; star < 6; star++) {
+    // 별 모양으로 확산 - 방향 변화가 있는 별 발사
+    for (let star = 0; star < 2; star++) {
         setTimeout(() => {
             // 별의 각 꼭짓점 방향으로 발사
-            for (let i = 0; i < 6; i++) {
-                const baseAngle = (Math.PI * 2 * i) / 6;
+            for (let i = 0; i < 5; i++) {
+                const baseAngle = (Math.PI * 2 * i) / 5;
                 
-                // 별의 내부와 외부 총알 발사 (총알 수 증가)
-                for (let j = 0; j < 3; j++) {
-                    const offsetAngle = baseAngle + (j === 1 ? Math.PI / 6 : (j === 2 ? -Math.PI / 6 : 0)); // 내부/외부/중간
-                    // 방향 변화 추가
-                    const starRotation = (star * Math.PI) / 12;
-                    const directionWave = Math.sin(i * Math.PI / 3) * 0.4;
-                    const angle = offsetAngle + starRotation + directionWave;
+                // 별의 내부와 외부 총알 발사
+                for (let j = 0; j < 2; j++) {
+                    const offsetAngle = baseAngle + (j === 1 ? Math.PI / 5 : 0); // 내부/외부
+                    // 별 회전과 방향 변화
+                    const starRotation = (star * Math.PI) / 10;
+                    const directionOffset = Math.sin(i * Math.PI / 2.5) * 0.4; // 방향 변화
+                    const angle = offsetAngle + starRotation + directionOffset;
                     
-                    const speed = 4 + (star * 0.4) + (j * 1.2) + Math.abs(Math.cos(i * Math.PI / 3)) * 0.8;
+                    const speed = 4 + (star * 0.3) + (j * 0.8);
                     
                     createBossBullet(boss, angle, 'star_shot', speed);
                 }
             }
-        }, star * 80); // 80ms 간격으로 별 발사
+        }, star * 120); // 120ms 간격으로 별 발사
     }
 }
 
