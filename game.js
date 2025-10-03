@@ -703,6 +703,27 @@ let lifeAddedMessageTimer = 0;
 let lifeWarningFlashEndTime = 0;
 const LIFE_ADDED_MESSAGE_DURATION = 3000; // 3초간 표시
 
+// 통합된 목숨 증가 함수
+function addLives(amount, reason, enemy = null) {
+    console.log(`🎉 목숨 ${amount}개 추가: ${reason}`, {
+        before: maxLives,
+        amount: amount,
+        reason: reason,
+        enemyId: enemy ? enemy.id : 'N/A'
+    });
+    
+    maxLives += amount;
+    
+    // 목숨 추가 메시지 설정
+    lifeAddedMessage = `🎉 ${reason}! 목숨 ${amount}개 추가됨! 🎉`;
+    lifeAddedMessageTimer = Date.now();
+    
+    // 목숨 추가 효과음 재생
+    safePlay(levelUpSound);
+    
+    console.log(`목숨 추가 완료: ${maxLives}개 (${amount}개 증가)`);
+}
+
 // 보스 패턴 상수는 아래에서 정의됨
 
 // 키보드 입력 상태
@@ -3283,9 +3304,8 @@ function checkEnemyCollisions(enemy) {
                     
                     // 보스 파괴 시 목숨 2개 추가 (중복 방지)
                     if (!enemy.lifeAdded) {
-                        maxLives += 2; // 최대 목숨 2 증가
+                        addLives(2, '보스 파괴 (특수무기)', enemy);
                         enemy.lifeAdded = true; // 목숨 추가 플래그 설정
-                        console.log('보스 파괴 시 목숨 2개 추가됨 (특수무기)');
                     }
                     
                     // 큰 폭발 효과
@@ -3372,9 +3392,8 @@ function checkEnemyCollisions(enemy) {
                     
                     // 보스 파괴 시 목숨 2개 추가 (중복 방지)
                     if (!bullet.isSpecial && !enemy.lifeAdded) {
-                        maxLives += 2;
+                        addLives(2, '보스 파괴 (일반무기)', enemy);
                         enemy.lifeAdded = true; // 목숨 추가 플래그 설정
-                        console.log('보스 파괴 시 목숨 2개 추가됨 (hitCount 기반)');
                     }
                     
                     // 폭발 효과
@@ -3432,9 +3451,8 @@ function checkEnemyCollisions(enemy) {
                     
                     // 보스 파괴 시 목숨 2개 추가 (중복 방지)
                     if (!bullet.isSpecial && !enemy.lifeAdded) {
-                        maxLives += 2;
+                        addLives(2, '보스 파괴 (체력 기반)', enemy);
                         enemy.lifeAdded = true; // 목숨 추가 플래그 설정
-                        console.log('보스 파괴 시 목숨 2개 추가됨 (체력 기반)');
                     }
                     
                     // 폭발 효과
@@ -3498,17 +3516,9 @@ function checkEnemyCollisions(enemy) {
                         // 이미 이번 3대 묶음에서 목숨을 추가했다면 스킵
                         const currentGroup = Math.floor((shieldedHelicopterDestroyed - 1) / 4);
                         if (!enemy.lifeAddedFromHelicopter || enemy.lifeAddedFromHelicopter < currentGroup) {
-                            maxLives++;
+                            addLives(1, `보호막 헬리콥터 3대 파괴 (그룹: ${currentGroup})`, enemy);
                             livesAddedFromHelicopters++;
                             enemy.lifeAddedFromHelicopter = currentGroup; // 목숨 추가 플래그 설정
-                            console.log(`보호막 헬리콥터 3대 파괴! 목숨 1개 추가됨. (그룹: ${currentGroup})`);
-                            
-                            // 목숨 추가 메시지 설정
-                            lifeAddedMessage = `🎉 보호막 헬리콥터 3대 파괴! 목숨 1개 추가됨! 🎉`;
-                            lifeAddedMessageTimer = Date.now();
-                            
-                            // 목숨 추가 효과음 재생
-                            safePlay(levelUpSound);
                         }
                     }
                     
@@ -5439,6 +5449,7 @@ function createBoss() {
         isInvulnerable: false,           // 무적 상태 해제 (즉시 공격 가능)
         invulnerableTimer: null,         // 무적 타이머 해제
         invulnerableDuration: 0,         // 무적 시간 0초
+        lifeAdded: false,                // 목숨 추가 플래그 초기화
         type: ENEMY_TYPES.HELICOPTER,
         rotorAngle: 0,
         rotorSpeed: 0.2,                // 보스 메인 로터 속도
@@ -5596,6 +5607,13 @@ function resetBossState() {
     
     // 보스 관련 모든 타이머와 상태 완전 정리 (전역 변수 참조 제거)
     // boss 변수는 함수 스코프 내에서만 유효하므로 전역 참조 제거
+    
+    // 보스의 lifeAdded 플래그도 초기화 (혹시 남아있는 경우)
+    const remainingBoss = enemies.find(enemy => enemy.isBoss);
+    if (remainingBoss) {
+        remainingBoss.lifeAdded = false;
+        console.log('남아있는 보스의 lifeAdded 플래그 초기화됨');
+    }
     
     console.log('보스 상태 완전 초기화 완료:', {
         bossActive,
