@@ -705,11 +705,13 @@ const LIFE_ADDED_MESSAGE_DURATION = 3000; // 3초간 표시
 
 // 통합된 목숨 증가 함수
 function addLives(amount, reason, enemy = null) {
-    console.log(`🎉 목숨 ${amount}개 추가: ${reason}`, {
+    console.log(`🎉 목숨 ${amount}개 추가 시작: ${reason}`, {
         before: maxLives,
         amount: amount,
         reason: reason,
-        enemyId: enemy ? enemy.id : 'N/A'
+        enemyId: enemy ? enemy.id : 'N/A',
+        enemyLifeAdded: enemy ? enemy.lifeAdded : 'N/A',
+        timestamp: new Date().toISOString()
     });
     
     maxLives += amount;
@@ -721,7 +723,12 @@ function addLives(amount, reason, enemy = null) {
     // 목숨 추가 효과음 재생
     safePlay(levelUpSound);
     
-    console.log(`목숨 추가 완료: ${maxLives}개 (${amount}개 증가)`);
+    console.log(`🎉 목숨 추가 완료: ${maxLives}개 (${amount}개 증가) - ${reason}`, {
+        after: maxLives,
+        increase: amount,
+        reason: reason,
+        timestamp: new Date().toISOString()
+    });
 }
 
 // 보스 패턴 상수는 아래에서 정의됨
@@ -3292,6 +3299,14 @@ function checkEnemyCollisions(enemy) {
             
             // 보스인 경우 체력 감소
             if (enemy.isBoss) {
+                console.log('🎯 보스 충돌 감지됨!', {
+                    bulletType: bullet.isSpecial ? '특수무기' : '일반총알',
+                    enemyHealth: enemy.health,
+                    enemyHitCount: enemy.hitCount,
+                    bossHealth: bossHealth,
+                    bossDestroyed: bossDestroyed
+                });
+                
                 const currentTime = Date.now();
                 
                 // 무적 상태 해제됨 (즉시 공격 가능)
@@ -3299,7 +3314,13 @@ function checkEnemyCollisions(enemy) {
                 
                 // 특수 무기인 경우 즉시 파괴
                 if (bullet.isSpecial) {
-                    console.log('보스가 특수 무기에 맞음');
+                    console.log('💥 특수무기로 보스 파괴 시작!', {
+                        enemyHealth: enemy.health,
+                        enemyHitCount: enemy.hitCount,
+                        bossHealth: bossHealth,
+                        bossDestroyed: bossDestroyed,
+                        enemyLifeAdded: enemy.lifeAdded
+                    });
                     
                     // 보스 상태 즉시 정리 (체력을 확실히 0으로 설정하여 이중 파괴 방지)
                     enemy.health = 0;
@@ -3315,11 +3336,16 @@ function checkEnemyCollisions(enemy) {
                     
                     updateScore(getBossScore());
                     
-                    // 보스 파괴 시 목숨 2개 추가 (중복 방지)
+                    // 보스 파괴 시 목숨 1개 추가 (중복 방지)
                     if (!enemy.lifeAdded) {
-                        addLives(2, '보스 파괴 (특수무기)', enemy);
+                        console.log('🎯 보스 파괴 목숨 추가 시작 (특수무기):', {
+                            beforeLives: maxLives,
+                            enemyLifeAdded: enemy.lifeAdded,
+                            bossDestroyed: bossDestroyed
+                        });
+                        addLives(1, '보스 파괴 (특수무기)', enemy);
                         enemy.lifeAdded = true; // 목숨 추가 플래그 설정
-                        console.log('보스 파괴! 목숨 2개 추가됨 (특수무기)');
+                        console.log('보스 파괴! 목숨 1개 추가됨 (특수무기)');
                     } else {
                         console.log('보스 파괴되었지만 이미 목숨이 추가됨 (특수무기)');
                     }
@@ -3387,14 +3413,17 @@ function checkEnemyCollisions(enemy) {
                     requiredHitCount: requiredHitCount,
                     bossHealth: bossHealth,
                     gameLevel: gameLevel,
+                    willDestroy: enemy.hitCount >= requiredHitCount
                 });
                 
                 if (enemy.hitCount >= requiredHitCount) {
-                    console.log(`🎯 보스 파괴됨 - ${requiredHitCount}발 명중 달성! (체력: ${enemy.health})`, {
-                        health: enemy.health,
-                        hitCount: enemy.hitCount,
+                    console.log('💥 hitCount 조건으로 보스 파괴 시작!', {
+                        enemyHealth: enemy.health,
+                        enemyHitCount: enemy.hitCount,
                         requiredHitCount: requiredHitCount,
-                        gameLevel: gameLevel
+                        bossHealth: bossHealth,
+                        bossDestroyed: bossDestroyed,
+                        enemyLifeAdded: enemy.lifeAdded
                     });
                     
                     // 보스 상태 즉시 정리 (체력을 확실히 0으로 설정하여 이중 파괴 방지)
@@ -3412,11 +3441,18 @@ function checkEnemyCollisions(enemy) {
                     // 점수 추가
                     updateScore(getBossScore());
                     
-                    // 보스 파괴 시 목숨 2개 추가 (중복 방지)
+                    // 보스 파괴 시 목숨 1개 추가 (중복 방지)
                     if (!enemy.lifeAdded) {
-                        addLives(2, '보스 파괴 (hitCount 기반)', enemy);
+                        console.log('🎯 보스 파괴 목숨 추가 시작 (hitCount 기반):', {
+                            beforeLives: maxLives,
+                            enemyLifeAdded: enemy.lifeAdded,
+                            bossDestroyed: bossDestroyed,
+                            hitCount: enemy.hitCount,
+                            requiredHitCount: requiredHitCount
+                        });
+                        addLives(1, '보스 파괴 (hitCount 기반)', enemy);
                         enemy.lifeAdded = true; // 목숨 추가 플래그 설정
-                        console.log('보스 파괴! 목숨 2개 추가됨 (hitCount 기반)');
+                        console.log('보스 파괴! 목숨 1개 추가됨 (hitCount 기반)');
                     } else {
                         console.log('보스 파괴되었지만 이미 목숨이 추가됨 (hitCount 기반)');
                     }
@@ -3451,6 +3487,14 @@ function checkEnemyCollisions(enemy) {
                 
                 // 체력이 0이 되면 보스 파괴 (최소 체류 시간 체크 - hitCount 기반 파괴가 우선)
                 if (enemy.health <= 0 && !bossDestroyed) {
+                    console.log('💥 체력 조건으로 보스 파괴 시작!', {
+                        enemyHealth: enemy.health,
+                        enemyHitCount: enemy.hitCount,
+                        bossHealth: bossHealth,
+                        bossDestroyed: bossDestroyed,
+                        enemyLifeAdded: enemy.lifeAdded
+                    });
+                    
                     // 보스 체류 시간 체크 제거 - 체력이 0이 되면 즉시 파괴
                     console.log('보스 파괴 조건 체크 (체력 기반):', {
                         health: enemy.health,
@@ -3481,11 +3525,17 @@ function checkEnemyCollisions(enemy) {
                     // 점수 추가
                     updateScore(getBossScore());
                     
-                    // 보스 파괴 시 목숨 2개 추가 (중복 방지)
+                    // 보스 파괴 시 목숨 1개 추가 (중복 방지)
                     if (!enemy.lifeAdded) {
-                        addLives(2, '보스 파괴 (체력 기반)', enemy);
+                        console.log('🎯 보스 파괴 목숨 추가 시작 (체력 기반):', {
+                            beforeLives: maxLives,
+                            enemyLifeAdded: enemy.lifeAdded,
+                            bossDestroyed: bossDestroyed,
+                            health: enemy.health
+                        });
+                        addLives(1, '보스 파괴 (체력 기반)', enemy);
                         enemy.lifeAdded = true; // 목숨 추가 플래그 설정
-                        console.log('보스 파괴! 목숨 2개 추가됨 (체력 기반)');
+                        console.log('보스 파괴! 목숨 1개 추가됨 (체력 기반)');
                     } else {
                         console.log('보스 파괴되었지만 이미 목숨이 추가됨 (체력 기반)');
                     }
@@ -5379,18 +5429,29 @@ function calculateBossHitCount(bossHealth) {
 
 // 보스 생성 함수 수정
 function createBoss() {
-    console.log('보스 헬리콥터 생성 함수 호출됨');
+    console.log('🎮 보스 헬리콥터 생성 함수 호출됨', {
+        bossActive: bossActive,
+        isBossActive: isBossActive,
+        currentTime: new Date().toISOString(),
+        enemiesCount: enemies.length
+    });
     
     // 이미 보스가 존재하는 경우 - 더 엄격한 체크
     if (bossActive || isBossActive) {
-        console.log('보스가 이미 존재하여 생성하지 않음 (bossActive:', bossActive, ', isBossActive:', isBossActive, ')');
+        console.log('❌ 보스가 이미 존재하여 생성하지 않음', {
+            bossActive: bossActive,
+            isBossActive: isBossActive
+        });
         return;
     }
     
     // enemies 배열에서 보스 존재 여부도 체크
     const existingBoss = enemies.find(enemy => enemy.isBoss);
     if (existingBoss) {
-        console.log('enemies 배열에 보스가 이미 존재하여 생성하지 않음');
+        console.log('❌ enemies 배열에 보스가 이미 존재하여 생성하지 않음', {
+            existingBossId: existingBoss.id,
+            existingBossHealth: existingBoss.health
+        });
         return;
     }
     
@@ -5420,7 +5481,7 @@ function createBoss() {
         return;
     }
     
-    console.log('보스 헬리콥터 생성 시작:', {
+    console.log('🎮 보스 헬리콥터 생성 시작:', {
         currentTime,
         lastBossSpawnTime,
         timeSinceLastBoss
@@ -5429,6 +5490,11 @@ function createBoss() {
     // 보스 상태 초기화
     bossActive = true;
     isBossActive = true; // 보스 활성화 상태 설정
+    
+    console.log('✅ 보스 상태 초기화 완료:', {
+        bossActive: bossActive,
+        isBossActive: isBossActive
+    });
     
     // 레벨에 따라 동적으로 보스 체력 계산
     const calculatedBossHealth = calculateBossHealth();
@@ -5512,13 +5578,17 @@ function createBoss() {
     
     // 보스 추가
     enemies.push(boss);
-    console.log('✅ 보스가 enemies 배열에 추가됨 (모양 테마 적용):', {
+    console.log('🎉 보스 생성 완료! enemies 배열에 추가됨:', {
+        bossId: boss.id,
+        bossHealth: boss.health,
+        bossHitCount: boss.hitCount,
         enemiesCount: enemies.length,
         bossActive: bossActive,
         isBossActive: isBossActive,
         bulletShapeTheme: boss.bulletShapeTheme,
         shapeChangeCount: boss.shapeChangeCount,
-        note: '보스별 고유 확산탄 모양 테마가 적용됨'
+        lifeAdded: boss.lifeAdded,
+        note: '보스가 성공적으로 생성되어 게임에 등장함'
     });
     
             // 🚨 보스 생성 직후 완벽하게 중앙에 고정 (더욱 엄격한 안전한 위치 설정)
