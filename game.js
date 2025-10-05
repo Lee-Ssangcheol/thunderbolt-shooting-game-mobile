@@ -693,7 +693,7 @@ let enemySpawnRate = 2000;  // 적 생성 주기 (ms)
 let enemySpeed = 2 * mobileSpeedMultiplier;  // 적 이동 속도
 
 // 보호막 헬리콥터 파괴 관련 변수 추가
-let shieldedHelicopterDestroyed = 0;  // 보호막 헬리콥터 파괴 수 (3대마다 목숨 추가)
+let shieldedHelicopterDestroyed = 0;  // 보호막 헬리콥터 파괴 수 (1대마다 목숨 추가)
 let livesAddedFromHelicopters = 0;    // 헬리콥터 파괴로 추가된 목숨 수
 
 // 목숨 추가 메시지 표시 관련 변수
@@ -1682,7 +1682,8 @@ function createEnemy(forceType = null) {
                     shieldHealth: 100, // 100발 맞으면 파괴
                     shieldHitCount: 0,
                     shieldColor: '#FFA500', // 헬리콥터2(오렌지계열) 보호막 색상
-                    isShieldBroken: false
+                    isShieldBroken: false,
+                    lifeAddedFromHelicopter: false, // 목숨 추가 플래그 초기화
                 };
 
                 // 엘리트 적 보너스 (속도, 발사 간격, 체력은 제한)
@@ -1735,7 +1736,8 @@ function createEnemy(forceType = null) {
                     shieldHealth: 100, // 100발 맞으면 파괴
                     shieldHitCount: 0,
                     shieldColor: '#008B8B', // 헬리콥터1(블루계열) 보호막 색상
-                    isShieldBroken: false
+                    isShieldBroken: false,
+                    lifeAddedFromHelicopter: false, // 목숨 추가 플래그 초기화
                 };
 
                 // 엘리트 적 보너스 (속도, 발사 간격, 체력은 제한)
@@ -1832,7 +1834,8 @@ function createEnemy(forceType = null) {
                 shieldHealth: 100, // 100발 맞으면 파괴
                 shieldHitCount: 0,
                 shieldColor: '#FFA500', // 헬리콥터2(오렌지계열) 보호막 색상
-                isShieldBroken: false
+                isShieldBroken: false,
+                lifeAddedFromHelicopter: false, // 목숨 추가 플래그 초기화
             };
 
             // 엘리트 적 보너스 (속도, 발사 간격, 체력은 제한)
@@ -1884,7 +1887,8 @@ function createEnemy(forceType = null) {
                 shieldHealth: 100,
                 shieldHitCount: 0,
                 shieldColor: '#008B8B', // 헬리콥터1(블루계열) 보호막 색상
-                isShieldBroken: false
+                isShieldBroken: false,
+                lifeAddedFromHelicopter: false, // 목숨 추가 플래그 초기화
             };
 
             // 엘리트 헬리콥터 보너스 (속도는 제한)
@@ -3296,16 +3300,28 @@ function checkEnemyCollisions(enemy) {
                 // 특수 무기인 경우 즉시 파괴
                 if (bullet.isSpecial) {
                     console.log('보스가 특수 무기에 맞음');
+                    
+                    // 보스 상태 즉시 정리 (체력을 확실히 0으로 설정하여 이중 파괴 방지)
                     enemy.health = 0;
                     bossHealth = 0;
                     bossDestroyed = true;
                     enemy.isBeingHit = false; // 피격 상태 즉시 해제
+                    
+                    console.log('보스 체력 0으로 설정 완료 (특수무기) - 이중 파괴 방지:', {
+                        enemyHealth: enemy.health,
+                        bossHealth: bossHealth,
+                        bossDestroyed: bossDestroyed
+                    });
+                    
                     updateScore(getBossScore());
                     
                     // 보스 파괴 시 목숨 2개 추가 (중복 방지)
                     if (!enemy.lifeAdded) {
                         addLives(2, '보스 파괴 (특수무기)', enemy);
                         enemy.lifeAdded = true; // 목숨 추가 플래그 설정
+                        console.log('보스 파괴! 목숨 2개 추가됨 (특수무기)');
+                    } else {
+                        console.log('보스 파괴되었지만 이미 목숨이 추가됨 (특수무기)');
                     }
                     
                     // 큰 폭발 효과
@@ -3381,19 +3397,28 @@ function checkEnemyCollisions(enemy) {
                         gameLevel: gameLevel
                     });
                     
-                    // 보스 상태 즉시 정리
+                    // 보스 상태 즉시 정리 (체력을 확실히 0으로 설정하여 이중 파괴 방지)
                     enemy.health = 0;
                     bossHealth = 0;
                     bossDestroyed = true;
                     enemy.isBeingHit = false;
                     
+                    console.log('보스 체력 0으로 설정 완료 - 이중 파괴 방지:', {
+                        enemyHealth: enemy.health,
+                        bossHealth: bossHealth,
+                        bossDestroyed: bossDestroyed
+                    });
+                    
                     // 점수 추가
                     updateScore(getBossScore());
                     
                     // 보스 파괴 시 목숨 2개 추가 (중복 방지)
-                    if (!bullet.isSpecial && !enemy.lifeAdded) {
-                        addLives(2, '보스 파괴 (일반무기)', enemy);
+                    if (!enemy.lifeAdded) {
+                        addLives(2, '보스 파괴 (hitCount 기반)', enemy);
                         enemy.lifeAdded = true; // 목숨 추가 플래그 설정
+                        console.log('보스 파괴! 목숨 2개 추가됨 (hitCount 기반)');
+                    } else {
+                        console.log('보스 파괴되었지만 이미 목숨이 추가됨 (hitCount 기반)');
                     }
                     
                     // 폭발 효과
@@ -3425,12 +3450,13 @@ function checkEnemyCollisions(enemy) {
                 }
                 
                 // 체력이 0이 되면 보스 파괴 (최소 체류 시간 체크 - hitCount 기반 파괴가 우선)
-                if (enemy.health <= 0) {
+                if (enemy.health <= 0 && !bossDestroyed) {
                     // 보스 체류 시간 체크 제거 - 체력이 0이 되면 즉시 파괴
-                    console.log('보스 파괴 조건 체크:', {
+                    console.log('보스 파괴 조건 체크 (체력 기반):', {
                         health: enemy.health,
                         hitCount: enemy.hitCount,
-                        note: '체력이 0이 되면 즉시 파괴됨'
+                        bossDestroyed: bossDestroyed,
+                        note: '체력이 0이 되면 즉시 파괴됨 (hitCount 조건과 중복 방지)'
                     });
                     
                     // 보스 즉시 파괴 (체력 기반)
@@ -3440,19 +3466,28 @@ function checkEnemyCollisions(enemy) {
                         note: '체력이 0이 되어 즉시 파괴됨'
                     });
                     
-                    // 보스 상태 즉시 정리
+                    // 보스 상태 즉시 정리 (체력을 확실히 0으로 설정하여 이중 파괴 방지)
                     enemy.health = 0;
                     bossHealth = 0;
                     bossDestroyed = true;
                     enemy.isBeingHit = false;
                     
+                    console.log('보스 체력 0으로 설정 완료 (체력 기반) - 이중 파괴 방지:', {
+                        enemyHealth: enemy.health,
+                        bossHealth: bossHealth,
+                        bossDestroyed: bossDestroyed
+                    });
+                    
                     // 점수 추가
                     updateScore(getBossScore());
                     
                     // 보스 파괴 시 목숨 2개 추가 (중복 방지)
-                    if (!bullet.isSpecial && !enemy.lifeAdded) {
+                    if (!enemy.lifeAdded) {
                         addLives(2, '보스 파괴 (체력 기반)', enemy);
                         enemy.lifeAdded = true; // 목숨 추가 플래그 설정
+                        console.log('보스 파괴! 목숨 2개 추가됨 (체력 기반)');
+                    } else {
+                        console.log('보스 파괴되었지만 이미 목숨이 추가됨 (체력 기반)');
                     }
                     
                     // 폭발 효과
@@ -3511,15 +3546,14 @@ function checkEnemyCollisions(enemy) {
                     // 보호막 헬리콥터 파괴 카운터 증가
                     shieldedHelicopterDestroyed++;
                     
-                    // 3대 파괴할 때마다 목숨 1개 추가 (중복 방지)
-                    if (shieldedHelicopterDestroyed % 3 === 0) { // 3대 파괴 마다 1개 추가
-                        // 이미 이번 3대 묶음에서 목숨을 추가했다면 스킵
-                        const currentGroup = Math.floor((shieldedHelicopterDestroyed - 1) / 4);
-                        if (!enemy.lifeAddedFromHelicopter || enemy.lifeAddedFromHelicopter < currentGroup) {
-                            addLives(1, `보호막 헬리콥터 3대 파괴 (그룹: ${currentGroup})`, enemy);
-                            livesAddedFromHelicopters++;
-                            enemy.lifeAddedFromHelicopter = currentGroup; // 목숨 추가 플래그 설정
-                        }
+                    // 1대 파괴할 때마다 목숨 1개 추가 (중복 방지)
+                    if (!enemy.lifeAddedFromHelicopter) {
+                        addLives(1, `보호막 헬리콥터 파괴`, enemy);
+                        livesAddedFromHelicopters++;
+                        enemy.lifeAddedFromHelicopter = true; // 목숨 추가 플래그 설정
+                        console.log(`보호막 헬리콥터 파괴! 목숨 1개 추가됨. (총 파괴: ${shieldedHelicopterDestroyed}대)`);
+                    } else {
+                        console.log(`보호막 헬리콥터 파괴되었지만 이미 목숨이 추가됨. (총 파괴: ${shieldedHelicopterDestroyed}대)`);
                     }
                     
                     // 보호막 파괴 시 보스와 동일한 큰 폭발 효과
@@ -6715,7 +6749,8 @@ function createHelicopter() {
         shieldHealth: 100, // 100발 맞으면 파괴
         shieldHitCount: 0,
         shieldColor: isHelicopter2 ? '#FFA500' : '#20B2AA', // 타입에 따른 색상
-        isShieldBroken: false
+        isShieldBroken: false,
+        lifeAddedFromHelicopter: false, // 목숨 추가 플래그 초기화
     };
     
     enemies.push(helicopter);
