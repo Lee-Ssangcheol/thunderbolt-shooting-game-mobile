@@ -720,8 +720,17 @@ function addLives(amount, reason, enemy = null) {
     lifeAddedMessage = `🎉 ${reason}! 목숨 ${amount}개 추가됨! 🎉`;
     lifeAddedMessageTimer = Date.now();
     
-    // 목숨 추가 효과음 재생
-    safePlay(levelUpSound);
+    // 목숨 추가 효과음 재생 (보스/보호막 헬리콥터 파괴 시 폭발 효과음, 그 외 레벨업 효과음)
+    if (reason.includes('보스') || reason.includes('보호막 헬리콥터')) {
+        // 보스나 보호막 헬리콥터 파괴 시 폭발 효과음 (볼륨 1.0)
+        const originalVolume = explosionSound.volume;
+        explosionSound.volume = 1.0;
+        safePlay(explosionSound);
+        explosionSound.volume = originalVolume; // 원래 볼륨으로 복원
+    } else {
+        // 일반 목숨 추가 시 레벨업 효과음
+        safePlay(levelUpSound);
+    }
     
     console.log(`🎉 목숨 추가 완료: ${maxLives}개 (${amount}개 증가) - ${reason}`, {
         after: maxLives,
