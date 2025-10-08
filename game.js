@@ -626,14 +626,10 @@ if (window.electronAPI) {
 
 // 사운드 설정
 shootSound.volume = 0.1;  // 발사음 볼륨
-explosionSound.volume = 0.1;  // 폭발음 볼륨
+explosionSound.volume = 0.15;  // 폭발음 볼륨 (경고음과 동일한 크기)
 collisionSound.volume = 0.1;  // 충돌음 볼륨
 levelUpSound.volume = 0.1;  // 레벨업 효과음 볼륨
 warningSound.volume = 0.15;  // 경고음 볼륨
-
-// 충돌 사운드 재생 시간 제어를 위한 변수 추가
-let lastCollisionTime = 0;
-const collisionSoundCooldown = 300;  // 충돌음 쿨다운 시간 증가
 
 // 충돌 사운드 길이 제어
 collisionSound.addEventListener('loadedmetadata', () => {
@@ -2011,8 +2007,8 @@ function handleEnemyBullets() {
         if (checkCollision(bullet, player) || (hasSecondPlane && checkCollision(bullet, secondPlane))) {
             handleCollision();
             explosions.push(new Explosion(bullet.x, bullet.y, false));
-            // 폭발음
-            safePlay(explosionSound);
+            // 플레이어 충돌 시 경고음 재생
+            safePlay(warningSound);
             return false;
         }
         // 플레이어 총알과의 충돌 체크 (충돌 이펙트/음으로 변경)
@@ -2436,7 +2432,8 @@ function handleCollision() {
         return;
     }
     
-    safePlay(explosionSound);
+    // 플레이어 충돌 시 경고음 재생
+    safePlay(warningSound);
     try {
         if (hasShield) {
             hasShield = false;
@@ -2448,15 +2445,9 @@ function handleCollision() {
         collisionCount++;
         flashTimer = flashDuration;
         
-        if (currentTime - lastCollisionTime >= collisionSoundCooldown) {
-            safePlay(collisionSound);
-            lastCollisionTime = currentTime;
-        }
-        
-        // 목숨 감소 경고음
+        // 목숨 감소 시 추가 경고음 (중복 방지)
         const livesAfter = Math.max(0, maxLives - collisionCount);
         if (livesAfter < livesBefore) {
-            safePlay(warningSound);
             // 경고 플래시: 2000ms 동안 깜빡임 효과
             lifeWarningFlashEndTime = Date.now() + 2000;
         }
@@ -3250,7 +3241,10 @@ function handleSnakePattern() {
                             enemy.x + enemy.width/2,
                             enemy.y + enemy.height/2
                         ));
-                        safePlay(shootSound);
+                        // 일반 적 파괴 시 발사음 재생 (헬리콥터 제외)
+                        if (!(enemy.type === ENEMY_TYPES.HELICOPTER || enemy.type === ENEMY_TYPES.HELICOPTER2)) {
+                            safePlay(shootSound);
+                        }
                         enemy.isHit = true;
                         return false;
                     }
@@ -3635,7 +3629,11 @@ function checkEnemyCollisions(enemy) {
                     
                     // 보호막 파괴 효과음 (보스와 동일한 효과음)
                     safePlay(collisionSound);
+                    // 보호막 파괴 시 폭발음 (볼륨 0.7로 증가)
+                    const originalVolume = explosionSound.volume;
+                    explosionSound.volume = 0.7;
                     safePlay(explosionSound);
+                    explosionSound.volume = originalVolume; // 원래 볼륨으로 복원
                     
                     // 점수 부여
                     updateScore(enemy.score);
@@ -3680,8 +3678,8 @@ function checkEnemyCollisions(enemy) {
                         ));
                     }
                     
-                    // 특수무기 효과음
-                    safePlay(explosionSound);
+                    // 특수무기로 일반 비행기 파괴 시 발사음 재생
+                    safePlay(shootSound);
                 } else {
                     // 일반 총알인 경우 기본 폭발 효과
                     explosions.push(new Explosion(
@@ -3689,12 +3687,20 @@ function checkEnemyCollisions(enemy) {
                         enemy.y + enemy.height/2
                     ));
                     
-                    // 일반 총알은 데미지 텍스트 표시하지 않음 (시각적 방해 방지)
+                    // 일반 총알로 헬리콥터 파괴 시 폭발음, 일반 비행기 파괴 시 발사음
+                    if (enemy.type === ENEMY_TYPES.HELICOPTER || enemy.type === ENEMY_TYPES.HELICOPTER2) {
+                        // 헬리콥터 파괴 시 폭발음 (볼륨 0.5로 증가)
+                        const originalVolume = explosionSound.volume;
+                        explosionSound.volume = 0.5;
+                        safePlay(explosionSound);
+                        explosionSound.volume = originalVolume; // 원래 볼륨으로 복원
+                    } else {
+                        // 일반 비행기 파괴 시 발사음
+                        safePlay(shootSound);
+                    }
                 }
                 
                 updateScore(enemy.score);
-                // 추가: 플레이어 총알이 적 비행기/헬기에 명중 시 발사음 재생
-                safePlay(shootSound);
                 isHit = true; // 일반 적만 파괴
             }
             
@@ -4493,6 +4499,12 @@ function handleGameOver() {
                 player.y + player.height/2,
                 true
             ));
+            
+            // 게임 오버 시 폭발 효과음 (볼륨 1.0)
+            const originalVolume = explosionSound.volume;
+            explosionSound.volume = 1.0;
+            safePlay(explosionSound);
+            explosionSound.volume = originalVolume; // 원래 볼륨으로 복원
             
             // 주변 폭발 효과
             for (let i = 0; i < 12; i++) {
