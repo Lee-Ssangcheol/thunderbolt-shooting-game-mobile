@@ -600,29 +600,11 @@ const levelUpSound = new Audio();  // 레벨업 효과음 추가
 const warningSound = new Audio();  // 목숨 감소 경고음
 
 // 사운드 파일 경로 설정
-if (window.electronAPI) {
-    window.electronAPI.getSoundPath('shoot.mp3').then(path => {
-        shootSound.src = path;
-    });
-    window.electronAPI.getSoundPath('explosion.mp3').then(path => {
-        explosionSound.src = path;
-    });
-    window.electronAPI.getSoundPath('collision.mp3').then(path => {
-        collisionSound.src = path;
-    });
-    window.electronAPI.getSoundPath('levelup.mp3').then(path => {
-        levelUpSound.src = path;
-    });
-    window.electronAPI.getSoundPath('warning.mp3').then(path => {
-        warningSound.src = path;
-    });
-} else {
-    shootSound.src = 'sounds/shoot.mp3';
-    explosionSound.src = 'sounds/explosion.mp3';
-    collisionSound.src = 'sounds/collision.mp3';
-    levelUpSound.src = 'sounds/levelup.mp3';
-    warningSound.src = 'sounds/warning.mp3';
-}
+shootSound.src = 'sounds/shoot.mp3';
+explosionSound.src = 'sounds/explosion.mp3';
+collisionSound.src = 'sounds/collision.mp3';
+levelUpSound.src = 'sounds/levelup.mp3';
+warningSound.src = 'sounds/warning.mp3';
 
 // 사운드 설정
 shootSound.volume = 0.1;  // 발사음 볼륨
@@ -1193,14 +1175,7 @@ const ScoreManager = {
         try {
             if (score > highScore) {
                 highScore = score;
-                // Electron 환경인 경우 IPC를 통해 저장
-                if (window.electron) {
-                    const saved = await window.electron.ipcRenderer.invoke('save-score', highScore);
-                    if (saved) {
-                        console.log('Electron IPC를 통한 점수 저장 성공:', highScore);
-                    }
-                }
-                // localStorage에도 저장
+                // localStorage에 저장
                 await saveHighScoreDirectly(highScore, 'ScoreManager.save');
             }
         } catch (error) {
@@ -1210,14 +1185,7 @@ const ScoreManager = {
 
     async getHighScore() {
         try {
-            // Electron 환경인 경우 IPC를 통해 로드
-            if (window.electron) {
-                const electronScore = await window.electron.ipcRenderer.invoke('load-score');
-                if (electronScore > 0) {
-                    return electronScore;
-                }
-            }
-            // 브라우저 환경이거나 Electron에서 점수를 가져오지 못한 경우
+            // localStorage에서 로드
             return await loadHighScore();
         } catch (error) {
             console.error('최고 점수 로드 실패:', error);
@@ -1227,11 +1195,6 @@ const ScoreManager = {
 
     async reset() {
         try {
-            // Electron 환경인 경우 IPC를 통해 초기화
-            if (window.electron) {
-                await window.electron.ipcRenderer.invoke('reset-score');
-            }
-            
             // localStorage 초기화
             localStorage.removeItem('ThunderboltHighScore');
             localStorage.removeItem('ThunderboltHighScore_backup');
