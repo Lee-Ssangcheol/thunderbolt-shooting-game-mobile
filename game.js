@@ -606,12 +606,78 @@ collisionSound.src = 'sounds/collision.mp3';
 levelUpSound.src = 'sounds/levelup.mp3';
 warningSound.src = 'sounds/warning.mp3';
 
-// 사운드 설정
-shootSound.volume = 0.1;  // 발사음 볼륨
-explosionSound.volume = 0.2;  // 폭발음 볼륨 (다른 효과음보다 약간 높게)
-collisionSound.volume = 0.1;  // 충돌음 볼륨
-levelUpSound.volume = 0.1;  // 레벨업 효과음 볼륨
-warningSound.volume = 0.15;  // 경고음 볼륨
+// 볼륨 제한 함수 (종이비행기용과 동일)
+function clampVolume(volume) {
+    return Math.max(0, Math.min(1, volume));
+}
+
+// 전역 볼륨 변수 (종이비행기용과 동일)
+let globalVolume = 0.6; // 기본 볼륨 60%
+let isMuted = false;
+
+// 전역 볼륨 적용 함수 (종이비행기용과 동일)
+function applyGlobalVolume() {
+    if (isMuted) {
+        if (shootSound) shootSound.volume = 0;
+        if (explosionSound) explosionSound.volume = 0;
+        if (collisionSound) collisionSound.volume = 0;
+        if (levelUpSound) levelUpSound.volume = 0;
+        if (warningSound) warningSound.volume = 0;
+    } else {
+        if (shootSound) shootSound.volume = clampVolume(0.24 * globalVolume);
+        if (explosionSound) explosionSound.volume = clampVolume(0.36 * globalVolume);
+        if (collisionSound) collisionSound.volume = clampVolume(0.3 * globalVolume);
+        if (levelUpSound) levelUpSound.volume = clampVolume(0.18 * globalVolume);
+        if (warningSound) warningSound.volume = clampVolume(0.18 * globalVolume);
+    }
+}
+
+// 안전한 사운드 재생 함수 (종이비행기용과 동일)
+function safePlaySound(soundElement, volume = null) {
+    if (!soundElement) {
+        return; // 사운드 요소가 없으면 재생하지 않음
+    }
+    
+    try {
+        if (volume !== null) {
+            soundElement.volume = clampVolume(volume);
+            applyGlobalVolume();
+        }
+        soundElement.currentTime = 0;
+        soundElement.play().catch(error => {
+            console.log('사운드 재생 실패:', error);
+        });
+    } catch (error) {
+        console.log('사운드 재생 중 오류:', error);
+    }
+}
+
+// 폭발 효과음 재생을 위한 전용 함수 (중복 재생 방지)
+let lastExplosionSoundTime = 0;
+const explosionSoundCooldown = 200; // 200ms 쿨다운
+
+function playExplosionSoundSafe(volume = 0.36, isBoss = false) {
+    if (!explosionSound) return;
+    
+    const currentTime = Date.now();
+    if (currentTime - lastExplosionSoundTime < explosionSoundCooldown) {
+        return; // 쿨다운 중이면 재생하지 않음
+    }
+    
+    try {
+        explosionSound.currentTime = 0;
+        explosionSound.volume = clampVolume(volume);
+        explosionSound.play().catch(error => {
+            console.log('폭발음 재생 실패:', error);
+        });
+        lastExplosionSoundTime = currentTime;
+    } catch (error) {
+        console.log('폭발음 재생 중 오류:', error);
+    }
+}
+
+// 사운드 설정 (종이비행기용과 동일한 볼륨 설정)
+applyGlobalVolume();
 
 // 충돌 사운드 길이 제어
 collisionSound.addEventListener('loadedmetadata', () => {
@@ -700,11 +766,8 @@ function addLives(amount, reason, enemy = null) {
     
     // 목숨 추가 효과음 재생 (보스/보호막 헬리콥터 파괴 시 폭발 효과음, 그 외 레벨업 효과음)
     if (reason.includes('보스') || reason.includes('보호막 헬리콥터')) {
-        // 보스나 보호막 헬리콥터 파괴 시 폭발 효과음 (볼륨 1.0)
-        const originalVolume = explosionSound.volume;
-        explosionSound.volume = 1.0;
-        safePlay(explosionSound);
-        explosionSound.volume = originalVolume; // 원래 볼륨으로 복원
+        // 보스나 보호막 헬리콥터 파괴 시 폭발 효과음 (볼륨 2배)
+        playExplosionSoundSafe(0.72, true);
     } else {
         // 일반 목숨 추가 시 레벨업 효과음
         safePlay(levelUpSound);
@@ -3367,9 +3430,7 @@ function checkEnemyCollisions(enemy) {
                 bossHealth = newHealth;
                 
                 
-                // 보스 피격음 재생
-                safePlay(collisionSound);
-                // 추가: 플레이어 총알이 보스에 명중 시 발사음도 재생
+                // 보스 피격 시 발사음만 재생
                 safePlay(shootSound);
                 
                 // hitCount 조건을 먼저 체크하여 즉시 파괴 (체력과 독립적으로 작동)
@@ -3543,8 +3604,7 @@ function checkEnemyCollisions(enemy) {
                 const helicopterType = enemy.type === ENEMY_TYPES.HELICOPTER ? "헬리콥터1(블루)" : "헬리콥터2(오렌지)";
                 console.log(`${helicopterType} 보호막 피격: ${enemy.shieldHitCount}/${enemy.shieldHealth}`);
                 
-                // 보호막 피격 효과음 (보스와 동일한 효과음)
-                safePlay(collisionSound);
+                // 보호막 피격 시 발사음만 재생
                 safePlay(shootSound);
                 
                 // 보호막 피격 시각 효과
@@ -3590,13 +3650,8 @@ function checkEnemyCollisions(enemy) {
                         ));
                     }
                     
-                    // 보호막 파괴 효과음 (보스와 동일한 효과음)
-                    safePlay(collisionSound);
-                    // 보호막 파괴 시 폭발음 (볼륨 0.4로 증가)
-                    const originalVolume = explosionSound.volume;
-                    explosionSound.volume = 0.4;
-                    safePlay(explosionSound);
-                    explosionSound.volume = originalVolume; // 원래 볼륨으로 복원
+                    // 보호막 파괴 시 폭발음만 재생 (볼륨 2배)
+                    playExplosionSoundSafe(0.72, true);
                     
                     // 점수 부여
                     updateScore(enemy.score);
@@ -3652,11 +3707,8 @@ function checkEnemyCollisions(enemy) {
                     
                     // 일반 총알로 헬리콥터 파괴 시 폭발음, 일반 비행기 파괴 시 발사음
                     if (enemy.type === ENEMY_TYPES.HELICOPTER || enemy.type === ENEMY_TYPES.HELICOPTER2) {
-                        // 헬리콥터 파괴 시 폭발음 (볼륨 0.3으로 증가)
-                        const originalVolume = explosionSound.volume;
-                        explosionSound.volume = 0.3;
-                        safePlay(explosionSound);
-                        explosionSound.volume = originalVolume; // 원래 볼륨으로 복원
+                        // 헬리콥터 파괴 시 폭발음 (볼륨 2배)
+                        playExplosionSoundSafe(0.72, true);
                     } else {
                         // 일반 비행기 파괴 시 발사음
                         safePlay(shootSound);
@@ -4463,11 +4515,8 @@ function handleGameOver() {
                 true
             ));
             
-            // 게임 오버 시 폭발 효과음 (볼륨 1.0)
-            const originalVolume = explosionSound.volume;
-            explosionSound.volume = 1.0;
-            safePlay(explosionSound);
-            explosionSound.volume = originalVolume; // 원래 볼륨으로 복원
+            // 게임 오버 시 폭발 효과음 (볼륨 2배)
+            playExplosionSoundSafe(0.72, true);
             
             // 주변 폭발 효과
             for (let i = 0; i < 12; i++) {
@@ -8103,16 +8152,9 @@ async function loadAllImages() {
     }
 }
 
-// 사운드 play 함수 예외처리 래퍼
+// 사운드 play 함수 예외처리 래퍼 (종이비행기용과 동일한 방식으로 변경)
 function safePlay(audio) {
-    try {
-        if (audio && audio.play) {
-            audio.currentTime = 0;
-            audio.play().catch(() => {});
-        }
-    } catch (e) {
-        // 사운드 파일이 없거나 재생 불가 시 무시
-    }
+    return safePlaySound(audio);
 }
 
 // 최고점수 완전 초기화 함수
@@ -8179,8 +8221,8 @@ function createSoundControlPanel() {
     volumeControl.style.width = '100%';
     volumeControl.innerHTML = `
         <label style="white-space: nowrap;">효과음 볼륨:</label>
-        <input type="range" min="0" max="100" value="10" id="sfx-volume" style="flex: 1; min-width: 120px; max-width: 200px;"> 
-        <span id="volume-value" style="min-width: 40px; text-align:right;">10%</span>
+        <input type="range" min="0" max="100" value="60" id="sfx-volume" style="flex: 1; min-width: 120px; max-width: 200px;"> 
+        <span id="volume-value" style="min-width: 40px; text-align:right;">60%</span>
     `;
     panel.appendChild(volumeControl);
 
@@ -8200,11 +8242,9 @@ function setupSoundControlEvents() {
             const volume = this.value / 100;  // 0-1 사이의 값으로 변환
             volumeValue.textContent = `${this.value}%`;
             
-            // 모든 효과음 볼륨 업데이트
-            shootSound.volume = volume;
-            explosionSound.volume = volume;
-            collisionSound.volume = volume;
-            levelUpSound.volume = volume;
+            // 전역 볼륨 업데이트 (종이비행기용과 동일한 방식)
+            globalVolume = volume;
+            applyGlobalVolume();
         });
 
         // 마우스 이벤트가 다른 요소에 영향을 주지 않도록 처리
