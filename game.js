@@ -8430,8 +8430,8 @@ function setupTouchPositionControls() {
         
         // 게임 진행 중일 때만 플레이어 이동
         if (gameStarted && !isGameOver && !isStartScreen) {
-            // 터치한 위치에서 플레이어가 적절한 거리에 오도록 조정 (원래 거리의 30%)
-            let adjustedTouchY = touchY - (player.height / 3 + 20) * 0.3; // 원래 거리의 30%로 조정
+            // 터치한 위치에서 플레이어가 적절한 거리에 오도록 조정 (꼬리끝에서 18.15픽셀 거리)
+            let adjustedTouchY = touchY - 18.15; // 꼬리끝에서 터치점까지 18.15픽셀 거리
             let newX = touchX - player.width / 2 + player.width / 4; // 터치 위치를 플레이어 중심으로 조정하고 날개폭의 반만큼 오른쪽으로 이동
             let newY = adjustedTouchY - player.height * 0.5; // 비행기 꼬리 날개가 터치점에서 적절한 거리에 오도록
             
@@ -8472,8 +8472,8 @@ function setupTouchPositionControls() {
         const touchX = touch.clientX - rect.left;
         const touchY = touch.clientY - rect.top;
         
-        // 터치한 위치에서 플레이어가 적절한 거리에 오도록 조정 (원래 거리의 30%)
-        let adjustedTouchY = touchY - (player.height / 3 + 20) * 0.3; // 원래 거리의 30%로 조정
+        // 터치한 위치에서 플레이어가 적절한 거리에 오도록 조정 (꼬리끝에서 18.15픽셀 거리)
+        let adjustedTouchY = touchY - 18.15; // 꼬리끝에서 터치점까지 18.15픽셀 거리
         let newX = touchX - player.width / 2 + player.width / 4; // 터치 위치를 플레이어 중심으로 조정하고 날개폭의 반만큼 오른쪽으로 이동
         let newY = adjustedTouchY - player.height * 0.5; // 비행기 꼬리 날개가 터치점에서 적절한 거리에 오도록
         
