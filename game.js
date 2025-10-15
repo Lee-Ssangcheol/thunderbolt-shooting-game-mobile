@@ -8600,20 +8600,28 @@ function bossFireSnowflakeShot(boss) {
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
-    // 다층 원형 패턴 - 내부와 외부 원으로 구성된 눈 결정체 모양 (난이도 증가)
-    // 내부 원 (작은 원) - 속도 증가
+    // 다층 원형 패턴 - 내부와 외부 원으로 구성된 눈 결정체 모양 (난이도 추가 증가)
+    // 내부 원 (작은 원) - 속도 추가 증가
     for (let i = 0; i < 6; i++) {
         const angle = (Math.PI * 2 * i) / 6;
-        createBossBullet(boss, angle, 'snowflake_shot', 5); // 속도 3 → 5로 증가
+        createBossBullet(boss, angle, 'snowflake_shot', 7); // 속도 5 → 7로 증가
     }
     
-    // 외부 원 (큰 원) - 지연 발사, 속도 증가
+    // 외부 원 (큰 원) - 지연 발사, 속도 추가 증가
     setTimeout(() => {
         for (let i = 0; i < 4; i++) {
             const angle = (Math.PI * 2 * i) / 4 + Math.PI / 4; // 45도 회전된 위치
-            createBossBullet(boss, angle, 'snowflake_shot', 6); // 속도 4 → 6으로 증가
+            createBossBullet(boss, angle, 'snowflake_shot', 8); // 속도 6 → 8로 증가
         }
-    }, 150); // 지연 시간 200ms → 150ms로 단축
+    }, 100); // 지연 시간 150ms → 100ms로 단축
+    
+    // 추가 중간 원 (난이도 증가)
+    setTimeout(() => {
+        for (let i = 0; i < 8; i++) {
+            const angle = (Math.PI * 2 * i) / 8 + Math.PI / 8; // 22.5도 회전된 위치
+            createBossBullet(boss, angle, 'snowflake_shot', 6);
+        }
+    }, 200);
 }
 
 function bossFirePinwheelShot(boss) {
@@ -8622,18 +8630,33 @@ function bossFirePinwheelShot(boss) {
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
-    // 진짜 나선형 패턴 - 바람개비처럼 회전하는 나선 (난이도 증가)
-    for (let layer = 0; layer < 4; layer++) { // 층 수 3 → 4로 증가
+    // 진짜 나선형 패턴 - 바람개비처럼 회전하는 나선 (난이도 추가 증가)
+    for (let layer = 0; layer < 5; layer++) { // 층 수 4 → 5로 증가
         setTimeout(() => {
             for (let i = 0; i < 4; i++) {
                 const baseAngle = (Math.PI * 2 * i) / 4;
                 const spiralOffset = layer * Math.PI / 4; // 각 층마다 45도씩 회전
                 const angle = baseAngle + spiralOffset;
-                const speed = 4 + layer * 0.8; // 속도 증가 (3 → 4, 0.5 → 0.8)
+                const speed = 5 + layer * 1.0; // 속도 추가 증가 (4 → 5, 0.8 → 1.0)
                 createBossBullet(boss, angle, 'pinwheel_shot', speed);
             }
-        }, layer * 100); // 간격 150ms → 100ms로 단축
+        }, layer * 80); // 간격 100ms → 80ms로 단축
     }
+    
+    // 추가 역방향 나선 (난이도 증가)
+    setTimeout(() => {
+        for (let layer = 0; layer < 3; layer++) {
+            setTimeout(() => {
+                for (let i = 0; i < 4; i++) {
+                    const baseAngle = (Math.PI * 2 * i) / 4;
+                    const spiralOffset = -layer * Math.PI / 4; // 역방향 회전
+                    const angle = baseAngle + spiralOffset;
+                    const speed = 6 + layer * 0.5;
+                    createBossBullet(boss, angle, 'pinwheel_shot', speed);
+                }
+            }, layer * 80);
+        }
+    }, 400);
 }
 
 function bossFireTriangleShot(boss) {
@@ -8642,25 +8665,33 @@ function bossFireTriangleShot(boss) {
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
-    // 삼각형 모양 패턴 - 정삼각형의 세 꼭짓점 방향으로 발사 (난이도 증가)
+    // 삼각형 모양 패턴 - 정삼각형의 세 꼭짓점 방향으로 발사 (난이도 추가 증가)
     for (let i = 0; i < 3; i++) {
         const angle = (Math.PI * 2 * i) / 3; // 0, 120, 240도
-        createBossBullet(boss, angle, 'triangle_shot', 6); // 속도 4 → 6으로 증가
+        createBossBullet(boss, angle, 'triangle_shot', 8); // 속도 6 → 8로 증가
     }
     
-    // 삼각형 중심에서 추가 발사 (지연) - 속도 증가
+    // 삼각형 중심에서 추가 발사 (지연) - 속도 추가 증가
     setTimeout(() => {
         for (let i = 0; i < 3; i++) {
             const angle = (Math.PI * 2 * i) / 3 + Math.PI / 3; // 60도 회전된 위치
-            createBossBullet(boss, angle, 'triangle_shot', 5); // 속도 3 → 5로 증가
+            createBossBullet(boss, angle, 'triangle_shot', 7); // 속도 5 → 7로 증가
         }
-    }, 150); // 지연 시간 200ms → 150ms로 단축
+    }, 100); // 지연 시간 150ms → 100ms로 단축
     
     // 추가 레이어 발사 (난이도 증가)
     setTimeout(() => {
         for (let i = 0; i < 3; i++) {
             const angle = (Math.PI * 2 * i) / 3 + Math.PI / 6; // 30도 회전된 위치
-            createBossBullet(boss, angle, 'triangle_shot', 4);
+            createBossBullet(boss, angle, 'triangle_shot', 6); // 속도 4 → 6으로 증가
+        }
+    }, 200); // 지연 시간 300ms → 200ms로 단축
+    
+    // 추가 복합 패턴 (난이도 증가)
+    setTimeout(() => {
+        for (let i = 0; i < 6; i++) {
+            const angle = (Math.PI * 2 * i) / 6; // 6방향 발사
+            createBossBullet(boss, angle, 'triangle_shot', 5);
         }
     }, 300);
 }
@@ -8808,24 +8839,32 @@ function bossFireCrossShot(boss) {
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
-    // 십자 모양 패턴 - 십자의 네 방향으로 발사 (난이도 증가)
-    for (let burst = 0; burst < 3; burst++) { // 버스트 수 2 → 3으로 증가
+    // 십자 모양 패턴 - 십자의 네 방향으로 발사 (난이도 추가 증가)
+    for (let burst = 0; burst < 4; burst++) { // 버스트 수 3 → 4로 증가
         setTimeout(() => {
-            // 십자 방향 (상하좌우) - 속도 증가
+            // 십자 방향 (상하좌우) - 속도 추가 증가
             for (let i = 0; i < 4; i++) {
                 const angle = (Math.PI * 2 * i) / 4; // 0, 90, 180, 270도
-                createBossBullet(boss, angle, 'cross_shot', 6); // 속도 4 → 6으로 증가
+                createBossBullet(boss, angle, 'cross_shot', 8); // 속도 6 → 8로 증가
             }
             
-            // 대각선 방향 (지연 발사) - 속도 증가
+            // 대각선 방향 (지연 발사) - 속도 추가 증가
             setTimeout(() => {
                 for (let i = 0; i < 4; i++) {
                     const angle = (Math.PI * 2 * i) / 4 + Math.PI / 4; // 45도 회전된 위치
-                    createBossBullet(boss, angle, 'cross_shot', 5); // 속도 3 → 5로 증가
+                    createBossBullet(boss, angle, 'cross_shot', 7); // 속도 5 → 7로 증가
                 }
-            }, 100);
-        }, burst * 250); // 간격 300ms → 250ms로 단축
+            }, 80); // 지연 시간 100ms → 80ms로 단축
+        }, burst * 200); // 간격 250ms → 200ms로 단축
     }
+    
+    // 추가 복합 십자 패턴 (난이도 증가)
+    setTimeout(() => {
+        for (let i = 0; i < 8; i++) {
+            const angle = (Math.PI * 2 * i) / 8; // 8방향 발사
+            createBossBullet(boss, angle, 'cross_shot', 6);
+        }
+    }, 800);
 }
 
 function bossFireHeartShot(boss) {
@@ -8834,36 +8873,44 @@ function bossFireHeartShot(boss) {
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
-    // 하트 모양 패턴 - 하트의 특징적인 곡선을 따라 발사 (난이도 증가)
-    // 하트의 상단 곡선 부분 - 속도 증가
+    // 하트 모양 패턴 - 하트의 특징적인 곡선을 따라 발사 (난이도 추가 증가)
+    // 하트의 상단 곡선 부분 - 속도 추가 증가
     for (let i = 0; i < 3; i++) {
         const angle = Math.PI + (i - 1) * Math.PI / 4; // 하트 상단 곡선
-        createBossBullet(boss, angle, 'heart_shot', 6); // 속도 4 → 6으로 증가
+        createBossBullet(boss, angle, 'heart_shot', 8); // 속도 6 → 8로 증가
     }
     
-    // 하트의 하단 뾰족한 부분 - 속도 증가
+    // 하트의 하단 뾰족한 부분 - 속도 추가 증가
     setTimeout(() => {
         for (let i = 0; i < 2; i++) {
             const angle = Math.PI / 2 + i * Math.PI; // 하트 하단 뾰족한 부분
-            createBossBullet(boss, angle, 'heart_shot', 5); // 속도 3 → 5로 증가
+            createBossBullet(boss, angle, 'heart_shot', 7); // 속도 5 → 7로 증가
         }
-    }, 150); // 지연 시간 200ms → 150ms로 단축
+    }, 100); // 지연 시간 150ms → 100ms로 단축
     
-    // 하트의 측면 부분 - 속도 증가
+    // 하트의 측면 부분 - 속도 추가 증가
     setTimeout(() => {
         for (let i = 0; i < 2; i++) {
             const angle = Math.PI / 4 + i * Math.PI / 2; // 하트 측면
-            createBossBullet(boss, angle, 'heart_shot', 5); // 속도 3 → 5로 증가
+            createBossBullet(boss, angle, 'heart_shot', 7); // 속도 5 → 7로 증가
         }
-    }, 300); // 지연 시간 400ms → 300ms로 단축
+    }, 200); // 지연 시간 300ms → 200ms로 단축
     
     // 추가 레이어 발사 (난이도 증가)
     setTimeout(() => {
         for (let i = 0; i < 3; i++) {
             const angle = Math.PI + (i - 1) * Math.PI / 6; // 하트 중간 부분
-            createBossBullet(boss, angle, 'heart_shot', 4);
+            createBossBullet(boss, angle, 'heart_shot', 6); // 속도 4 → 6으로 증가
         }
-    }, 450);
+    }, 350); // 지연 시간 450ms → 350ms로 단축
+    
+    // 추가 복합 하트 패턴 (난이도 증가)
+    setTimeout(() => {
+        for (let i = 0; i < 6; i++) {
+            const angle = (Math.PI * 2 * i) / 6; // 6방향 발사
+            createBossBullet(boss, angle, 'heart_shot', 5);
+        }
+    }, 500);
 }
 
 function bossFireStarShot(boss) {
@@ -8872,28 +8919,36 @@ function bossFireStarShot(boss) {
     const bossX = boss.x + boss.width/2;
     const bossY = boss.y + boss.height/2;
     
-    // 별 모양 패턴 - 오각별의 다섯 꼭짓점과 다섯 곡선 중심으로 발사 (난이도 증가)
-    // 별의 외부 꼭짓점 (5개) - 속도 증가
+    // 별 모양 패턴 - 오각별의 다섯 꼭짓점과 다섯 곡선 중심으로 발사 (난이도 추가 증가)
+    // 별의 외부 꼭짓점 (5개) - 속도 추가 증가
     for (let i = 0; i < 5; i++) {
         const angle = (Math.PI * 2 * i) / 5; // 0, 72, 144, 216, 288도
-        createBossBullet(boss, angle, 'star_shot', 6); // 속도 4 → 6으로 증가
+        createBossBullet(boss, angle, 'star_shot', 8); // 속도 6 → 8로 증가
     }
     
-    // 별의 내부 곡선 중심 (5개) - 지연 발사, 속도 증가
+    // 별의 내부 곡선 중심 (5개) - 지연 발사, 속도 추가 증가
     setTimeout(() => {
         for (let i = 0; i < 5; i++) {
             const angle = (Math.PI * 2 * i) / 5 + Math.PI / 5; // 36도 회전된 위치
-            createBossBullet(boss, angle, 'star_shot', 5); // 속도 3 → 5로 증가
+            createBossBullet(boss, angle, 'star_shot', 7); // 속도 5 → 7로 증가
         }
-    }, 150); // 지연 시간 200ms → 150ms로 단축
+    }, 100); // 지연 시간 150ms → 100ms로 단축
     
     // 추가 레이어 발사 (난이도 증가)
     setTimeout(() => {
         for (let i = 0; i < 5; i++) {
             const angle = (Math.PI * 2 * i) / 5 + Math.PI / 10; // 18도 회전된 위치
-            createBossBullet(boss, angle, 'star_shot', 4);
+            createBossBullet(boss, angle, 'star_shot', 6); // 속도 4 → 6으로 증가
         }
-    }, 300);
+    }, 200); // 지연 시간 300ms → 200ms로 단축
+    
+    // 추가 복합 별 패턴 (난이도 증가)
+    setTimeout(() => {
+        for (let i = 0; i < 10; i++) {
+            const angle = (Math.PI * 2 * i) / 10; // 10방향 발사
+            createBossBullet(boss, angle, 'star_shot', 5);
+        }
+    }, 400);
 }
 
 function bossFireFlowerShot(boss) {
