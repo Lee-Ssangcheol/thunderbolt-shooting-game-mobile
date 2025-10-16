@@ -3428,8 +3428,8 @@ function checkEnemyCollisions(enemy) {
                 bossHealth = newHealth;
                 
                 
-                // 보스 피격 시 충돌음만 재생
-                safePlay(collisionSound);
+                // 보스 피격 시 shoot 효과음 재생
+                safePlay(shootSound);
                 
                 // hitCount 조건을 먼저 체크하여 즉시 파괴 (체력과 독립적으로 작동)
                 const requiredHitCount = calculateBossHitCount(bossHealth);
@@ -3602,8 +3602,8 @@ function checkEnemyCollisions(enemy) {
                 const helicopterType = enemy.type === ENEMY_TYPES.HELICOPTER ? "헬리콥터1(블루)" : "헬리콥터2(오렌지)";
                 console.log(`${helicopterType} 보호막 피격: ${enemy.shieldHitCount}/${enemy.shieldHealth}`);
                 
-                // 보호막 피격 시 충돌음만 재생
-                safePlay(collisionSound);
+                // 보호막 피격 시 shoot 효과음 재생
+                safePlay(shootSound);
                 
                 // 보호막 피격 시각 효과
                 explosions.push(new Explosion(
