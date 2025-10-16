@@ -3267,10 +3267,8 @@ function handleSnakePattern() {
                             enemy.x + enemy.width/2,
                             enemy.y + enemy.height/2
                         ));
-                        // 일반 적 파괴 시 발사음 재생 (헬리콥터 제외)
-                        if (!(enemy.type === ENEMY_TYPES.HELICOPTER || enemy.type === ENEMY_TYPES.HELICOPTER2)) {
-                            safePlay(shootSound);
-                        }
+                        // 뱀 패턴 그룹 비행기 피격 시 shoot 효과음만 재생
+                        safePlay(shootSound);
                         enemy.isHit = true;
                         return false;
                     }
@@ -3430,8 +3428,8 @@ function checkEnemyCollisions(enemy) {
                 bossHealth = newHealth;
                 
                 
-                // 보스 피격 시 발사음만 재생
-                safePlay(shootSound);
+                // 보스 피격 시 충돌음만 재생
+                safePlay(collisionSound);
                 
                 // hitCount 조건을 먼저 체크하여 즉시 파괴 (체력과 독립적으로 작동)
                 const requiredHitCount = calculateBossHitCount(bossHealth);
@@ -3604,8 +3602,8 @@ function checkEnemyCollisions(enemy) {
                 const helicopterType = enemy.type === ENEMY_TYPES.HELICOPTER ? "헬리콥터1(블루)" : "헬리콥터2(오렌지)";
                 console.log(`${helicopterType} 보호막 피격: ${enemy.shieldHitCount}/${enemy.shieldHealth}`);
                 
-                // 보호막 피격 시 발사음만 재생
-                safePlay(shootSound);
+                // 보호막 피격 시 충돌음만 재생
+                safePlay(collisionSound);
                 
                 // 보호막 피격 시각 효과
                 explosions.push(new Explosion(
@@ -3650,7 +3648,7 @@ function checkEnemyCollisions(enemy) {
                         ));
                     }
                     
-                    // 보호막 파괴 시 폭발음만 재생 (볼륨 2배)
+                    // 보호막 파괴 시 폭발음만 재생
                     playExplosionSoundSafe(1.0, true);
                     
                     // 점수 부여
@@ -3696,8 +3694,7 @@ function checkEnemyCollisions(enemy) {
                         ));
                     }
                     
-                    // 특수무기로 일반 비행기 파괴 시 발사음 재생
-                    safePlay(shootSound);
+                    // 특수무기로 일반 비행기 파괴 시 효과음 없음
                 } else {
                     // 일반 총알인 경우 기본 폭발 효과
                     explosions.push(new Explosion(
@@ -3705,14 +3702,12 @@ function checkEnemyCollisions(enemy) {
                         enemy.y + enemy.height/2
                     ));
                     
-                    // 일반 총알로 헬리콥터 파괴 시 폭발음, 일반 비행기 파괴 시 발사음
+                    // 일반 총알로 헬리콥터 파괴 시 폭발음, 일반 비행기 파괴 시 효과음 없음
                     if (enemy.type === ENEMY_TYPES.HELICOPTER || enemy.type === ENEMY_TYPES.HELICOPTER2) {
-                        // 헬리콥터 파괴 시 폭발음 (볼륨 2배)
+                        // 헬리콥터 파괴 시 폭발음
                         playExplosionSoundSafe(1.0, true);
-                    } else {
-                        // 일반 비행기 파괴 시 발사음
-                        safePlay(shootSound);
                     }
+                    // 일반 비행기 파괴 시 효과음 없음
                 }
                 
                 updateScore(enemy.score);
@@ -5100,8 +5095,8 @@ function handleBullets() {
             if (!helicopterBullet.isBossBullet && checkCollision(bullet, helicopterBullet)) {
                 // 충돌 시 폭발 효과 추가
                 explosions.push(new Explosion(helicopterBullet.x, helicopterBullet.y, false));
-                // 충돌음 재생
-                safePlay(collisionSound);
+                // 플레이어 총알이 보스/보호막 헬리콥터 총알 피격 시 shoot 효과음 재생
+                safePlay(shootSound);
                 // 헬리콥터 총알 제거
                 helicopterBullets.splice(i, 1);
                 // 플레이어 총알도 제거
@@ -7807,8 +7802,8 @@ function handleHelicopterBullets() {
                 console.log('충돌! 플레이어 총알과 헬기 총알', bullet, playerBullet);
                 explosions.push(new Explosion(bullet.x, bullet.y, false));
                 
-                // 충돌음 재생
-                safePlay(collisionSound);
+                // 플레이어 총알이 보스/보호막 헬리콥터 총알 피격 시 shoot 효과음 재생
+                safePlay(shootSound);
                 
                 bullets.splice(i, 1);
                 return false; // 충돌한 헬리콥터 총알 제거
