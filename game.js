@@ -612,7 +612,7 @@ function clampVolume(volume) {
 }
 
 // 전역 볼륨 변수 (종이비행기용과 동일)
-let globalVolume = 0.6; // 기본 볼륨 60%
+let globalVolume = 1.0; // 기본 볼륨 100%
 let isMuted = false;
 
 // 전역 볼륨 적용 함수 (종이비행기용과 동일)
@@ -624,11 +624,11 @@ function applyGlobalVolume() {
         if (levelUpSound) levelUpSound.volume = 0;
         if (warningSound) warningSound.volume = 0;
     } else {
-        if (shootSound) shootSound.volume = clampVolume(0.24 * globalVolume);
-        if (explosionSound) explosionSound.volume = clampVolume(0.36 * globalVolume);
-        if (collisionSound) collisionSound.volume = clampVolume(0.3 * globalVolume);
-        if (levelUpSound) levelUpSound.volume = clampVolume(0.18 * globalVolume);
-        if (warningSound) warningSound.volume = clampVolume(0.18 * globalVolume);
+        if (shootSound) shootSound.volume = clampVolume(1.0 * globalVolume);
+        if (explosionSound) explosionSound.volume = clampVolume(1.0 * globalVolume);
+        if (collisionSound) collisionSound.volume = clampVolume(1.0 * globalVolume);
+        if (levelUpSound) levelUpSound.volume = clampVolume(1.0 * globalVolume);
+        if (warningSound) warningSound.volume = clampVolume(1.0 * globalVolume);
     }
 }
 
@@ -656,7 +656,7 @@ function safePlaySound(soundElement, volume = null) {
 let lastExplosionSoundTime = 0;
 const explosionSoundCooldown = 200; // 200ms 쿨다운
 
-function playExplosionSoundSafe(volume = 0.36, isBoss = false) {
+function playExplosionSoundSafe(volume = 1.0, isBoss = false) {
     if (!explosionSound) return;
     
     const currentTime = Date.now();
@@ -767,7 +767,7 @@ function addLives(amount, reason, enemy = null) {
     // 목숨 추가 효과음 재생 (보스/보호막 헬리콥터 파괴 시 폭발 효과음, 그 외 레벨업 효과음)
     if (reason.includes('보스') || reason.includes('보호막 헬리콥터')) {
         // 보스나 보호막 헬리콥터 파괴 시 폭발 효과음 (볼륨 2배)
-        playExplosionSoundSafe(0.72, true);
+        playExplosionSoundSafe(1.0, true);
     } else {
         // 일반 목숨 추가 시 레벨업 효과음
         safePlay(levelUpSound);
@@ -3651,7 +3651,7 @@ function checkEnemyCollisions(enemy) {
                     }
                     
                     // 보호막 파괴 시 폭발음만 재생 (볼륨 2배)
-                    playExplosionSoundSafe(0.72, true);
+                    playExplosionSoundSafe(1.0, true);
                     
                     // 점수 부여
                     updateScore(enemy.score);
@@ -3708,7 +3708,7 @@ function checkEnemyCollisions(enemy) {
                     // 일반 총알로 헬리콥터 파괴 시 폭발음, 일반 비행기 파괴 시 발사음
                     if (enemy.type === ENEMY_TYPES.HELICOPTER || enemy.type === ENEMY_TYPES.HELICOPTER2) {
                         // 헬리콥터 파괴 시 폭발음 (볼륨 2배)
-                        playExplosionSoundSafe(0.72, true);
+                        playExplosionSoundSafe(1.0, true);
                     } else {
                         // 일반 비행기 파괴 시 발사음
                         safePlay(shootSound);
@@ -4516,7 +4516,7 @@ function handleGameOver() {
             ));
             
             // 게임 오버 시 폭발 효과음 (볼륨 2배)
-            playExplosionSoundSafe(0.72, true);
+            playExplosionSoundSafe(1.0, true);
             
             // 주변 폭발 효과
             for (let i = 0; i < 12; i++) {
@@ -8221,8 +8221,8 @@ function createSoundControlPanel() {
     volumeControl.style.width = '100%';
     volumeControl.innerHTML = `
         <label style="white-space: nowrap;">효과음 볼륨:</label>
-        <input type="range" min="0" max="100" value="60" id="sfx-volume" style="flex: 1; min-width: 120px; max-width: 200px;"> 
-        <span id="volume-value" style="min-width: 40px; text-align:right;">60%</span>
+        <input type="range" min="0" max="100" value="100" id="sfx-volume" style="flex: 1; min-width: 120px; max-width: 200px;"> 
+        <span id="volume-value" style="min-width: 40px; text-align:right;">100%</span>
     `;
     panel.appendChild(volumeControl);
 
