@@ -1575,8 +1575,6 @@ function restartGame() {
     // 파워업 상태 초기화
     window.cooldownCompletedTime = 0; // 추가 비행기 쿨다운 완료 시간 초기화
     hasShield = false;
-    damageMultiplier = 1;
-    fireRateMultiplier = 1;
     
     // 보스 관련 상태 초기화
     bossActive = false;
@@ -1584,11 +1582,55 @@ function restartGame() {
     bossDestroyed = false;
     lastBossSpawnTime = Date.now();
     
+    // 터치 입력 상태 초기화
+    keys.ArrowLeft = false;
+    keys.ArrowRight = false;
+    keys.ArrowUp = false;
+    keys.ArrowDown = false;
+    keys.Space = false;
+    keys.KeyB = false;
+    keys.F5 = false;
+    keys.KeyP = false;
+    keys.Enter = false;
+    isSpacePressed = false;
+    spacePressTime = 0;
+    isContinuousFire = false;
+    canFire = true;
+    lastReleaseTime = 0;
+    lastFireTime = 0;
+    
+    // 플레이어 속도 관련 변수 초기화
+    fireDelay = 600;
+    continuousFireDelay = 50;
+    bulletSpeed = 10;
+    baseBulletSize = 5.0;
+    singleShotCooldown = 500;
+    minPressDuration = 200;
+    minReleaseDuration = 100;
+    
+    // 기타 게임 상태 변수 초기화
+    isPaused = false;
+    flashTimer = 0;
+    isSnakePatternActive = false;
+    snakeEnemies = [];
+    snakePatternTimer = 0;
+    snakePatternInterval = 0;
+    snakeGroups = [];
+    lastSnakeGroupTime = 0;
+    
+    // 적 생성 타이머 초기화
+    lastEnemySpawnTime = 0;
+    lastHelicopterSpawnTime = 0;
+    
+    // 기타 UI 관련 변수 초기화
+    lifeWarningFlashEndTime = 0;
+    if (window.damageTexts) {
+        window.damageTexts = [];
+    }
+    
     // 시작 화면으로 돌아가지 않고 바로 게임 화면으로 전환 (터치 대기)
     isStartScreen = false;
     gameStarted = false; // 화면 터치 대기 상태
-    
-    // ... 나머지 초기화 코드는 동일 ...
     
     console.log('게임 재시작 완료 - 현재 최고 점수:', highScore);
 }
